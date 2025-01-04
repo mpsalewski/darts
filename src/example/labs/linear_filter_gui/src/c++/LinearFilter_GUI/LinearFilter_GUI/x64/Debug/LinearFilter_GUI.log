@@ -1,0 +1,4 @@
+﻿  main.cpp
+C:\Users\xsale\Dokumente\HAWH\WiSe2024\Bildverarbeitung\imaging_learners\labs\linear_filter_gui\src\c++\LinearFilter_GUI\main.cpp(123,26): warning C4244: "Initialisierung": Konvertierung von "double" in "int", möglicher Datenverlust
+C:\Users\xsale\Dokumente\HAWH\WiSe2024\Bildverarbeitung\imaging_learners\labs\linear_filter_gui\src\c++\LinearFilter_GUI\main.cpp(130,21): warning C4244: "=": Konvertierung von "double" in "int", möglicher Datenverlust
+  LinearFilter_GUI.vcxproj -> C:\Users\xsale\Dokumente\HAWH\WiSe2024\Bildverarbeitung\imaging_learners\labs\linear_filter_gui\src\c++\LinearFilter_GUI\x64\Debug\LinearFilter_GUI.exe

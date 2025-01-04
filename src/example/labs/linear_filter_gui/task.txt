@@ -1,0 +1,45 @@
+14.4 Aufgabenstellung
+Nachfolgend ist die Aufgabenstellung konkretisiert. Es bietet sich an, die Teilaufgaben in der
+angegebenen Reihenfolge umzusetzen. Beachten Sie zudem den Abschnitt Tipps und Hilfen.
+
+Unscharfe Maskierung
+1. Setzen Sie die unscharfe Maskierung nach Gleichung 14.3 um.
+2. Verwenden Sie einen 9 × 9-Binomialfilter hLP.
+
+Grafische Oberfläche
+3. Stellen Sie zunächst nur das geschärfte Bild gUM in einem Fenster dar.
+4. Fügen Sie einen Schieberegler hinzu, über den der Parameter α verändert werden kann, zum Fenster
+hinzu. Bei einer Änderung wird das Ausgangsbild mit dem neuen Wert für α prozessiert und
+das Ergebnis im Fenster dargestellt.
+5. Reagieren Sie in einer Callback-Methode auf Maus-Ereignisse des Fensters. Zeichnen Sie in
+einem ersten Schritt lediglich eine weiße vertikale Linie an der x-Position der Maus, um zu
+überprüfen, ob korrekt auf die Ereignisse reagiert wird.
+6. Vervollständigen Sie die Callback-Methode, indem Sie ein Bild erzeugen, das links der zuletzt
+mit der Maus gesetzten x-Position per unscharfer Maskierung geschärft und rechts von dieser
+Position unverändert ist.
+
+Folgende Aspekte sind optional und müssen daher nicht umgesetzt werden:
+(7.) Die Trennlinie wird nur verschoben, wenn die Maus bei gedrückter linker Taste bewegt wird.
+(8.) Stellen Sie die Trennlinie farbig dar.
+(9.) Verzichten Sie auf globale Variablen.
+
+
+Tipps und Hilfen
+
+▶ Ich verwende in meiner Implementierung nachfolgende Methoden-Prototypen:
+/* Prototypes */
+void onTrackbarAlpha(int alphaPercent, void* imagePtr);
+void onMouseSplitScreen(int event, int x, int y, int flags, void* imagePtr);
+void processAndDisplay(cv::Mat image, double alphaPercent, int splitX = 1);
+void unsharpMasking(const cv::Mat& source, cv::Mat& processed, double alpha);
+
+▶ Das Binomialfilter ist separierbar, sodass lediglich nachfolgender Kern erzeugt werden muss:
+(1)
+hLP =1 / 256 * (1  8  28  56  70  56  28  8  1)
+
+▶ Eine Überprüfung, ob die Maus bei gedrückter linker Taste bewegt wird, ist durch Verwendung von `event` und `flags` möglich.
+
+▶ Ein Teilbereich eines Bildes kann über "Regions of Interest" (ROI) sowie `copyTo()` in einen gleichgroßen Bereich eines anderen Bildes kopiert werden. Zur Erzeugung einer ROI, die aus zusammenhängenden Bildspalten besteht, existiert die Methode `colRange()`:
+   cv::Mat roiImage = image.colRange(x0, x1);
+
+▶ Zur Darstellung einer farbigen Trennlinie erzeugen Sie zunächst das geteilte Bild als Graustufenbild und konvertieren es anschließend über `cvtColor()` in ein RGB-Farbbild.

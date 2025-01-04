@@ -1,0 +1,30 @@
+15.2 Aufgabenstellung
+Nachfolgend ist die Aufgabenstellung konkretisiert. Es bietet sich an, die Teilaufgaben in der
+angegebenen Reihenfolge umzusetzen. Beachten Sie zudem den Abschnitt Tipps und Hilfen.
+Kantenbild
+1. Erzeugen Sie ein Graustufenbild der Kantenst¨arken unter Verwendung eines Verfahrens Ihrer
+Wahl.
+2. Erzeugen Sie aus den Kantenst¨arken mittels der Methode threshold() ein bin¨ares Kantenbild,
+in dem Kantenpixel den Wert 255 und alle ubrigen Pixel den Wert 0 besitzen. Stellen Sie ¨
+das Kantenbild in einem Fenster dar.
+Hough-Transformation
+3. Implementieren Sie die Hough-Transformation gem¨aß Abschnitt 5.3 ab Seite 112 und stellen
+Sie den Parameterraum in einem Fenster dar.
+4. Optional: Verwenden Sie bei der Umsetzung soweit m¨oglich Lookup-Tabellen zur Reduktion
+der Laufzeit.
+5. Optional: Zeichnen Sie die Achsen sowie die Markierung des Wertes θ =
+π
+2
+in das Bild des
+Parameterraumes ein.
+Interaktive Benutzeroberfl¨ache
+6. Fugen Sie einen Schieberegler hinzu, ¨ uber den sich der Schwellwert ¨ τ zum Binarisieren des
+Kantenbildes einstellen l¨asst. Alle relevanten Bilder werden entsprechend aktualisiert.
+7. Bei der Auswahl eines Punktes im Parameterraum mit der Maus wird der entsprechende Ort
+markiert sowie die korrespondierende Gerade in das Ausgangsbild eingezeichnet.
+8. Optional: Bei der Auswahl eines Punktes im Parameterraum wird nicht die mit der Maus
+angeklickte Koordinate ubernommen, sondern das lokale Maximum in einer Umgebung um ¨
+diesen Ort.
+Tipps und Hilfen Zur Erh¨ohung der Ubersichtlichkeit, habe ich in meiner Implementierung Me- ¨
+thoden, die im Zusammenhang mit der Hough-Transformation stehen, in eine Datei HoughLine.cpp
+ausgelagert. Listing 15.1 zeigt den zugeh¨origen Header mit den deklarierten Prototypen.
