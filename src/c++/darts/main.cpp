@@ -61,6 +61,7 @@ using namespace std;
 /* Main function */
 int main(){
     
+#if 0
     /***
     * IMAGES BASICS
     ***/
@@ -99,6 +100,7 @@ int main(){
 
 
 
+
     /***
     * VIDEO BASICS
     ***/
@@ -131,14 +133,19 @@ int main(){
     /* free resoruces */
     video.release();
     waitKey(0);
-    
+#endif     
+
+    Mat frame;
+
+
     /* open camera */
-    VideoCapture camera(0);
+    VideoCapture camera(2);
     if (!camera.isOpened()) {
         cout << "[ERROR] cannot open Camera" << endl;
         return EXIT_FAILURE;
     }
 
+    int imageCount = 1; // Zähler für die Bildnamen
 
     /* loop through frames */
     while (1) {
@@ -150,8 +157,26 @@ int main(){
 
         imshow("Camera [press any key to quit]", frame);
         
-        if (waitKey(WAIT_TIME_MS) >= 0)
+        //if (waitKey(WAIT_TIME_MS) >= 0)
+            //break;
+        if (waitKey(1) == ' ') { // Wenn die Leertaste gedrückt wird
+            // Erzeuge den Dateinamen für das Bild
+            ostringstream fileName;
+            fileName << "bild" << imageCount << ".jpg";
+            string outputImagePath = fileName.str();
+            
+            // Speichere das Bild
+            imwrite(outputImagePath, frame);
+            std::cout << "Bild gespeichert: " << outputImagePath << std::endl;
+
+            // Zähler hochzählen
+            imageCount++;
+        }
+        else if (waitKey(1) >= 0) {
+            // Bricht die Schleife ab, wenn eine andere Taste als die Leertaste gedrückt wird
             break;
+        }
+
     }
     /* free resoruces */
     camera.release();
