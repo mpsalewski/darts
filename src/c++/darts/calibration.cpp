@@ -119,7 +119,6 @@ void calibration_get_img()
     waitKey(0);
 
  
- 
 
 }
 

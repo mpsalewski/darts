@@ -5,5 +5,3 @@
 
 void calibration_get_img(void);
 
-
-
