@@ -38,6 +38,11 @@ using namespace std;
 
 /*************************** local Defines ***********************************/
 
+/*************************** local Defines ***********************************/
+#define WAIT_TIME_MS 100    // 10 Hz SamplingRate 
+#define TOP_CAM     2
+#define LEFT_CAM    1
+#define RIGHT_CAM   3
 
 
 
@@ -56,12 +61,15 @@ using namespace std;
 
 
 /* Main function */
-void calibration_get_img()
+void calibration_get_img(Mat& org, Mat& target, int ThreadID)
 
 
 
 {
-    /*using test images while not accessing the cameras*/
+
+   
+
+
 
 
     
@@ -93,31 +101,42 @@ void calibration_get_img()
     dst_points.push_back(Point2f(320, 440)); // 3
     dst_points.push_back(Point2f(120, 240));// 11
 
-    /*tranform top*/
+    /*tranform top
     Mat transform_matrix_top = getPerspectiveTransform(src_points_top, dst_points);
     Mat img_top_ori = imread("D:/darts/darts/images/test_img/top/top_1dart.jpg");
     Mat warped_img_top;
     warpPerspective(img_top_ori, warped_img_top, transform_matrix_top, img_top_ori.size());
 
-    /*transform left*/
+    transform left
     Mat transform_matrix_left = getPerspectiveTransform(src_points_left, dst_points);
     Mat img_left_ori = imread("D:/darts/darts/images/test_img/left/left_1darts.jpg");
     Mat warped_img_left;
     warpPerspective(img_left_ori, warped_img_left, transform_matrix_left, img_left_ori.size());
 
-    /*transform right*/
+    transform right
     Mat transform_matrix_right = getPerspectiveTransform(src_points_right, dst_points);
     Mat img_right_ori = imread("D:/darts/darts/images/test_img/right/right_1darts.jpg");
     Mat warped_img_right;
     warpPerspective(img_right_ori, warped_img_right, transform_matrix_right, img_right_ori.size());
+    */
 
-    imshow("right", warped_img_right);
-    imshow("Top", warped_img_top);
-    imshow("left", warped_img_left);
+    vector<Point2f> src_points;
+    /*choosing the source points for tranfsorm by Thread*/
+    if (ThreadID == TOP_CAM) {
+        src_points = src_points_top;
+        }
+    if (ThreadID == LEFT_CAM) {
+        src_points = src_points_left;
+    }
+    if (ThreadID == RIGHT_CAM) {
+        src_points = src_points_right;
+    }
+    /*Calculate matric for transform*/
+    Mat transform_matrix = getPerspectiveTransform(src_points, dst_points);
+    warpPerspective(org, target, transform_matrix, org.size());
 
-    
-    waitKey(0);
 
+   
  
 
 }
