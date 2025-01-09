@@ -176,7 +176,7 @@ void calibration_get_img(cv::Mat& src, cv::Mat& dst, int ThreadId) {
         printf("error: unknown theradid");
     }
 
-
+}
 
 
 

@@ -26,12 +26,14 @@
 #include <cstdlib>
 #include <string>
 #include <opencv2/opencv.hpp>
-//#include "calibration.h"
 #include "ImageProc.h"
 #include <thread>
 #include <atomic>
 #include <chrono>
-
+#include "calibration.h"
+#include "HoughLine.h"
+#include "Sobel.h"
+#include "dart_board.h"
 
 /****************************** namespaces ***********************************/
 using namespace cv;
@@ -47,7 +49,20 @@ using namespace std;
 #define DIFF_THRESH 1e+6
 
 /* Image Paths */
-#define TOP_RAW_IMG_CAL "../images/img_raw_cal/top_raw.jpg"
+/* Image Paths */
+#define TOP_RAW_IMG_CAL "images/test_img/top/top_raw.jpg"
+#define RIGHT_RAW_IMG_CAL "images/test_img/right/right_raw.jpg"
+#define LEFT_RAW_IMG_CAL "images/test_img/left/left_raw.jpg"
+#define TOP_1DARTS "images/test_img/top/top_1dart.jpg"
+#define LEFT_1DARTS "images/test_img/left/left_1darts.jpg"
+#define RIGHT_1DARTS "images/test_img/right/right_1darts.jpg"
+#define TOP_2DARTS "images/test_img/top/top_2dart.jpg"
+#define LEFT_2DARTS "images/test_img/left/left_2darts.jpg"
+#define RIGHT_2DARTS "images/test_img/right/right_2darts.jpg"
+#define TOP_3DARTS "images/test_img/top/top_3dart.jpg"
+#define LEFT_3DARTS "images/test_img/left/left_3darts.jpg"
+#define RIGHT_3DARTS "images/test_img/right/right_3darts.jpg"
+
 
 
 
@@ -161,6 +176,101 @@ void camThread(int threadId) {
 /* Main function */
 int main(){
     
+
+
+
+    /* load image from file */
+    Mat top_image = cv::imread(TOP_1DARTS, cv::IMREAD_ANYCOLOR);
+    Mat top_raw = cv::imread(TOP_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
+    Mat top_image2 = cv::imread(TOP_2DARTS, cv::IMREAD_ANYCOLOR);
+    Mat top_image3 = cv::imread(TOP_3DARTS, cv::IMREAD_ANYCOLOR);
+
+    /* load image from file */
+    Mat right_image = cv::imread(RIGHT_1DARTS, cv::IMREAD_ANYCOLOR);
+    Mat right_raw = cv::imread(RIGHT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
+    Mat right_image2 = cv::imread(RIGHT_2DARTS, cv::IMREAD_ANYCOLOR);
+    Mat right_image3 = cv::imread(RIGHT_3DARTS, cv::IMREAD_ANYCOLOR);
+
+    /* load image from file */
+    Mat left_image = cv::imread(LEFT_1DARTS, cv::IMREAD_ANYCOLOR);
+    Mat left_raw = cv::imread(LEFT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
+    Mat left_image2 = cv::imread(LEFT_2DARTS, cv::IMREAD_ANYCOLOR);
+    Mat left_image3 = cv::imread(LEFT_3DARTS, cv::IMREAD_ANYCOLOR);
+
+
+
+    destroyAllWindows();
+    struct line_s line;
+    struct tripple_line_s t_line;
+    line.r = 1;
+    line.theta = 99;
+
+    top_raw = cv::imread(TOP_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
+    right_raw = cv::imread(RIGHT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
+    left_raw = cv::imread(LEFT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
+
+#if 0 
+    image_proc_get_line(top_raw, top_image, TOP_CAM, &line, SHOW_IMG_LINE, "Top");
+    image_proc_get_line(right_raw, right_image, RIGHT_CAM, &line, SHOW_SHORT_ANALYSIS, "Right");
+    image_proc_get_line(left_raw, left_image, LEFT_CAM, &line, SHOW_IMG_LINE, "Left");
+#endif 
+#if 1 
+    image_proc_get_line(top_image, top_image2, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top");
+    image_proc_get_line(right_image, right_image2, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right");
+    image_proc_get_line(left_image, left_image2, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left");
+#endif
+#if 0
+    image_proc_get_line(top_image2, top_image3, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top");
+    image_proc_get_line(right_image2, right_image3, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right");
+    image_proc_get_line(left_image2, left_image3, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left");
+#endif
+
+
+    Point cross_point;
+    calibration_get_img(top_raw, top_raw, TOP_CAM);
+    imwrite("top_raw_cal.jpg", top_raw);
+    img_proc_cross_point(top_raw.size(), &t_line, cross_point);
+    cout << "Raw Cal Size" << top_raw.size() << endl;
+
+    /*
+    // Beispiel-Daten für eine standardisierte Dartscheibe
+    // Beispielpixel (ein Punkt auf der Scheibe)
+    //cv::Point2f pixel(390, 139); // Tripple 18
+    //cv::Point2f pixel(419, 371); // Single 2
+    //cv::Point2f pixel(399, 411); // Double 17
+    //cv::Point2f pixel(225, 161); // Tripple 9
+    //cv::Point2f pixel(142, 204); // Single 14
+    //cv::Point2f pixel(176, 365); // Double 16
+    //cv::Point2f pixel(272, 347); // Tripple 19
+    //std::string result = determineSector(pixel, board);
+    std::string result = determineSector(cross_point, board);
+
+    std::cout << "Wert: " << result << std::endl;
+    */
+    std::string result = dart_board_determineSector(cross_point, TOP_CAM);
+
+    std::cout << "Wert: " << result << std::endl;
+
+    Point pixel(272, 347); // Tripple 19
+    result = dart_board_determineSector(pixel, TOP_CAM);
+
+    std::cout << "Wert: " << result << std::endl;
+
+
+
+    cv::waitKey(0);
+
+
+    destroyAllWindows();
+
+    /*************************************************************/
+    return 0;
+
+
+
+
+
+
    
     /* open parallel cams */
     std::thread topCam(camThread, TOP_CAM);

@@ -2,6 +2,15 @@
 *.obj
 *.tlog
 
+src/c++/darts/*.vcxproj
+src/c++/darts/*.vcxproj.filters
+src/c++/darts/*.vcxproj.user
+
+
+src/c++/darts/x64/Release/*.pdb
+src/c++/darts/x64/Debug/*.pdb
+
+
 # Ignoriere Build-Ordner und temporäre Dateien
 src/c++/darts/darts/x64/Release/*.iobj
 src/c++/darts/darts/x64/Release/*.ipdb
