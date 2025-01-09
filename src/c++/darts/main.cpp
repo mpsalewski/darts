@@ -87,17 +87,24 @@ struct flags_s {
     int diff_flag_top;
     int diff_flag_right;
     int diff_flag_left;
+    int diff_flag_raw;
 };
 
 
 /* local main private structure for data exchange */
 struct darts_s {
 
+    /* flags */
     struct flags_s flags;
 
+    /* count throws [0..3] */
+    int count_throws;
+
+    /* dart position */
     struct tripple_line_s t_line;
     Point cross_point;
 
+    /* results */
     struct result_s r_top;
     struct result_s r_right;
     struct result_s r_left;
@@ -118,11 +125,34 @@ void camsThread(void* arg);
 void SIMULATION_OF_camsThread(void* arg);
 void camThread(int threadId);
 void static_test(void);
+void Dartsboard_GUI_Thread(void* arg);
+
 
 
 
 /****************************** main function ********************************/
-int main(){
+int main() {
+
+
+    /***
+     * create game 
+    ***/
+    /* players */
+    std::vector<player_s> players = {
+        {"Lukas", 501, 0},
+        {"Mika", 501, 0},
+        {"Marek", 501, 0},
+    };
+    /* game */
+    struct game_s game = {
+        players.size(),     // number of players
+        players,            // players
+        0,                  // leg
+        0                   // sets
+    };
+
+    //dart_board_create_scoreboard_gui(&game);
+    
     
     /* create ptr p for strcuture handling */
     struct darts_s* p = &darts;
@@ -131,6 +161,10 @@ int main(){
     p->flags.diff_flag_top = 0;
     p->flags.diff_flag_right = 0;
     p->flags.diff_flag_left = 0;
+    p->flags.diff_flag_raw = 0;
+
+
+    p->count_throws = 0;
     
     p->t_line.line_top.r = 0;
     p->t_line.line_top.theta = 0;
@@ -148,6 +182,9 @@ int main(){
     //std::thread leftCam(camThread, LEFT_CAM);
     //std::thread rightCam(camThread, RIGHT_CAM);
 
+    /* create darts gui thread */
+    thread guiThread(Dartsboard_GUI_Thread, &game);
+
     /* wait on enter to quit */
     std::cout << "Press Enter to quit Threads...\n";
     cin.get();
@@ -157,6 +194,7 @@ int main(){
 
     /* clear threads */
     cams.join();
+    guiThread.join();
     //topCam.join();
     //leftCam.join();
     //rightCam.join();
@@ -166,6 +204,9 @@ int main(){
      * run simualtion cams thread
     ***/
     thread SIM_cams(SIMULATION_OF_camsThread, p);
+    
+    /* create darts gui thread */
+    thread guiThread(Dartsboard_GUI_Thread, &game);
 
     /* wait on enter to quit */
     std::cout << "Press Enter to quit Threads...\n";
@@ -176,6 +217,7 @@ int main(){
 
     /* clear threads */
     SIM_cams.join();
+    guiThread.join();
 
 #endif 
 
@@ -198,13 +240,43 @@ int main(){
 
 
 /************************** Function Definitions *****************************/
+void Dartsboard_GUI_Thread(void* arg) {
+
+    struct game_s* g = (struct game_s*)(arg);
+
+    /* init gui */
+    dart_board_create_scoreboard_gui(g);
+    //dart_board_create_scoreboard_gui(g, "Board2", 900,900);
+    
+    while (running == 1) {
+
+
+        /* quit on [Esc] */
+        if (cv::waitKey(10) == 27) {
+            break;
+        }
+
+        //dart_board_update_scoreboard_gui();
+
+        this_thread::sleep_for(chrono::milliseconds(250));
+
+    }
+
+}
+
+
+
+
 void camsThread(void* arg) {
 
     /* assign void pointer */
-    struct darts_s* xp = (struct darts_s*)arg;
+    struct darts_s* xp = (struct darts_s*)(arg);
 
+    /* cur = curent frames; last = last frames */
     Mat cur_frame_top, cur_frame_right, cur_frame_left;
     Mat last_frame_top, last_frame_right, last_frame_left;
+    /* raw empty init board (just top view) */
+    Mat raw_empty_init_frame;
 
     /* open top camera */
     VideoCapture top_cam(TOP_CAM);
@@ -248,13 +320,14 @@ void camsThread(void* arg) {
         cout << "Error: empty init frame\n" << endl;;
         return;
     }
-
+    /* init frame */
+    raw_empty_init_frame = last_frame_top.clone();
 
     /* loop */
     while (running == 1) {
 
         /* quit on [Esc] */
-        if (waitKey(WAIT_TIME_MS) == 27) {
+        if (cv::waitKey(10) == 27) {
             break;
         }
 
@@ -276,12 +349,15 @@ void camsThread(void* arg) {
             xp->flags.diff_flag_right = img_proc_diff_check(last_frame_right, cur_frame_right, RIGHT_CAM);
             xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, cur_frame_left, LEFT_CAM);
 
-            /* check detected difference */
-            if (xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left) {
+            /* check detected difference && expecting throws (count_throws < 3) */
+            if( (xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left) && (xp->count_throws < 3) ){
                 /* clear flags */
                 xp->flags.diff_flag_top = 0;
                 xp->flags.diff_flag_top = 0;
                 xp->flags.diff_flag_top = 0;
+
+                /* count throws */
+                xp->count_throws++;
 
                 /* short delay to be sure dart is in board and was not on the fly */
                 this_thread::sleep_for(chrono::milliseconds(20));
@@ -310,6 +386,27 @@ void camsThread(void* arg) {
                 std::cout << "Wert: " << xp->r_final.str << std::endl;
 
             }
+            /* 3 throws detected --> wait for Darts removed from Board */
+            else if(xp->count_throws == 3){
+
+                /* wait till darts board is back to raw and empty */
+                xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
+            
+                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27)) {
+                    /* get current frames from cams */
+                    top_cam >> cur_frame_top;
+                    xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
+                    if (xp->flags.diff_flag_raw == IMG_NO_DIFFERENCE) {
+                        break;
+                    }
+                    this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
+                }
+
+                /* removing throws */
+                xp->count_throws = 0;
+
+
+            }
 
             /* update last frame */
             last_frame_top = cur_frame_top.clone();
@@ -321,6 +418,7 @@ void camsThread(void* arg) {
             /* recognized empty frame; short delay and try again */
             this_thread::sleep_for(chrono::milliseconds(250));
         }
+
 
         this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
 
@@ -395,13 +493,14 @@ void SIMULATION_OF_camsThread(void* arg) {
 
 
     /* loop */
-    while (running == 1) {
+    int once = 1;
+    while ((running == 1) && once) {
 
         /* simulation --> close running after 1 loop */
-        running = 0;
+        once = 0;
 
         /* quit on [Esc] */
-        if (waitKey(WAIT_TIME_MS) == 27) {
+        if (cv::waitKey(10) == 27) {
             break;
         }
 
@@ -481,7 +580,7 @@ void SIMULATION_OF_camsThread(void* arg) {
     std::cout << "Cams Thread Finished\n";
 
 
-    waitKey(0);
+    cv::waitKey(0);
     /* free resoruces */
     //top_cam.release();
     //right_cam.release();
@@ -642,7 +741,7 @@ void static_test(void) {
 
     Point cross_point;
     calibration_get_img(top_raw, top_raw, TOP_CAM);
-    imwrite("top_raw_cal.jpg", top_raw);
+    cv::imwrite("top_raw_cal.jpg", top_raw);
     img_proc_cross_point(top_raw.size(), &t_line, cross_point);
     cout << "Raw Cal Size" << top_raw.size() << endl;
 

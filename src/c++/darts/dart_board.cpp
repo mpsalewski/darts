@@ -18,7 +18,36 @@ using namespace std;
 
 /*************************** local Defines ***********************************/
 
+
+
 /************************** local Structure ***********************************/
+
+static struct priv_gui_s {
+
+    /* creat empty gui frame */
+    Mat gui;
+
+    int row_offset = 100;               // dist to top
+    int name_col = 50;                  // name column
+    int name_width = 150;               // name column width
+    int set_col = name_col + name_width;  // set column
+    int set_width = 100;                // set column width
+    int leg_col = set_col + set_width;  // leg column
+    int leg_width = 100;                // leg column width
+    int score_col = leg_col + leg_width;  // score column
+    int score_width = 150;              // score column width
+    int last_throw_col = score_col + score_width;   // last throw column
+    int last_throw_width = 150;                     // last throw column width 
+    int text_w, text_pos;
+
+    string name_win;
+
+}priv_gui;
+
+static struct priv_gui_s* pg = &priv_gui;
+
+
+
 
 static Point Dartboard_Center(320, 240);
 
@@ -215,4 +244,95 @@ void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* s
 
 #endif 
 
+}
+
+
+
+void dart_board_create_scoreboard_gui(struct game_s* g, std::string name_win, int w, int h) {
+
+    /* creat empty gui frame */
+    pg->gui = Mat::zeros(h, w, CV_8UC3);
+
+    /* settings */
+    pg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
+    pg->text_w = getTextSize(name_win, FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    pg->text_pos = 0 + (int)((pg->gui.cols- pg->text_w) / 2);
+    putText(pg->gui, name_win, Point(pg->text_pos-20, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2); // titel
+
+
+    /*** 
+     * create tabular 
+    ***/
+    int end_vert_line = (pg->row_offset - 20) + 1 * 40 + ((g->p.size()) * 50);  // end vertical lines tabular
+
+    /* vertical lines */
+    line(pg->gui, Point(pg->set_col + 2, pg->row_offset - 20), Point(pg->set_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between name and set
+    line(pg->gui, Point(pg->leg_col + 2, pg->row_offset - 20), Point(pg->leg_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between set and leg
+    line(pg->gui, Point(pg->score_col + 2, pg->row_offset - 20), Point(pg->score_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between leg and score
+    line(pg->gui, Point(pg->last_throw_col + 2, pg->row_offset - 20), Point(pg->last_throw_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between score and last throw
+
+    /* create header */
+    putText(pg->gui, "player", Point(pg->name_col, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);  // player, left 
+     
+    pg->text_w = getTextSize("set", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    pg->text_pos = pg->set_col + (int)((pg->set_width - pg->text_w) / 2);
+    putText(pg->gui, "set", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // set, center
+
+    pg->text_w = getTextSize("leg", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    pg->text_pos = pg->leg_col + (int)((pg->leg_width - pg->text_w) / 2);
+    putText(pg->gui, "leg", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // leg, center
+
+    pg->text_w = getTextSize("score", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    pg->text_pos = pg->score_col + (int)((pg->score_width - pg->text_w) / 2);
+    putText(pg->gui, "score", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);    // score, center
+
+    pg->text_w = getTextSize("last throw", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    pg->text_pos = pg->last_throw_col + (int)((pg->last_throw_width - pg->text_w) / 2);
+    putText(pg->gui, "last throw", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);   // last_throw, center
+
+    /* horizontal line */
+    pg->row_offset += 20;
+    line(pg->gui, Point(pg->name_col, pg->row_offset), Point(pg->last_throw_col+ pg->last_throw_width, pg->row_offset), Scalar(255, 255, 255), 2);
+    pg->row_offset += 30;
+
+    /* fill tabular */
+    for (const auto& p : g->p) {
+
+        /* name */ 
+        putText(pg->gui, p.p_name, Point(pg->name_col, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+
+        /* set */
+        pg->text_w = getTextSize("0", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        pg->text_pos = pg->set_col + (int)((pg->set_width - pg->text_w) / 2);
+        putText(pg->gui, to_string(g->set), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+
+        /* leg */
+        pg->text_w = getTextSize("0", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        pg->text_pos = pg->leg_col + (int)((pg->leg_width - pg->text_w) / 2);
+        putText(pg->gui, to_string(g->leg), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+
+        /* score */
+        pg->text_w = getTextSize("501", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        pg->text_pos = pg->score_col + (int)((pg->score_width - pg->text_w) / 2);
+        putText(pg->gui, to_string(p.score), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+
+        /* last throw */
+        pg->text_w = getTextSize("0", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        pg->text_pos = pg->last_throw_col + (int)((pg->last_throw_width - pg->text_w) / 2);
+        putText(pg->gui, to_string(p.last_throw), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+
+        pg->row_offset += 50; // Abstand zwischen den Spielern
+    }
+
+    pg->name_win = name_win;
+   
+    imshow(pg->name_win, pg->gui);
+
+}
+
+
+
+void dart_board_update_scoreboard_gui(void) {
+    imshow(pg->name_win, pg->gui);
+    //cv::namedWindow(pg->name_win, cv::WINDOW_NORMAL);
 }
