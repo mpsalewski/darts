@@ -118,7 +118,9 @@ static struct darts_s darts;
 /************************* local Variables ***********************************/
 /* control threads */
 atomic<bool> running(true);
-
+/* score, exchange between threads */
+int score = 0;
+int score_flag = 0;
 
 /************************** Function Declaration *****************************/
 void camsThread(void* arg);
@@ -276,15 +278,21 @@ void Dartsboard_GUI_Thread(void* arg) {
             break;
         }
 
-        fin = dart_board_update_scoreboard_gui(g, 76);
-        if (fin > 0) {
-            dart_board_finish_scoreboard_gui(g,fin-1);
-            waitKey(0);
-            std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
-            break;
+        if (score_flag) {
+            /* reset flag */
+            score_flag = 0;
+            
+            /* update scoreboard and check for finish */
+            fin = dart_board_update_scoreboard_gui(g, score);
+            if (fin > 0) {
+                dart_board_finish_scoreboard_gui(g, fin - 1);
+                waitKey(0);
+                std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
+                break;
+            }
+            score = 0;
+            this_thread::sleep_for(chrono::milliseconds(250));
         }
-        this_thread::sleep_for(chrono::milliseconds(250));
-
     }
 
 }
@@ -408,11 +416,17 @@ void camsThread(void* arg) {
                 /* democratic result */
                 dart_board_decide_sector(&xp->r_top, &xp->r_right, &xp->r_left, &xp->r_final);
 
-                std::cout << "Wert: " << xp->r_final.str << std::endl;
+                std::cout << "Dart is (String): " << xp->r_final.str << std::endl;
+                std::cout << "Dart is (int Val): " << xp->r_final.val << std::endl;
 
+                /* accumulate 3-dart score */
+                score += xp->r_final.val;
             }
             /* 3 throws detected --> wait for Darts removed from Board */
             else if(xp->count_throws == 3){
+
+                /* recognize 3 darts */
+                score_flag = 1;
 
                 /* wait till darts board is back to raw and empty */
                 xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
@@ -468,6 +482,9 @@ void SIMULATION_OF_camsThread(void* arg) {
 
     Mat cur_frame_top, cur_frame_right, cur_frame_left;
     Mat last_frame_top, last_frame_right, last_frame_left;
+
+    /* raw empty init board (just top view) */
+    Mat raw_empty_init_frame;
 #if 0
     /* open top camera */
     VideoCapture top_cam(TOP_CAM);
@@ -515,6 +532,10 @@ void SIMULATION_OF_camsThread(void* arg) {
         std::cout << "Error: empty init frame\n" << endl;
         return;
     }
+
+
+    /* init frame */
+    raw_empty_init_frame = last_frame_top.clone();
 
 
     /* loop */
@@ -583,6 +604,35 @@ void SIMULATION_OF_camsThread(void* arg) {
 
                 std::cout << "Dart is (String): " << xp->r_final.str << std::endl;
                 std::cout << "Dart is (int Val): " << xp->r_final.val << std::endl;
+
+                /* accumulate 3-dart score */
+                score += xp->r_final.val;
+                /* THIS IS WRONG ! JUST FOR TESTING ! recognize 3 darts */
+                score_flag = 1;
+
+            }
+            /* 3 throws detected --> wait for Darts removed from Board */
+            else if (xp->count_throws == 3) {
+
+                /* recognize 3 darts */
+                score_flag = 1;
+
+                /* wait till darts board is back to raw and empty */
+                xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
+
+                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27)) {
+                    /* get current frames from cams */
+                    //top_cam >> cur_frame_top;
+                    xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
+                    if (xp->flags.diff_flag_raw == IMG_NO_DIFFERENCE) {
+                        break;
+                    }
+                    this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
+                }
+
+                /* removing throws */
+                xp->count_throws = 0;
+
 
             }
 
