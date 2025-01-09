@@ -42,6 +42,7 @@ using namespace std;
 /*************************** local Defines ***********************************/
 #define SMOOTHING_KERNEL_SIZE 1
 #define CROSS_POINT_INTENSITY_MIN 18
+#define DIFF_MIN_THRESH 2.5e+5
 
 /************************** local Structure ***********************************/
 
@@ -103,7 +104,7 @@ void findAllCrossPoints(const cv::Mat& image, std::vector<cv::Point>& maxLocatio
     double minVal, maxVal;
     Point minLoc, maxLoc;
     minMaxLoc(image_gray, &minVal, &maxVal, &minLoc, &maxLoc);
-    cout << maxVal;
+    //cout << maxVal;
 
 
     // Schritt 2: Durchlaufe das Bild und finde alle Pixel mit dem maximalen Wert
@@ -375,22 +376,81 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
     int sumX = 0, sumY = 0;
 
     // Ausgabe der maximalen Positionen
-    cout << "Maximale Positionen:" << endl;
+    //cout << "Maximale Positionen:" << endl;
     for (const Point& pt : maxLocations) {
         sumX += pt.x;
         sumY += pt.y;
-        cout << "x: " << pt.x << ", y: " << pt.y << endl;
+        //cout << "x: " << pt.x << ", y: " << pt.y << endl;
     }
 
 
     Point centerOfMass(sumX / maxLocations.size(), sumY / maxLocations.size());
 
     // Ausgabe des Mittelpunkts
-    cout << "Mittelpunkt der maximalen Positionen: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
+    //cout << "Mittelpunkt der maximalen Positionen: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
 
     cross_p.x = centerOfMass.x;
     cross_p.y = centerOfMass.y;
 
     return EXIT_SUCCESS;
+
+}
+
+
+
+
+int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
+
+    /* bin img threshold */
+    int thresh = 55;
+    /* pixel sum*/
+    Scalar p_sum;
+
+    /* declare images */
+    Mat cur, last, diff;
+
+    /* clone images */
+    cur = cur_f.clone();
+    if (cur.empty()) {
+        std::cout << "[ERROR] Current Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    last = last_f.clone();
+    if (last.empty()) {
+        std::cout << "[ERROR] Last Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    /* calibrate images */
+    calibration_get_img(cur, cur, ThreadId);
+    calibration_get_img(last, last, ThreadId);
+
+    /* gray conversion */
+    cvtColor(cur, cur, COLOR_BGR2GRAY);
+    cvtColor(last, last, COLOR_BGR2GRAY);
+
+
+    /* check difference */
+    absdiff(last, cur, diff);
+
+    /* sharpen images after difference */
+    sharpenImage(diff, diff);
+
+    /* edge image */
+    ip::sobelFilter(diff, diff);
+    threshold(diff, diff, thresh, 255, THRESH_BINARY);
+
+
+    /* sum up all pixel */
+    p_sum = sum(diff);
+    //cout << "sum of pixel: " << p_sum[0] << endl;
+    if (p_sum[0]>DIFF_MIN_THRESH) {
+        return IMG_DIFFERENCE;
+    }
+    else {
+        return IMG_NO_DIFFERENCE;
+    }
+      
 
 }

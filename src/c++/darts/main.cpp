@@ -42,14 +42,27 @@ using namespace std;
 
 
 /*************************** local Defines ***********************************/
-#define WAIT_TIME_MS 100    // 10 Hz SamplingRate 
+/* main program */
+#define THREADING 1                 // use Camera Threads
+#define SIMULATION 1                // use Simluation Cams Thread instead of 
+                                    // real cams Thread
+#define LOAD_STATIC_TEST_IMAGES 0   // use this macro for debugging and test
+
+/* Timing */
+#define FPS 15                      // defines Samplingrate in Cams Thread
+#define WAIT_TIME_MS 1000/FPS
+
+/* camera identities */
 #define TOP_CAM     2
 #define LEFT_CAM    1
 #define RIGHT_CAM   3
 #define DIFF_THRESH 1e+6
 
-/* Image Paths */
-/* Image Paths */
+/* size for cross_point calc */
+#define RAW_CAL_IMG_WIDTH 640       
+#define RAW_CAL_IMG_HEIGHT 480
+
+/* Image Paths; mostly for test and sims */
 #define TOP_RAW_IMG_CAL "images/test_img/top/top_raw.jpg"
 #define RIGHT_RAW_IMG_CAL "images/test_img/right/right_raw.jpg"
 #define LEFT_RAW_IMG_CAL "images/test_img/left/left_raw.jpg"
@@ -65,10 +78,34 @@ using namespace std;
 
 
 
+/************************** local Structure ***********************************/
+/***
+ * local sub structs
+***/
+/* flags */
+struct flags_s {
+    int diff_flag_top;
+    int diff_flag_right;
+    int diff_flag_left;
+};
 
-/************************** local Structue ***********************************/
 
+/* local main private structure for data exchange */
+struct darts_s {
 
+    struct flags_s flags;
+
+    struct tripple_line_s t_line;
+    Point cross_point;
+
+    struct result_s r_top;
+    struct result_s r_right;
+    struct result_s r_left;
+    struct result_s r_final;
+
+};
+/* default init in main() via pointer */
+static struct darts_s darts;
 
 
 /************************* local Variables ***********************************/
@@ -77,11 +114,385 @@ atomic<bool> running(true);
 
 
 /************************** Function Declaration *****************************/
+void camsThread(void* arg);
+void SIMULATION_OF_camsThread(void* arg);
 void camThread(int threadId);
+void static_test(void);
+
+
+
+/****************************** main function ********************************/
+int main(){
+    
+    /* create ptr p for strcuture handling */
+    struct darts_s* p = &darts;
+
+    /* default init struct */
+    p->flags.diff_flag_top = 0;
+    p->flags.diff_flag_right = 0;
+    p->flags.diff_flag_left = 0;
+    
+    p->t_line.line_top.r = 0;
+    p->t_line.line_top.theta = 0;
+    p->t_line.line_right.r = 0;
+    p->t_line.line_right.theta = 0;
+    p->t_line.line_left.r = 0;
+    p->t_line.line_left.theta = 0;
+
+
+/* use threads */
+#if !SIMULATION && THREADING
+    /* open parallel cams */
+    thread cams(camsThread, p);
+    //std::thread topCam(camThread, TOP_CAM);
+    //std::thread leftCam(camThread, LEFT_CAM);
+    //std::thread rightCam(camThread, RIGHT_CAM);
+
+    /* wait on enter to quit */
+    std::cout << "Press Enter to quit Threads...\n";
+    cin.get();
+
+    /* kill threads */
+    running = false;
+
+    /* clear threads */
+    cams.join();
+    //topCam.join();
+    //leftCam.join();
+    //rightCam.join();
+
+#elif THREADING
+    /***
+     * run simualtion cams thread
+    ***/
+    thread SIM_cams(SIMULATION_OF_camsThread, p);
+
+    /* wait on enter to quit */
+    std::cout << "Press Enter to quit Threads...\n";
+    cin.get();
+
+    /* kill threads */
+    running = false;
+
+    /* clear threads */
+    SIM_cams.join();
+
+#endif 
+
+
+/* Do Static Test with loaded images and fixed points for fast debugging ans test */
+#if LOAD_STATIC_TEST_IMAGES
+
+    static_test();
+
+
+
+#endif 
+   
+    destroyAllWindows();
+
+    return EXIT_SUCCESS;
+
+}
 
 
 
 /************************** Function Definitions *****************************/
+void camsThread(void* arg) {
+
+    /* assign void pointer */
+    struct darts_s* xp = (struct darts_s*)arg;
+
+    Mat cur_frame_top, cur_frame_right, cur_frame_left;
+    Mat last_frame_top, last_frame_right, last_frame_left;
+
+    /* open top camera */
+    VideoCapture top_cam(TOP_CAM);
+    if (!top_cam.isOpened()) {
+        std::cout << "[ERROR] cannot open TOP Camera" << endl;
+        return;
+    }
+    /* open right camera */
+    VideoCapture right_cam(RIGHT_CAM);
+    if (!right_cam.isOpened()) {
+        std::cout << "[ERROR] cannot open RIGHT Camera" << endl;
+        return;
+    }
+    /* open left camera */
+    VideoCapture left_cam(LEFT_CAM);
+    if (!left_cam.isOpened()) {
+        std::cout << "[ERROR] cannot open LEFT Camera" << endl;
+        return;
+    }
+
+    /* create camera windows */
+    ostringstream CamName1;
+    CamName1 << "Top Cam [press Esc to quit]";
+    string top_cam_win = CamName1.str();
+    ostringstream CamName2;
+    CamName2 << "Right Cam [press Esc to quit]";
+    string right_cam_win = CamName2.str();
+    ostringstream CamName3;
+    CamName3 << "Left Cam [press Esc to quit]";
+    string left_cam_win = CamName3.str();
+
+    /* short delay */
+    this_thread::sleep_for(chrono::milliseconds(500));
+
+
+    /* init last frames */
+    top_cam >> last_frame_top;
+    right_cam >> last_frame_right;
+    left_cam >> last_frame_left;
+    if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
+        cout << "Error: empty init frame\n" << endl;;
+        return;
+    }
+
+
+    /* loop */
+    while (running == 1) {
+
+        /* quit on [Esc] */
+        if (waitKey(WAIT_TIME_MS) == 27) {
+            break;
+        }
+
+        /* get current frames from cams */
+        top_cam >> cur_frame_top;
+        right_cam >> cur_frame_right;
+        left_cam >> cur_frame_left;
+
+        /* check if frames are not empty */
+        if (!cur_frame_top.empty() && !cur_frame_right.empty() && !cur_frame_left.empty()) {
+
+            /* show frames */
+            imshow(top_cam_win, cur_frame_top);
+            imshow(right_cam_win, cur_frame_right);
+            imshow(left_cam_win, cur_frame_left);
+
+            /* check íf there are any differences */
+            xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
+            xp->flags.diff_flag_right = img_proc_diff_check(last_frame_right, cur_frame_right, RIGHT_CAM);
+            xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, cur_frame_left, LEFT_CAM);
+
+            /* check detected difference */
+            if (xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left) {
+                /* clear flags */
+                xp->flags.diff_flag_top = 0;
+                xp->flags.diff_flag_top = 0;
+                xp->flags.diff_flag_top = 0;
+
+                /* short delay to be sure dart is in board and was not on the fly */
+                this_thread::sleep_for(chrono::milliseconds(20));
+
+                /* get even newer frames, with darts which are definetly in the board */
+                top_cam >> cur_frame_top;
+                right_cam >> cur_frame_right;
+                left_cam >> cur_frame_left;
+
+                /* get líne polar coordinates */
+                image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_IMG_LINE, "Top");
+                image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_IMG_LINE, "Right");
+                image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_IMG_LINE, "Left");
+
+                /* calculate cross point */
+                img_proc_cross_point(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);
+
+                /* check result on every raw board */
+                dart_board_determineSector(xp->cross_point, TOP_CAM, &xp->r_top);
+                dart_board_determineSector(xp->cross_point, RIGHT_CAM, &xp->r_right);
+                dart_board_determineSector(xp->cross_point, LEFT_CAM, &xp->r_left);
+
+                /* democratic result */
+                dart_board_decide_sector(&xp->r_top, &xp->r_right, &xp->r_left, &xp->r_final);
+
+                std::cout << "Wert: " << xp->r_final.str << std::endl;
+
+            }
+
+            /* update last frame */
+            last_frame_top = cur_frame_top.clone();
+            last_frame_right = cur_frame_right.clone();
+            last_frame_left = cur_frame_left.clone();
+
+        }
+        else {
+            /* recognized empty frame; short delay and try again */
+            this_thread::sleep_for(chrono::milliseconds(250));
+        }
+
+        this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
+
+    }
+
+    /* thread finished */
+    std::cout << "Cams Thread Finished\n";
+
+    /* free resoruces */
+    top_cam.release();
+    right_cam.release();
+    left_cam.release();
+
+}
+
+
+
+void SIMULATION_OF_camsThread(void* arg) {
+
+    /* assign void pointer */
+    struct darts_s* xp = (struct darts_s*)arg;
+
+    Mat cur_frame_top, cur_frame_right, cur_frame_left;
+    Mat last_frame_top, last_frame_right, last_frame_left;
+#if 0
+    /* open top camera */
+    VideoCapture top_cam(TOP_CAM);
+    if (!top_cam.isOpened()) {
+        std::cout << "[ERROR] cannot open TOP Camera" << endl;
+        return;
+    }
+    /* open right camera */
+    VideoCapture right_cam(RIGHT_CAM);
+    if (!right_cam.isOpened()) {
+        std::cout << "[ERROR] cannot open RIGHT Camera" << endl;
+        return;
+    }
+    /* open left camera */
+    VideoCapture left_cam(LEFT_CAM);
+    if (!left_cam.isOpened()) {
+        std::cout << "[ERROR] cannot open LEFT Camera" << endl;
+        return;
+    }
+#endif 
+    /* create camera windows */
+    ostringstream CamName1;
+    CamName1 << "Top Cam [press Esc to quit]";
+    string top_cam_win = CamName1.str();
+    ostringstream CamName2;
+    CamName2 << "Right Cam [press Esc to quit]";
+    string right_cam_win = CamName2.str();
+    ostringstream CamName3;
+    CamName3 << "Left Cam [press Esc to quit]";
+    string left_cam_win = CamName3.str();
+
+    /* short delay */
+    this_thread::sleep_for(chrono::milliseconds(500));
+
+
+    /* init last frames */
+    //top_cam >> last_frame_top;
+    //right_cam >> last_frame_right;
+    //left_cam >> last_frame_left;
+    last_frame_top = imread(TOP_1DARTS, IMREAD_ANYCOLOR);
+    last_frame_right = imread(RIGHT_1DARTS, IMREAD_ANYCOLOR);
+    last_frame_left = imread(LEFT_1DARTS, IMREAD_ANYCOLOR);
+
+    if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
+        std::cout << "Error: empty init frame\n" << endl;
+        return;
+    }
+
+
+    /* loop */
+    while (running == 1) {
+
+        /* simulation --> close running after 1 loop */
+        running = 0;
+
+        /* quit on [Esc] */
+        if (waitKey(WAIT_TIME_MS) == 27) {
+            break;
+        }
+
+        /* get current frames from cams */
+        //top_cam >> cur_frame_top;
+        //right_cam >> cur_frame_right;
+        //left_cam >> cur_frame_left;
+        cur_frame_top = imread(TOP_2DARTS, IMREAD_ANYCOLOR);
+        cur_frame_right = imread(RIGHT_2DARTS, IMREAD_ANYCOLOR);
+        cur_frame_left = imread(LEFT_2DARTS, IMREAD_ANYCOLOR);
+
+        /* check if frames are not empty */
+        if (!cur_frame_top.empty() && !cur_frame_right.empty() && !cur_frame_left.empty()) {
+
+            /* show frames */
+            imshow(top_cam_win, cur_frame_top);
+            imshow(right_cam_win, cur_frame_right);
+            imshow(left_cam_win, cur_frame_left);
+
+            /* check íf there are any differences */
+            xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
+            xp->flags.diff_flag_right = img_proc_diff_check(last_frame_right, cur_frame_right, RIGHT_CAM);
+            xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, cur_frame_left, LEFT_CAM);
+
+            /* check detected difference */
+            if (xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left) {
+                /* clear flags */
+                xp->flags.diff_flag_top = 0;
+                xp->flags.diff_flag_top = 0;
+                xp->flags.diff_flag_top = 0;
+
+                /* short delay to be sure dart is in board and was not on the fly */
+                this_thread::sleep_for(chrono::milliseconds(20));
+
+                /* get even newer frames, with darts which are definetly in the board */
+                //top_cam >> cur_frame_top;
+                //right_cam >> cur_frame_right;
+                //left_cam >> cur_frame_left;
+
+                /* get líne polar coordinates */
+                image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_IMG_LINE, "Top");
+                image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_IMG_LINE, "Right");
+                image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_IMG_LINE, "Left");
+
+                /* calculate cross point */
+                img_proc_cross_point(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);
+
+                /* check result on every raw board */
+                dart_board_determineSector(xp->cross_point, TOP_CAM, &xp->r_top);
+                dart_board_determineSector(xp->cross_point, RIGHT_CAM, &xp->r_right);
+                dart_board_determineSector(xp->cross_point, LEFT_CAM, &xp->r_left);
+
+                /* democratic result */
+                dart_board_decide_sector(&xp->r_top, &xp->r_right, &xp->r_left, &xp->r_final);
+
+                std::cout << "Dart is (String): " << xp->r_final.str << std::endl;
+                std::cout << "Dart is (int Val): " << xp->r_final.val << std::endl;
+
+            }
+
+            /* update last frame */
+            last_frame_top = cur_frame_top.clone();
+            last_frame_right = cur_frame_right.clone();
+            last_frame_left = cur_frame_left.clone();
+
+        }
+        else {
+            /* recognized empty frame; short delay and try again */
+            this_thread::sleep_for(chrono::milliseconds(250));
+        }
+
+        this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
+
+    }
+
+    /* thread finished */
+    std::cout << "Cams Thread Finished\n";
+
+
+    waitKey(0);
+    /* free resoruces */
+    //top_cam.release();
+    //right_cam.release();
+    //left_cam.release();
+
+}
+
+
+
+
+/* old implementation, one thread per cam */
 void camThread(int threadId) {
 
     Mat lastFrame;
@@ -97,7 +508,7 @@ void camThread(int threadId) {
         return;
     }
 
-    /* create camera window */ 
+    /* create camera window */
     ostringstream CamName;
     CamName << "Cam " << threadId << " [press Esc to quit]";
     string camWindowName = CamName.str();
@@ -116,10 +527,13 @@ void camThread(int threadId) {
         return;
     }
 
-    while (running){
-       
+
+
+
+    while (running) {
+
         /* quit on [Esc] */
-        if ((cv::waitKey(100) == 27)) {
+        if ((cv::waitKey(WAIT_TIME_MS) == 27)) {
             break;
         }
 
@@ -130,22 +544,22 @@ void camThread(int threadId) {
 
         /* create camera window */
         //imshow(camWindowName, currentFrame);
-       
+
         /* Image Processing */
-        
+
         /* get calibrated view */
         //cal_get_images(CamFrame, CalImg);
-  
+
 
         //cvtColor(currentFrame, currentFrame, COLOR_BGR2GRAY);
-        GaussianBlur(currentFrame, currentFrame, Size(3,3) ,0 );
+        GaussianBlur(currentFrame, currentFrame, Size(3, 3), 0);
 
 
 
         /* check difference */
         absdiff(currentFrame, lastFrame, diffFrame);
         Mat diffFrame_gray;
-        
+
         cvtColor(diffFrame, diffFrame_gray, COLOR_BGR2GRAY);
         Mat binaryEdges;
         double tau = 25; // initial threshold value
@@ -162,7 +576,7 @@ void camThread(int threadId) {
 
 
         /* define sampling rate */
-        this_thread::sleep_for(chrono::milliseconds(10)); 
+        this_thread::sleep_for(chrono::milliseconds(10));
 
     }
 
@@ -173,11 +587,11 @@ void camThread(int threadId) {
     std::cout << "Thread " << threadId << " beendet.\n";
 }
 
-/* Main function */
-int main(){
-    
 
 
+
+
+void static_test(void) {
 
     /* load image from file */
     Mat top_image = cv::imread(TOP_1DARTS, cv::IMREAD_ANYCOLOR);
@@ -199,7 +613,7 @@ int main(){
 
 
 
-    destroyAllWindows();
+    //destroyAllWindows();
     struct line_s line;
     struct tripple_line_s t_line;
     line.r = 1;
@@ -210,19 +624,19 @@ int main(){
     left_raw = cv::imread(LEFT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
 
 #if 0 
-    image_proc_get_line(top_raw, top_image, TOP_CAM, &line, SHOW_IMG_LINE, "Top");
-    image_proc_get_line(right_raw, right_image, RIGHT_CAM, &line, SHOW_SHORT_ANALYSIS, "Right");
-    image_proc_get_line(left_raw, left_image, LEFT_CAM, &line, SHOW_IMG_LINE, "Left");
+    image_proc_get_line(top_raw, top_image, TOP_CAM, &line, SHOW_IMG_LINE, "Top Static Test");
+    image_proc_get_line(right_raw, right_image, RIGHT_CAM, &line, SHOW_SHORT_ANALYSIS, "Right Static Test");
+    image_proc_get_line(left_raw, left_image, LEFT_CAM, &line, SHOW_IMG_LINE, "Left Static Test");
 #endif 
 #if 1 
-    image_proc_get_line(top_image, top_image2, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top");
-    image_proc_get_line(right_image, right_image2, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right");
-    image_proc_get_line(left_image, left_image2, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left");
+    image_proc_get_line(top_image, top_image2, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top Static Test");
+    image_proc_get_line(right_image, right_image2, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right Static Test");
+    image_proc_get_line(left_image, left_image2, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
 #endif
 #if 0
-    image_proc_get_line(top_image2, top_image3, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top");
-    image_proc_get_line(right_image2, right_image3, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right");
-    image_proc_get_line(left_image2, left_image3, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left");
+    image_proc_get_line(top_image2, top_image3, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top Static Test");
+    image_proc_get_line(right_image2, right_image3, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right Static Test");
+    image_proc_get_line(left_image2, left_image3, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
 #endif
 
 
@@ -247,59 +661,24 @@ int main(){
 
     std::cout << "Wert: " << result << std::endl;
     */
-    std::string result = dart_board_determineSector(cross_point, TOP_CAM);
+    struct result_s result;
+    dart_board_determineSector(cross_point, TOP_CAM, &result);
 
-    std::cout << "Wert: " << result << std::endl;
+    std::cout << "Wert: " << result.str << std::endl;
 
     Point pixel(272, 347); // Tripple 19
-    result = dart_board_determineSector(pixel, TOP_CAM);
+    dart_board_determineSector(pixel, TOP_CAM, &result);
 
-    std::cout << "Wert: " << result << std::endl;
+    std::cout << "Wert: " << result.str << std::endl;
 
 
 
     cv::waitKey(0);
-
-
-    destroyAllWindows();
-
-    /*************************************************************/
-    return 0;
-
-
-
-
-
-
-   
-    /* open parallel cams */
-    std::thread topCam(camThread, TOP_CAM);
-    std::thread leftCam(camThread, LEFT_CAM);
-    std::thread rightCam(camThread, RIGHT_CAM);
-
-
-
-    /* wait on enter to quit */
-    std::cout << "Press Enter to quit Threads...\n";
-    cin.get(); 
-
-    /* kill threads */ 
-    running = false;
-
-
-    /* clear threads */
-    topCam.join();
-    leftCam.join();
-    rightCam.join();
-
-    destroyAllWindows();
-
-   
-    cv::waitKey(0);
-
-    return EXIT_SUCCESS;
-
 }
+
+
+
+
 
 
 

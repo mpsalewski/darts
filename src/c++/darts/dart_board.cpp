@@ -43,7 +43,7 @@ static struct Dartboard_Sector_s Db_sec_top = {
 /************************** Function Definitions *****************************/
 
 // Funktion zur Bestimmung des Sektors und des entsprechenden Werts
-std::string dart_board_determineSector(const cv::Point& pixel, int ThreadId) {
+void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s* r) {
 
     struct Dartboard_Sector_s board;
     
@@ -61,7 +61,8 @@ std::string dart_board_determineSector(const cv::Point& pixel, int ThreadId) {
             board = Db_sec_top;
             break;
 
-        default:    return "error";
+        default:    r->str = "error";
+                    r->val = 0;
                     break;
     }
 
@@ -90,7 +91,7 @@ std::string dart_board_determineSector(const cv::Point& pixel, int ThreadId) {
             corner_factor = 1;
         }
         else {
-            return dart_board_getSectorValue(5 + 1, distance, board);
+            dart_board_getSectorValue(5 + 1, distance, board, r);
         }
     }
     else if (dx < 0) {
@@ -107,7 +108,7 @@ std::string dart_board_determineSector(const cv::Point& pixel, int ThreadId) {
             corner_factor = 3;
         }
         else {
-            return dart_board_getSectorValue(15 + 1, distance, board);
+            dart_board_getSectorValue(15 + 1, distance, board, r);
         }
     }
 
@@ -115,36 +116,43 @@ std::string dart_board_determineSector(const cv::Point& pixel, int ThreadId) {
 
     // Bestimme den Sektor
     int sector = static_cast<int>(angle / 9) + 1;
-    cout << sector << endl;
+    //cout << sector << endl;
 
     // Erhalte den Wert (Single, Triple, Double) für den Sektor
-    return dart_board_getSectorValue(sector, distance, board); // +1, da Sektoren 1 bis 20 gehen
+    dart_board_getSectorValue(sector, distance, board, r); // +1, da Sektoren 1 bis 20 gehen
 }
 
 
 // Funktion, um den richtigen Wert (Single, Double, Triple) und die Sektorzahl zu ermitteln
-std::string dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board) {
+void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r) {
     // Bestimme den Wert je nach Entfernung (Single, Double, Triple)
     if (distance <= board.Db_r.radiusBullseye) {
-        return "Bullseye";
+        r->val = 50;
+        r->str = "Bullseye";
     }
     else if (distance <= board.Db_r.radiusSingleBull) {
-        return "Single Bull";
+        r->val = 25;
+        r->str = "Single Bull";
     }
     else if (distance <= board.Db_r.radiusTripleInner) {
-        return "Single " + std::to_string(board.sectorNumbers[sector - 1]);
+        r->val = 1 * board.sectorNumbers[sector - 1];
+        r->str = "Single " + std::to_string(board.sectorNumbers[sector - 1]);
     }
     else if (distance <= board.Db_r.radiusTripleOuter) {
-        return "Triple " + std::to_string(board.sectorNumbers[sector - 1]);
+        r->val = 3 * board.sectorNumbers[sector - 1];
+        r->str = "Triple " + std::to_string(board.sectorNumbers[sector - 1]);
     }
     else if (distance <= board.Db_r.radiusDoubleInner) {
-        return "Single " + std::to_string(board.sectorNumbers[sector - 1]);
+        r->val = 1 * board.sectorNumbers[sector - 1];
+        r->str = "Single " + std::to_string(board.sectorNumbers[sector - 1]);
     }
     else if (distance <= board.Db_r.radiusDoubleOuter) {
-        return "Double " + std::to_string(board.sectorNumbers[sector - 1]);
+        r->val = 2 * board.sectorNumbers[sector - 1];
+        r->str = "Double " + std::to_string(board.sectorNumbers[sector - 1]);
     }
     else {
-        return "Out of Board";
+        r->val = 0;
+        r->str = "Out of Board";
     }
 }
 
@@ -153,34 +161,34 @@ std::string dart_board_getSectorValue(int sector, float distance, struct Dartboa
 
 
 /* do the final sector decision based on multiple raw board sector results */
-std::string dart_board_decide_sector(std::string sec_board_top, std::string sec_board_right, std::string sec_board_left) {
+void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* sec_board_right, struct result_s* sec_board_left, struct result_s* r) {
 
 
 #if 1 
 
     /* all three are equal */
-    if ((sec_board_top == sec_board_right)&& (sec_board_top == sec_board_left)) {
-        return sec_board_top;
+    if ((sec_board_top->str == sec_board_right->str)&& (sec_board_top->str == sec_board_left->str)) {
+        *r = *sec_board_top;
     }
     /* top and right are equal */
-    else if (sec_board_top == sec_board_right) {
-        return sec_board_top;
+    else if (sec_board_top->str == sec_board_right->str) {
+        *r = *sec_board_top;
     }
     /* top and left are equal */
-    else if (sec_board_top == sec_board_left) {
-        return sec_board_top;
+    else if (sec_board_top->str == sec_board_left->str) {
+        *r = *sec_board_top;
     }
     /* left and right are equal */
-    else if (sec_board_left == sec_board_right) {
-        return sec_board_left;
+    else if (sec_board_left->str == sec_board_right->str) {
+        *r = *sec_board_left;
     }
     /* none of them are equal */
     else {
         printf("Warning: Three Different Sectors detected; return Top Detection as Default\n");
-        return sec_board_top;
+        *r = *sec_board_top;
     }
 
-
+    /* old, at the moment usage is not supported due to new result structure */
 #else 
 
     /* all three are equal */

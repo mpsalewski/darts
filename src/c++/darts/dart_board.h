@@ -52,14 +52,20 @@ struct Dartboard_Sector_s {
     
 };
 
+
+struct result_s {
+    int val;
+    std::string str;
+};
+
 /************************* local Variables ***********************************/
 
 
 
 /************************** Function Declaration *****************************/
-extern std::string dart_board_determineSector(const cv::Point& pixel, int ThreadId);
-extern std::string dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board);
-extern std::string dart_board_decide_sector(std::string sec_board_top, std::string sec_board_right, std::string sec_board_left);
+extern void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s*r);
+extern void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r);
+extern void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* sec_board_right, struct result_s* sec_board_left, struct result_s* r);
 
 
 #endif 
