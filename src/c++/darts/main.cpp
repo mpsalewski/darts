@@ -208,6 +208,25 @@ int main() {
     /* create darts gui thread */
     thread guiThread(Dartsboard_GUI_Thread, &game);
 
+    this_thread::sleep_for(chrono::milliseconds(2000));
+
+    /* simulate darts */
+    /*
+    int fin = 0;
+    fin = dart_board_update_scoreboard_gui(&game, 180);
+    if (fin > 0)
+        std::cout << "finished by: " << game.p[fin-1].p_name << endl;
+    fin = dart_board_update_scoreboard_gui(&game, 1);
+    if (fin > 0)
+        std::cout << "finished by: " << game.p[fin - 1].p_name << endl;
+    fin = dart_board_update_scoreboard_gui(&game, 76);
+    if (fin > 0)
+        std::cout << "finished by: " << game.p[fin - 1].p_name << endl;
+    fin = dart_board_update_scoreboard_gui(&game, 450);
+    if (fin > 0)
+        std::cout << "finished by: " << game.p[fin - 1].p_name << endl;
+    */
+
     /* wait on enter to quit */
     std::cout << "Press Enter to quit Threads...\n";
     cin.get();
@@ -243,6 +262,7 @@ int main() {
 void Dartsboard_GUI_Thread(void* arg) {
 
     struct game_s* g = (struct game_s*)(arg);
+    int fin = 0;
 
     /* init gui */
     dart_board_create_scoreboard_gui(g);
@@ -256,8 +276,13 @@ void Dartsboard_GUI_Thread(void* arg) {
             break;
         }
 
-        //dart_board_update_scoreboard_gui();
-
+        fin = dart_board_update_scoreboard_gui(g, 76);
+        if (fin > 0) {
+            dart_board_finish_scoreboard_gui(g,fin-1);
+            waitKey(0);
+            std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
+            break;
+        }
         this_thread::sleep_for(chrono::milliseconds(250));
 
     }
@@ -577,7 +602,7 @@ void SIMULATION_OF_camsThread(void* arg) {
     }
 
     /* thread finished */
-    std::cout << "Cams Thread Finished\n";
+    std::cout << "Cams Thread Finished; press any key to finish thread and proceed program\n!!! waitKey(0); !!!\n";
 
 
     cv::waitKey(0);
