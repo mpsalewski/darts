@@ -44,6 +44,10 @@ using namespace std;
 #define TOP_CAM     2
 #define LEFT_CAM    1
 #define RIGHT_CAM   3
+#define DIFF_THRESH 1e+6
+
+/* Image Paths */
+#define TOP_RAW_IMG_CAL "../images/img_raw_cal/top_raw.jpg"
 
 
 
@@ -63,14 +67,18 @@ void camThread(int threadId);
 
 
 /************************** Function Definitions *****************************/
-// Beispiel-Funktion für einen Thread
 void camThread(int threadId) {
 
-    Mat CamFrame;
+    Mat lastFrame;
+    Mat currentFrame;
+    Mat currentCalFrame;
+    Mat diffFrame;
+    Scalar diffVal;
+
     /* open camera */
     VideoCapture camera(threadId);
     if (!camera.isOpened()) {
-        cout << "[ERROR] cannot open Camera" << endl;
+        std::cout << "[ERROR] cannot open Camera" << endl;
         return;
     }
 
@@ -78,31 +86,68 @@ void camThread(int threadId) {
     ostringstream CamName;
     CamName << "Cam " << threadId << " [press Esc to quit]";
     string camWindowName = CamName.str();
-   
+    ostringstream CamNameDiff;
+    CamNameDiff << "Diff Cam " << threadId << " [press Esc to quit]";
+    string camWindowNameDiff = CamNameDiff.str();
+
+    /* load raw init image from file */
+    /*Mat lastImg = cv::imread(TOP_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
+    if (lastImg.empty()) {
+        cout << "[ERROR] cannot open iamge: " << TOP_RAW_IMG_CAL << endl;
+        return;
+    }*/
+    camera >> lastFrame;
+    if (lastFrame.empty()) {
+        return;
+    }
 
     while (running){
-        
+       
         /* quit on [Esc] */
-        if ((cv::waitKey(1) == 27)) {
+        if ((cv::waitKey(100) == 27)) {
             break;
         }
 
-        /* get next frame from cam */
-        camera >> CamFrame;
-        if (CamFrame.empty())
+        /* get next frame from cam (current image) */
+        camera >> currentFrame;
+        if (currentFrame.empty())
             break;
-        imshow(camWindowName, CamFrame);
-        
+
+        /* create camera window */
+        //imshow(camWindowName, currentFrame);
+       
         /* Image Processing */
+        
+        /* get calibrated view */
+        //cal_get_images(CamFrame, CalImg);
+  
+
+        //cvtColor(currentFrame, currentFrame, COLOR_BGR2GRAY);
+        GaussianBlur(currentFrame, currentFrame, Size(3,3) ,0 );
 
 
 
+        /* check difference */
+        absdiff(currentFrame, lastFrame, diffFrame);
+        Mat diffFrame_gray;
+        
+        cvtColor(diffFrame, diffFrame_gray, COLOR_BGR2GRAY);
+        Mat binaryEdges;
+        double tau = 25; // initial threshold value
+        threshold(diffFrame_gray, binaryEdges, tau, 255, THRESH_BINARY);
+        imshow(camWindowNameDiff, binaryEdges);
+        diffVal = sum(diffFrame_gray);
+        if (diffVal[0] > DIFF_THRESH) {
+            std::cout << camWindowNameDiff << "Diff Val detected : " << diffVal[0] << endl;
+            this_thread::sleep_for(chrono::milliseconds(1000));
+        }
 
-
+        /* update last frame */
+        lastFrame = currentFrame.clone();
 
 
         /* define sampling rate */
-        this_thread::sleep_for(chrono::milliseconds(100)); 
+        this_thread::sleep_for(chrono::milliseconds(10)); 
 
     }
 
@@ -110,7 +155,7 @@ void camThread(int threadId) {
     camera.release();
 
     /* Thread finished */
-    cout << "Thread " << threadId << " beendet.\n";
+    std::cout << "Thread " << threadId << " beendet.\n";
 }
 
 /* Main function */
@@ -125,7 +170,7 @@ int main(){
 
 
     /* wait on enter to quit */
-    cout << "Press Enter to quit Threads...\n";
+    std::cout << "Press Enter to quit Threads...\n";
     cin.get(); 
 
     /* kill threads */ 

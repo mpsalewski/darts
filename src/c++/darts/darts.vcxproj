@@ -137,11 +137,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="calibration.cpp" />
     <ClCompile Include="get_images.cpp" />
+    <ClCompile Include="ImageProc.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="calibration.h" />
     <ClInclude Include="get_images.h" />
+    <ClInclude Include="ImageProc.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\images\test_img\left\left_raw.jpg" />
+    <Image Include="..\..\..\images\test_img\right\right_raw.jpg" />
+    <Image Include="..\..\..\images\test_img\top\top_raw.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

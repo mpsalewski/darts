@@ -1,1 +1,26 @@
 .vs/
+*.obj
+*.tlog
+
+# Ignoriere Build-Ordner und temporäre Dateien
+src/c++/darts/darts/x64/Release/*.iobj
+src/c++/darts/darts/x64/Release/*.ipdb
+src/c++/darts/darts/x64/Release/*.log
+src/c++/darts/darts/x64/Release/*.obj
+src/c++/darts/darts/x64/Release/*.pdb
+src/c++/darts/darts/x64/Release/*.tlog
+
+
+src/c++/darts/darts/x64/Debug/*.iobj
+src/c++/darts/darts/x64/Debug/*.ipdb
+src/c++/darts/darts/x64/Debug/*.log
+src/c++/darts/darts/x64/Debug/*.obj
+src/c++/darts/darts/x64/Debug/*.pdb
+src/c++/darts/darts/x64/Debug/*.tlog
+
+
+# Ignoriere alle Dateien im darts.tlog-Ordner
+src/c++/darts/darts/x64/Release/darts.tlog/
+
+
+

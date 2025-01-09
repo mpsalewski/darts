@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="images">
+      <UniqueIdentifier>{269993a2-b580-453a-8720-e81c5c7f1c0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="images\img_raw_cal">
+      <UniqueIdentifier>{38e2debf-9d26-49f6-b75f-9ef35b288f4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -21,10 +27,33 @@
     <ClCompile Include="get_images.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="ImageProc.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="calibration.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="get_images.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="ImageProc.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="calibration.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\images\test_img\left\left_raw.jpg">
+      <Filter>images\img_raw_cal</Filter>
+    </Image>
+    <Image Include="..\..\..\images\test_img\right\right_raw.jpg">
+      <Filter>images\img_raw_cal</Filter>
+    </Image>
+    <Image Include="..\..\..\images\test_img\top\top_raw.jpg">
+      <Filter>images\img_raw_cal</Filter>
+    </Image>
   </ItemGroup>
 </Project>
