@@ -79,6 +79,17 @@ using namespace std;
 
 
 /************************** local Structure ***********************************/
+/* score, exchange between threads */
+static struct thread_exchange_s {
+
+    int score = 0;
+    int score_flag = 0;
+    string last_dart_str = "d";
+
+}t_e;
+
+
+
 /***
  * local sub structs
 ***/
@@ -118,9 +129,7 @@ static struct darts_s darts;
 /************************* local Variables ***********************************/
 /* control threads */
 atomic<bool> running(true);
-/* score, exchange between threads */
-int score = 0;
-int score_flag = 0;
+
 
 /************************** Function Declaration *****************************/
 void camsThread(void* arg);
@@ -215,18 +224,37 @@ int main() {
     /* simulate darts */
     /*
     int fin = 0;
-    fin = dart_board_update_scoreboard_gui(&game, 180);
-    if (fin > 0)
-        std::cout << "finished by: " << game.p[fin-1].p_name << endl;
-    fin = dart_board_update_scoreboard_gui(&game, 1);
-    if (fin > 0)
+    fin = dart_board_update_scoreboard_gui(&game, 180, "dont care");
+    waitKey(3000);
+    if (fin > 0) {
         std::cout << "finished by: " << game.p[fin - 1].p_name << endl;
-    fin = dart_board_update_scoreboard_gui(&game, 76);
-    if (fin > 0)
+        dart_board_finish_scoreboard_gui(&game, fin - 1);
+        waitKey(3000);
+    }
+    fin = dart_board_update_scoreboard_gui(&game, 1, "dont care");
+    if (fin > 0) {
         std::cout << "finished by: " << game.p[fin - 1].p_name << endl;
-    fin = dart_board_update_scoreboard_gui(&game, 450);
-    if (fin > 0)
+        dart_board_finish_scoreboard_gui(&game, fin - 1);
+        waitKey(3000);
+    }
+    fin = dart_board_update_scoreboard_gui(&game, 76, "dont care");
+    if (fin > 0) {
         std::cout << "finished by: " << game.p[fin - 1].p_name << endl;
+        dart_board_finish_scoreboard_gui(&game, fin - 1);
+        waitKey(3000);
+    }
+    fin = dart_board_update_scoreboard_gui(&game, 450, "dont care");
+    if (fin > 0) {
+        std::cout << "finished by: " << game.p[fin - 1].p_name << endl;
+        dart_board_finish_scoreboard_gui(&game, fin - 1);
+        waitKey(3000);
+    }
+    fin = dart_board_update_scoreboard_gui(&game, 500, "Double 250");
+    if (fin > 0) {
+        std::cout << "finished by: " << game.p[fin - 1].p_name << endl;
+        dart_board_finish_scoreboard_gui(&game, fin - 1);
+        waitKey(3000);
+    }
     */
 
     /* wait on enter to quit */
@@ -278,19 +306,20 @@ void Dartsboard_GUI_Thread(void* arg) {
             break;
         }
 
-        if (score_flag) {
+        if (t_e.score_flag) {
             /* reset flag */
-            score_flag = 0;
+            t_e.score_flag = 0;
             
             /* update scoreboard and check for finish */
-            fin = dart_board_update_scoreboard_gui(g, score);
+            fin = dart_board_update_scoreboard_gui(g, t_e.score, t_e.last_dart_str);
+            waitKey(0);
             if (fin > 0) {
                 dart_board_finish_scoreboard_gui(g, fin - 1);
                 waitKey(0);
                 std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
                 break;
             }
-            score = 0;
+            t_e.score = 0;
             this_thread::sleep_for(chrono::milliseconds(250));
         }
     }
@@ -420,13 +449,14 @@ void camsThread(void* arg) {
                 std::cout << "Dart is (int Val): " << xp->r_final.val << std::endl;
 
                 /* accumulate 3-dart score */
-                score += xp->r_final.val;
+                t_e.score += xp->r_final.val;
+                t_e.last_dart_str = xp->r_final.str;
             }
             /* 3 throws detected --> wait for Darts removed from Board */
             else if(xp->count_throws == 3){
 
                 /* recognize 3 darts */
-                score_flag = 1;
+                t_e.score_flag = 1;
 
                 /* wait till darts board is back to raw and empty */
                 xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
@@ -606,16 +636,18 @@ void SIMULATION_OF_camsThread(void* arg) {
                 std::cout << "Dart is (int Val): " << xp->r_final.val << std::endl;
 
                 /* accumulate 3-dart score */
-                score += xp->r_final.val;
+                t_e.score += xp->r_final.val;
+                t_e.last_dart_str = xp->r_final.str;
+
                 /* THIS IS WRONG ! JUST FOR TESTING ! recognize 3 darts */
-                score_flag = 1;
+                t_e.score_flag = 1;
 
             }
             /* 3 throws detected --> wait for Darts removed from Board */
             else if (xp->count_throws == 3) {
 
                 /* recognize 3 darts */
-                score_flag = 1;
+                t_e.score_flag = 1;
 
                 /* wait till darts board is back to raw and empty */
                 xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);

@@ -339,7 +339,7 @@ void dart_board_create_scoreboard_gui(struct game_s* g, std::string name_win, in
 
 
 
-int dart_board_update_scoreboard_gui(struct game_s* g, int new_throw) {
+int dart_board_update_scoreboard_gui(struct game_s* g, int new_throw, std::string last_dart_str) {
 
     /* keep track which players turn it is */
     static int count_player = 0;
@@ -396,6 +396,43 @@ int dart_board_update_scoreboard_gui(struct game_s* g, int new_throw) {
     line(pg->gui, Point(pg->name_col, pg->row_offset), Point(pg->last_throw_col + pg->last_throw_width, pg->row_offset), Scalar(255, 255, 255), 2);
     pg->row_offset += 30;
 
+
+
+
+    /* busted */
+    if (g->p[count_player].score < 0) {
+        cout << "busted! no score: " << g->p[count_player].score << endl;
+        g->p[count_player].score += new_throw;
+        /* no score mesage in lower area of frame */
+        pg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
+        pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
+        putText(pg->gui, "no score", Point(pg->text_pos, (int)((pg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+    }
+
+    /* finished */
+    if (g->p[count_player].score == 0) {
+        /* check double checkout if defined */
+        if (DOUBLE_CHECKOUT) {
+            if (strncmp("Double", last_dart_str.c_str(), 6) == 0) {
+                return (count_player + 1);
+            }
+            else {
+                cout << "no double checkout! no score: " << g->p[count_player].score << endl;
+                g->p[count_player].score += new_throw;
+                /* no score mesage in lower area of frame */
+                pg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
+                pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
+                putText(pg->gui, "no score", Point(pg->text_pos, (int)((pg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+            }
+        }
+        else {
+            return (count_player + 1);
+        }
+
+    }
+
+
+
     /* fill tabular */
     for (const auto& p : g->p) {
 
@@ -429,11 +466,6 @@ int dart_board_update_scoreboard_gui(struct game_s* g, int new_throw) {
     cv::imshow(pg->name_win, pg->gui);
 
 
-    /* finished */
-    if (g->p[count_player].score <= 0) {
-        return (count_player + 1);
-    }
-
     /* calc next player */
     count_player++;
     if (count_player == g->num_p) {
@@ -464,7 +496,7 @@ void dart_board_finish_scoreboard_gui(struct game_s* g, int player) {
     pg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
     pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
     pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, out, Point(pg->text_pos, (int)((pg->gui.rows - pg->text_w) / 2)), FONT_HERSHEY_SIMPLEX, 2, Scalar(255, 255, 255), 3); // titel
+    putText(pg->gui, out, Point(pg->text_pos, (int)((pg->gui.rows - pg->text_w) / 2)), FONT_HERSHEY_SIMPLEX, 2, Scalar(255, 255, 255), 3); 
 
     cv::imshow(pg->name_win, pg->gui);
 
