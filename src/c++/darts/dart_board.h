@@ -69,13 +69,13 @@ struct player_s {
     std::string p_name;
     int score = 501;
     int last_throw = 0;
+    int leg = 0;
+    int set = 0;
 };
 
 struct game_s {
     int num_p;
     std::vector<player_s> p;
-    int leg;
-    int set;
 };
 
 

@@ -150,16 +150,14 @@ int main() {
     ***/
     /* players */
     std::vector<player_s> players = {
-        {"Lukas", 501, 0},
-        {"Mika", 501, 0},
-        {"Marek", 501, 0},
+        {"Lukas", 501, 0, 0, 0},
+        {"Mika", 501, 0, 0, 0},
+        {"Marek", 501, 0, 0, 0},
     };
     /* game */
     struct game_s game = {
         players.size(),     // number of players
         players,            // players
-        0,                  // leg
-        0                   // sets
     };
 
     //dart_board_create_scoreboard_gui(&game);
@@ -293,11 +291,16 @@ void Dartsboard_GUI_Thread(void* arg) {
 
     struct game_s* g = (struct game_s*)(arg);
     int fin = 0;
+    int key = 0;
 
     /* init gui */
     dart_board_create_scoreboard_gui(g);
-    //dart_board_create_scoreboard_gui(g, "Board2", 900,900);
-    
+    // example2: dart_board_create_scoreboard_gui(g, "Board2", 900,900);
+    std::cout << "press [Enter] to start the game" << endl;
+    while (waitKey(10) != 13) {
+        this_thread::sleep_for(chrono::milliseconds(250));
+    }
+
     while (running == 1) {
 
 
@@ -312,12 +315,22 @@ void Dartsboard_GUI_Thread(void* arg) {
             
             /* update scoreboard and check for finish */
             fin = dart_board_update_scoreboard_gui(g, t_e.score, t_e.last_dart_str);
-            waitKey(0);
             if (fin > 0) {
                 dart_board_finish_scoreboard_gui(g, fin - 1);
-                waitKey(0);
                 std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
-                break;
+                /* next game ? yes --> [Enter]; no --> [q] */
+                while ((key != 13) && (key != 113)) {
+                    key = waitKey(10);
+                    this_thread::sleep_for(chrono::milliseconds(250));
+                }
+                if (key == 13) {
+                    std::cout << "pressed [Enter] --> next leg" << endl;
+                    dart_board_create_scoreboard_gui(g);
+                }
+                else {
+                    std::cout << "pressed [q] --> quit and exit thread" << endl;
+                    break;
+                }                
             }
             t_e.score = 0;
             this_thread::sleep_for(chrono::milliseconds(250));
@@ -379,7 +392,7 @@ void camsThread(void* arg) {
     right_cam >> last_frame_right;
     left_cam >> last_frame_left;
     if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
-        cout << "Error: empty init frame\n" << endl;;
+        std::cout << "Error: empty init frame\n" << endl;;
         return;
     }
     /* init frame */
@@ -640,6 +653,8 @@ void SIMULATION_OF_camsThread(void* arg) {
                 t_e.last_dart_str = xp->r_final.str;
 
                 /* THIS IS WRONG ! JUST FOR TESTING ! recognize 3 darts */
+                t_e.score = 501;
+                t_e.last_dart_str = "Double 250.5";
                 t_e.score_flag = 1;
 
             }
@@ -684,10 +699,12 @@ void SIMULATION_OF_camsThread(void* arg) {
     }
 
     /* thread finished */
-    std::cout << "Cams Thread Finished; press any key to finish thread and proceed program\n!!! waitKey(0); !!!\n";
+    std::cout << "Cams Thread Finished; press [Esc] to finish thread and proceed program\n!!! waitKey(0); !!!\n";
 
-
-    cv::waitKey(0);
+    while (cv::waitKey(10) != 27) {
+        this_thread::sleep_for(chrono::milliseconds(250));
+    }
+    
     /* free resoruces */
     //top_cam.release();
     //right_cam.release();

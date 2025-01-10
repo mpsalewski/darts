@@ -359,7 +359,7 @@ void dart_board_create_scoreboard_gui(struct game_s* g, std::string name_win, in
     pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
     pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
     putText(pg->gui, out, Point(pg->text_pos, pg->gui.rows - 150), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
-    out = "Game On!";
+    out = "Game On";
     pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
     pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
     putText(pg->gui, out, Point(pg->text_pos, pg->gui.rows - 100), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
