@@ -85,7 +85,7 @@ void Dartsboard_GUI_Thread(void* arg) {
     dart_board_create_scoreboard_gui(g);
     // example2: dart_board_create_scoreboard_gui(g, "Board2", 900,900);
     std::cout << "press [Enter] to start the game" << endl;
-    while (waitKey(10) != 13) {
+    while (waitKey(10) != 13 && running) {
         this_thread::sleep_for(chrono::milliseconds(250));
     }
 
@@ -107,7 +107,7 @@ void Dartsboard_GUI_Thread(void* arg) {
                 dart_board_finish_scoreboard_gui(g, fin - 1);
                 std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
                 /* next game ? yes --> [Enter]; no --> [q] */
-                while ((key != 13) && (key != 113)) {
+                while ((key != 13) && (key != 113) && running) {
                     key = waitKey(10);
                     this_thread::sleep_for(chrono::milliseconds(250));
                 }
@@ -115,8 +115,13 @@ void Dartsboard_GUI_Thread(void* arg) {
                     std::cout << "pressed [Enter] --> next leg" << endl;
                     dart_board_create_scoreboard_gui(g);
                 }
-                else {
+                else if(key == 113) {
                     std::cout << "pressed [q] --> quit and exit thread" << endl;
+                    break;
+                }
+                else {
+                    /* running == 0 --> thread kill */
+                    //std::cout << "" << endl;
                     break;
                 }
             }

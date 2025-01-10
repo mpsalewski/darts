@@ -87,19 +87,6 @@ int main() {
 
 
 
-    std::thread command_line(commandLineThread);
-
-    std::cout << "Enter to quit" << std::endl;
-    std::cin.get();  // Warten bis der Benutzer das Programm beendet
-
-
-    command_line.join(); // Warten, bis der Konsolen-Thread beendet wird
-
-
-
-    return 0;
-
-
     /***
      * create game 
     ***/
@@ -136,6 +123,13 @@ int main() {
     p->t_line.line_right.theta = 0;
     p->t_line.line_left.r = 0;
     p->t_line.line_left.theta = 0;
+
+
+
+    /* always register the command line */
+    thread command_line(commandLineThread);
+
+    cout << "type 'exit' to quit" << endl;
 
 
 /* use threads */
@@ -211,11 +205,11 @@ int main() {
     */
 
     /* wait on enter to quit */
-    std::cout << "Press Enter to quit Threads...\n";
-    cin.get();
+    //std::cout << "Press Enter to quit Threads...\n";
+    //cin.get();
 
     /* kill threads */
-    running = false;
+    //running = false;
 
     /* clear threads */
     SIM_cams.join();
@@ -230,7 +224,11 @@ int main() {
     static_test();
 
 #endif 
-   
+
+
+    /* clear thread */
+    command_line.join();
+
     destroyAllWindows();
 
     return EXIT_SUCCESS;

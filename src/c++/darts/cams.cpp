@@ -167,7 +167,7 @@ void camsThread(void* arg) {
                 /* wait till darts board is back to raw and empty */
                 xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
 
-                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27)) {
+                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27) && running) {
                     /* get current frames from cams */
                     top_cam >> cur_frame_top;
                     xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
@@ -360,7 +360,7 @@ void SIMULATION_OF_camsThread(void* arg) {
                 /* wait till darts board is back to raw and empty */
                 xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
 
-                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27)) {
+                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27) && running) {
                     /* get current frames from cams */
                     //top_cam >> cur_frame_top;
                     xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
@@ -394,7 +394,7 @@ void SIMULATION_OF_camsThread(void* arg) {
     /* thread finished */
     std::cout << "Cams Thread Finished; press [Esc] to finish thread and proceed program\n!!! waitKey(0); !!!\n";
 
-    while (cv::waitKey(10) != 27) {
+    while (cv::waitKey(10) != 27 && running) {
         this_thread::sleep_for(chrono::milliseconds(250));
     }
 

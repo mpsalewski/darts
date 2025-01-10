@@ -98,6 +98,9 @@ void commandLineThread(void) {
         this_thread::sleep_for(chrono::milliseconds(500));
     }
 
+    /* kill all threads */
+    running = false;
+
 }
 
 
