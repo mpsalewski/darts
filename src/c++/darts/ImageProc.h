@@ -43,8 +43,8 @@
 
 struct line_s {
 
-	double r;
-	double theta;
+	double r = 0;
+	double theta= 0;
 
 };
 

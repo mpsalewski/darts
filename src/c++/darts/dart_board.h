@@ -59,14 +59,14 @@ struct Dartboard_Sector_s {
 
 
 struct result_s {
-    int val;
-    std::string str;
+    int val = 0;
+    std::string str = "void";
 };
 
 
 
 struct player_s {
-    std::string p_name;
+    std::string p_name = "user";
     int score = 501;
     int last_throw = 0;
     int leg = 0;
@@ -84,7 +84,7 @@ struct game_s {
 
 
 /************************** Function Declaration *****************************/
-extern void Dartsboard_GUI_Thread(void* arg);
+extern void Dartsboard_GUI_Thread(void);
 
 extern void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s*r);
 extern void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r);

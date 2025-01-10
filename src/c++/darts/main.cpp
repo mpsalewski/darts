@@ -85,26 +85,9 @@ void static_test(void);
 int main() {
 
 
-
-
-    /***
-     * create game 
-    ***/
-    /* players */
-    std::vector<player_s> players = {
-        {"Lukas", 501, 0, 0, 0},
-        {"Mika", 501, 0, 0, 0},
-        {"Marek", 501, 0, 0, 0},
-    };
-    /* game */
-    struct game_s game = {
-        players.size(),     // number of players
-        players,            // players
-    };
-
     //dart_board_create_scoreboard_gui(&game);
     
-    
+#if 0    
     /* create ptr p for strcuture handling */
     struct darts_s* p = &darts;
 
@@ -123,7 +106,7 @@ int main() {
     p->t_line.line_right.theta = 0;
     p->t_line.line_left.r = 0;
     p->t_line.line_left.theta = 0;
-
+#endif 
 
 
     /* always register the command line */
@@ -135,20 +118,22 @@ int main() {
 /* use threads */
 #if !SIMULATION && THREADING
     /* open parallel cams */
-    thread cams(camsThread, p);
+    thread cams(camsThread, &darts);
     //std::thread topCam(camThread, TOP_CAM);
     //std::thread leftCam(camThread, LEFT_CAM);
     //std::thread rightCam(camThread, RIGHT_CAM);
 
     /* create darts gui thread */
-    thread guiThread(Dartsboard_GUI_Thread, &game);
+    thread guiThread(Dartsboard_GUI_Thread);
+
+    this_thread::sleep_for(chrono::milliseconds(2000));
 
     /* wait on enter to quit */
-    std::cout << "Press Enter to quit Threads...\n";
-    cin.get();
+    //std::cout << "Press Enter to quit Threads...\n";
+    //cin.get();
 
     /* kill threads */
-    running = false;
+    //running = false;
 
     /* clear threads */
     cams.join();
@@ -161,10 +146,10 @@ int main() {
     /***
      * run simualtion cams thread
     ***/
-    thread SIM_cams(SIMULATION_OF_camsThread, p);
+    thread SIM_cams(SIMULATION_OF_camsThread, &darts);
     
     /* create darts gui thread */
-    thread guiThread(Dartsboard_GUI_Thread, &game);
+    thread guiThread(Dartsboard_GUI_Thread);
 
     this_thread::sleep_for(chrono::milliseconds(2000));
 

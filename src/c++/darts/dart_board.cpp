@@ -22,6 +22,23 @@ using namespace std;
 
 
 /************************** local Structure ***********************************/
+/***
+    * create game
+***/
+/* players */
+static std::vector<player_s> players = {
+    {"Lukas", 501, 0, 0, 0},
+    {"Mika", 501, 0, 0, 0},
+    {"Marek", 501, 0, 0, 0},
+};
+/* game */
+static struct game_s game = {
+    players.size(),     // number of players
+    players,            // players
+};
+/* create ptr for access and compatibility */
+static struct game_s* g = &game;
+
 
 static struct priv_gui_s {
 
@@ -75,9 +92,10 @@ static struct Dartboard_Sector_s Db_sec_top = {
 
 
 /******************************* GUI THREAD **********************************/
-void Dartsboard_GUI_Thread(void* arg) {
+void Dartsboard_GUI_Thread(void) {
 
-    struct game_s* g = (struct game_s*)(arg);
+    /* unused void pointer assignment bc moved game structure in this module */
+    //struct game_s* g = (struct game_s*)(arg);
     int fin = 0;
     int key = 0;
 

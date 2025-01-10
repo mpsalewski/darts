@@ -67,10 +67,10 @@
 ***/
 /* flags */
 struct flags_s {
-    int diff_flag_top;
-    int diff_flag_right;
-    int diff_flag_left;
-    int diff_flag_raw;
+    int diff_flag_top = 0;
+    int diff_flag_right = 0;
+    int diff_flag_left = 0;
+    int diff_flag_raw = 0;
 };
 
 
@@ -81,7 +81,7 @@ struct darts_s {
     struct flags_s flags;
 
     /* count throws [0..3] */
-    int count_throws;
+    int count_throws = 0;
 
     /* dart position */
     struct tripple_line_s t_line;
