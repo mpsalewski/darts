@@ -9,6 +9,7 @@
 #include "Sobel.h"
 #include "HoughLine.h"
 #include "dart_board.h"
+#include "globals.h"
 
 /****************************** namespaces ***********************************/
 using namespace cv;
@@ -71,6 +72,60 @@ static struct Dartboard_Sector_s Db_sec_top = {
 
 
 /************************** Function Declaration *****************************/
+
+
+/******************************* GUI THREAD **********************************/
+void Dartsboard_GUI_Thread(void* arg) {
+
+    struct game_s* g = (struct game_s*)(arg);
+    int fin = 0;
+    int key = 0;
+
+    /* init gui */
+    dart_board_create_scoreboard_gui(g);
+    // example2: dart_board_create_scoreboard_gui(g, "Board2", 900,900);
+    std::cout << "press [Enter] to start the game" << endl;
+    while (waitKey(10) != 13) {
+        this_thread::sleep_for(chrono::milliseconds(250));
+    }
+
+    while (running == 1) {
+
+
+        /* quit on [Esc] */
+        if (cv::waitKey(10) == 27) {
+            break;
+        }
+
+        if (t_e.score_flag) {
+            /* reset flag */
+            t_e.score_flag = 0;
+
+            /* update scoreboard and check for finish */
+            fin = dart_board_update_scoreboard_gui(g, t_e.score, t_e.last_dart_str);
+            if (fin > 0) {
+                dart_board_finish_scoreboard_gui(g, fin - 1);
+                std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
+                /* next game ? yes --> [Enter]; no --> [q] */
+                while ((key != 13) && (key != 113)) {
+                    key = waitKey(10);
+                    this_thread::sleep_for(chrono::milliseconds(250));
+                }
+                if (key == 13) {
+                    std::cout << "pressed [Enter] --> next leg" << endl;
+                    dart_board_create_scoreboard_gui(g);
+                }
+                else {
+                    std::cout << "pressed [q] --> quit and exit thread" << endl;
+                    break;
+                }
+            }
+            t_e.score = 0;
+            this_thread::sleep_for(chrono::milliseconds(250));
+        }
+    }
+
+}
 
 
 

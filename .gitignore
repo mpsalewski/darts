@@ -6,6 +6,7 @@ src/c++/darts/*.vcxproj
 src/c++/darts/*.vcxproj.filters
 src/c++/darts/*.vcxproj.user
 
+src/c++/darts/enc_temp_folder/.
 
 src/c++/darts/x64/Release/*.pdb
 src/c++/darts/x64/Debug/*.pdb

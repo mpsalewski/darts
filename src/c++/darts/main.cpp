@@ -34,6 +34,7 @@
 #include "HoughLine.h"
 #include "Sobel.h"
 #include "dart_board.h"
+#include "globals.h"
 
 /****************************** namespaces ***********************************/
 using namespace cv;
@@ -80,13 +81,7 @@ using namespace std;
 
 /************************** local Structure ***********************************/
 /* score, exchange between threads */
-static struct thread_exchange_s {
-
-    int score = 0;
-    int score_flag = 0;
-    string last_dart_str = "d";
-
-}t_e;
+struct thread_exchange_s t_e;   // GLOBAL!
 
 
 
@@ -128,7 +123,7 @@ static struct darts_s darts;
 
 /************************* local Variables ***********************************/
 /* control threads */
-atomic<bool> running(true);
+atomic<bool> running(true);     // GLOBAL!
 
 
 /************************** Function Declaration *****************************/
@@ -136,7 +131,7 @@ void camsThread(void* arg);
 void SIMULATION_OF_camsThread(void* arg);
 void camThread(int threadId);
 void static_test(void);
-void Dartsboard_GUI_Thread(void* arg);
+//void Dartsboard_GUI_Thread(void* arg);
 
 
 
@@ -287,6 +282,7 @@ int main() {
 
 
 /************************** Function Definitions *****************************/
+#if 0
 void Dartsboard_GUI_Thread(void* arg) {
 
     struct game_s* g = (struct game_s*)(arg);
@@ -339,6 +335,7 @@ void Dartsboard_GUI_Thread(void* arg) {
 
 }
 
+#endif 
 
 
 
