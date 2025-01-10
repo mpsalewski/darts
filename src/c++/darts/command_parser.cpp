@@ -1,5 +1,6 @@
 /***************************** includes **************************************/
 #include <iostream>
+#include <chrono>
 #include <cstdlib>
 #include <string>
 #include <opencv2/opencv.hpp>
@@ -13,7 +14,6 @@
 #include "command_parser.h"
 #include <cstring>
 #include <cstdio>
-#include <cstdlib>
 #include <limits>
 
 /* compiler settings */
@@ -36,42 +36,66 @@ static CommandParser parser;
 /************************* local Variables ***********************************/
 
 
-
 /************************** Function Declaration *****************************/
 
 
-/****************************** command THREAD *******************************/
-// Konsolen-Thread-Funktion
-void consoleThread(void) {
+/**************************** Command Line Thread ****************************/
+/* Command Line thread */
+void commandLineThread(void) {
+
+    string input;
+    int cmd_return = 0;
+    char response[MAX_RESPONSE_SIZE];
 
     /* assign void pointer */
     // here unsued bc parser class only used in this module (static), so no 
     // pointer muss be actually passed to thread 
     // CommandParser* p = (CommandParser*)(arg);
 
+    /* init registers all commands */
     command_parser_cmd_init();
 
 
-    std::cout << "Warte auf Eingabe von Befehlen..." << std::endl;
+    cout << "Command Line is active" << endl;
+    
+    /* read command line and ignore first input --> flush and welcome */
+    getline(cin, input);
+    parser.processCommand("welcome", response);
+    cout << response << endl;
 
-    char response[MAX_RESPONSE_SIZE];
-    while (true) {
-        std::string input;
-        std::getline(std::cin, input); // Benutzer-Eingabe
+    
+    //cin.ignore(std::numeric_limits<streamsize>::max(), '\n');  
+    //cin.sync();
 
+    this_thread::sleep_for(chrono::milliseconds(500));
+    /* loop */
+    while (running == 1) {
+
+
+        /* read command line */
+        getline(cin, input);
+
+
+        /* quit on exit command */
         if (input == "exit") {
-            std::cout << "Beenden..." << std::endl;
+            cout << "quit() Command Line thread..." << std::endl;
             break;
         }
 
-        // Verarbeitung mit dem CommandParser
-        std::cout << input << std::endl;  
-        if (parser.processCommand(input.c_str(), response)) {
-            std::cout << "Antwort: " << response << std::endl;
+        /* mirror input */
+        //cout << input << endl;  
+        
+        /* process command */
+        cmd_return = parser.processCommand(input.c_str(), response);
+        cout << response << endl;
+        if (cmd_return) {
+            //cout << "ans" << response << endl;
         }
         else {
-            std::cout << "Fehler: Eingabe konnte nicht verarbeitet werden." << std::endl;
+            //cout << "error: invalid input" << std::endl;
         }
+
+        this_thread::sleep_for(chrono::milliseconds(500));
     }
 
 }
@@ -80,29 +104,29 @@ void consoleThread(void) {
 /********************* command parser class func def *************************/
 
 
-// Konstruktor
+/* constructor */
 CommandParser::CommandParser() : numCommands(0) {
-    /*
-    // Initialisiere jedes Argument im Array mit einem Standardwert (in diesem Fall den leeren String)
+    
+    /* init args */
     for (int i = 0; i < MAX_COMMAND_ARGS; ++i) {
-        commandArgs[i].asString[0] = '\0';  // Setze den String-Teil auf einen leeren String
+        commandArgs[i].asString[0] = '\0';  
     }
 
-    // Initialisiere jedes `Command` im Array
+    /* init cmds */
     for (int i = 0; i < MAX_COMMANDS; ++i) {
-        // Setze den `name`-Array auf eine leere Zeichenkette
-        commandDefinitions[i].name[0] = '\0'; // Name auf leeren String setzen
+        /* reset name arr */
+        commandDefinitions[i].name[0] = '\0'; 
 
-        // Setze `argTypes` auf leere Zeichenkette
-        commandDefinitions[i].argTypes[0] = '\0'; // Arg-Typ auf leeren String setzen
+        /* reset arg types */
+        commandDefinitions[i].argTypes[0] = '\0';
 
-        // Setze den Funktionszeiger auf `nullptr` (für den Fall, dass es keinen gültigen Callback gibt)
-        commandDefinitions[i].callback = nullptr; // Keine Callback-Funktion zugewiesen
-    }*/
+        /* set func ptr NULL */
+        commandDefinitions[i].callback = nullptr;
+    }
 
 }
 
-// String-Parsing-Funktion
+/* string parsing function */
 size_t CommandParser::parseString(const char* buf, char* output) {
     size_t readCount = 0;
     bool isQuoted = buf[0] == '"';
@@ -147,69 +171,93 @@ size_t CommandParser::parseString(const char* buf, char* output) {
     return readCount;
 }
 
-// Befehl registrieren
+/* register commands */
 bool CommandParser::registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, char* response)) {
-    if (numCommands >= MAX_COMMANDS) return false;
-    if (std::strlen(name) > MAX_COMMAND_NAME_LENGTH) return false;
-    if (std::strlen(argTypes) > MAX_COMMAND_ARGS) return false;
-    if (!callback) return false;
-
+    /* check if your allowed to register more commands */
+    if (numCommands >= MAX_COMMANDS) {
+        return false;
+    }
+    /* check command name length */
+    if (strlen(name) > MAX_COMMAND_NAME_LENGTH) {
+        return false;
+    }
+    /*check arg num */
+    if (strlen(argTypes) > MAX_COMMAND_ARGS) {
+        return false;
+    }
+    /* check if there is a valid callback */
+    if (!callback) {
+        return false;
+    }
+    /* register in CommandParser Class */
     strncpy_s(commandDefinitions[numCommands].name, name, MAX_COMMAND_NAME_LENGTH);
     strncpy_s(commandDefinitions[numCommands].argTypes, argTypes, MAX_COMMAND_ARGS);
     commandDefinitions[numCommands].callback = callback;
+
+    /* increment numer of cmds */
     numCommands++;
+    
     return true;
 }
 
-// Befehl verarbeiten
+/* process commands */
 bool CommandParser::processCommand(const char* command, char* response) {
     char name[MAX_COMMAND_NAME_LENGTH + 1];
     size_t i = 0;
 
-    // Kommando extrahieren (Bis zum ersten Leerzeichen)
+    /* extract command */
     while (*command != ' ' && *command != '\0' && i < MAX_COMMAND_NAME_LENGTH) name[i++] = *command++;
     name[i] = '\0';
 
     const char* argTypes = nullptr;
     void (*callback)(Argument*, char*) = nullptr;
 
-    // Finden der passenden Befehldefinition
-    for (size_t i = 0; i < numCommands; i++) {
-        if (std::strcmp(commandDefinitions[i].name, name) == 0) {
-            argTypes = commandDefinitions[i].argTypes;
-            callback = commandDefinitions[i].callback;
+    /* get cmd def */
+    size_t l;
+    for (l = 0; l < numCommands; l++) {
+        if (std::strcmp(commandDefinitions[l].name, name) == 0) {
+            argTypes = commandDefinitions[l].argTypes;
+            callback = commandDefinitions[l].callback;
             break;
         }
     }
-
-    if (!argTypes) {
-        std::snprintf(response, MAX_RESPONSE_SIZE, "Error: Unknown command '%s'", name);
+    /* check if there was matching command definition */
+    if(l>=numCommands){
+        snprintf(response, MAX_RESPONSE_SIZE, "Error: Unknown command '%s'", name);
         return false;
     }
 
-    // Argumente extrahieren (Nach dem Befehlstrennzeichen ' ')
+    /* get cmd args */
     char* args = (char*)command;
-    while (*args == ' ') ++args;  // Leerzeichen überspringen
-
-    Argument commandArgs[MAX_COMMAND_ARGS];  // Eine Array-Variable für die Argumente
+    while (*args == ' ') {
+        ++args;             // skip spaces 
+    }
+    Argument commandArgs[MAX_COMMAND_ARGS] = {0};  // array var for args
     size_t argIndex = 0;
     size_t parsed = 0;
 
-    // Argumente verarbeiten
+
+    /* process args */
     while (*args != '\0' && argIndex < MAX_COMMAND_ARGS) {
-        // Argument extrahieren
-        if (argTypes[argIndex] == 's') {  // Beispiel, wenn das Argument ein String ist
-            parsed = parseString(args, commandArgs[argIndex].asString);  // Rufe die String-Parsing-Funktion auf
-            if (parsed == 0) break;
-            args += parsed; // Weiter zur nächsten Zeichenkette
+        /* extract args */
+        /* arg is a string */
+        if (argTypes[argIndex] == 's') {  
+            parsed = parseString(args, commandArgs[argIndex].asString);  // get arg
+            if (parsed == 0) {
+                break;
+            }
+            args += parsed;     // get next arg
             argIndex++;
         }
-        // Weitere Typen hier hinzufügen (int, float etc.)
-        else break;
+        /* you might want to add other types(int, float etc.) */
+        else 
+            break;
     }
 
-    // Callbacks ausführen
-    if (callback) callback(commandArgs, response);
+    /* execute callbacks */
+    if (callback) {
+        callback(commandArgs, response);
+    }
     return true;
 }
 
@@ -217,31 +265,50 @@ bool CommandParser::processCommand(const char* command, char* response) {
 /************************** Function Definitions *****************************/
 void command_parser_cmd_init(void){
 
+    /***
+     * REGISTER YOUR COMMANDS
+    ***/
 
-    // Befehl "hallo" registrieren, er erwartet ein String-Argument
-    if (!parser.registerCommand("hallo", "s", helloCommandCallback)) {
-        std::cerr << "Fehler: Der Befehl konnte nicht registriert werden!" << std::endl;
+    /* "hello world" command */
+    if (!parser.registerCommand("hello", "s", helloCommandCallback)) {
+        std::cerr << "err: could not register command!" << std::endl;
+        return;
+    }
+
+    /* welcome command */
+    if (!parser.registerCommand("welcome", " ", welcomeCb)) {
+        std::cerr << "err: could not register command!" << std::endl;
         return;
     }
 
 
 
 
+
 }
 
 
-// Callback-Funktion für den "hallo"-Befehl
+/* hello world command */
 void helloCommandCallback(CommandParser::Argument* args, char* response) {
-    if (args[0].asString[0] != '\0') {
-        std::snprintf(response, MAX_RESPONSE_SIZE, "Hallo, %s!", args[0].asString);
+
+    // Check for missing argument, if so use the default name "DefaultName"
+    if (args[0].asString[0] == '\0') {
+        strncpy_s(args[0].asString, "DefaultName", MAX_COMMAND_ARG_SIZE);
     }
-    else {
-        // Verwende strncpy_s anstelle von strncpy
-        strncpy_s(response, MAX_RESPONSE_SIZE, "Hallo!", MAX_RESPONSE_SIZE - 1);
-    }
+    // Null terminate the string to ensure no overflow
+    args[0].asString[MAX_COMMAND_ARG_SIZE] = '\0';
+
+
+    snprintf(response, MAX_RESPONSE_SIZE, "hello, %s!", args[0].asString);
 }
 
 
+/* welcome Callback command */
+void welcomeCb(CommandParser::Argument* args, char* response) {
+
+    snprintf(response, MAX_RESPONSE_SIZE, "Welcome to the Darts Command Line");
+
+}
 
 
 #if 0

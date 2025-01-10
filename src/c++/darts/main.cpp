@@ -87,13 +87,13 @@ int main() {
 
 
 
-    std::thread console(consoleThread);
+    std::thread command_line(commandLineThread);
 
     std::cout << "Enter to quit" << std::endl;
     std::cin.get();  // Warten bis der Benutzer das Programm beendet
 
 
-    console.join(); // Warten, bis der Konsolen-Thread beendet wird
+    command_line.join(); // Warten, bis der Konsolen-Thread beendet wird
 
 
 

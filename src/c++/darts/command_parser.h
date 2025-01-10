@@ -53,7 +53,7 @@
 
 
 /*************************** local Defines ***********************************/
-// Festgelegte Grenzen (anstatt Templates)
+/* define boundaries */
 constexpr size_t MAX_COMMANDS = 16;
 constexpr size_t MAX_COMMAND_ARGS = 4;
 constexpr size_t MAX_COMMAND_NAME_LENGTH = 10;
@@ -65,10 +65,10 @@ constexpr size_t MAX_RESPONSE_SIZE = 64;
 
 
 /************************* command parser class *******************************/
-// CommandParser-Klasse
+
 class CommandParser {
 public:
-    // Hilfsstruktur für Argumente
+    /* argument structure */
     union Argument {
         double asDouble;
         uint64_t asUInt64;
@@ -76,27 +76,29 @@ public:
         char asString[MAX_COMMAND_ARG_SIZE + 1];
     };
 
-    // Konstruktor
+    /* constructor */
     CommandParser();
 
-    // Funktionen zur Registrierung und Verarbeitung von Befehlen
+    /* registers commands */
     bool registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, char* response));
+    
+    /* process a command */
     bool processCommand(const char* command, char* response);
 
 private:
-    // Hilfsstruktur für einen einzelnen Befehl
+    /* command structure */
     struct Command {
         char name[MAX_COMMAND_NAME_LENGTH + 1];
         char argTypes[MAX_COMMAND_ARGS + 1];
         void (*callback)(Argument* args, char* response);
     };
 
-    // Attribute
-    Command commandDefinitions[MAX_COMMANDS];
-    Argument commandArgs[MAX_COMMAND_ARGS];
-    size_t numCommands;
+    /* attributes */
+    Command commandDefinitions[MAX_COMMANDS];   // hold all commands
+    Argument commandArgs[MAX_COMMAND_ARGS];     // store the arguments parsed from the command input
+    size_t numCommands;                         // keep track of the number of registered commands
 
-    // Hilfsfunktion zum Parsen von Strings
+    /* parse strings */
     size_t parseString(const char* buf, char* output);
 };
 
@@ -107,9 +109,10 @@ private:
 
 
 /************************** Function Declaration *****************************/
-extern void consoleThread(void);
+extern void commandLineThread(void);
 extern void command_parser_cmd_init(void);
 extern void helloCommandCallback(CommandParser::Argument* args, char* response);
+extern void welcomeCb(CommandParser::Argument* args, char* response);
 size_t strToInt(const char* buf, void* value, bool isSigned, int64_t min_value, int64_t max_value);
 
 
