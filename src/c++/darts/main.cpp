@@ -36,6 +36,9 @@
 #include "dart_board.h"
 #include "globals.h"
 #include "cams.h"
+#include <cstring>
+#include "command_parser.h"
+
 
 /****************************** namespaces ***********************************/
 using namespace cv;
@@ -72,12 +75,29 @@ atomic<bool> running(true);     // GLOBAL!
 /************************** Function Declaration *****************************/
 void camThread(int threadId);
 void static_test(void);
-//void Dartsboard_GUI_Thread(void* arg);
+
+
+
 
 
 
 /****************************** main function ********************************/
 int main() {
+
+
+
+
+    std::thread console(consoleThread);
+
+    std::cout << "Enter to quit" << std::endl;
+    std::cin.get();  // Warten bis der Benutzer das Programm beendet
+
+
+    console.join(); // Warten, bis der Konsolen-Thread beendet wird
+
+
+
+    return 0;
 
 
     /***
