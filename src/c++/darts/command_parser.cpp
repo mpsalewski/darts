@@ -175,7 +175,7 @@ size_t CommandParser::parseString(const char* buf, char* output) {
 }
 
 /* register commands */
-bool CommandParser::registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, char* response)) {
+bool CommandParser::registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, size_t argCount,char* response)) {
     /* check if your allowed to register more commands */
     if (numCommands >= MAX_COMMANDS) {
         return false;
@@ -209,13 +209,16 @@ bool CommandParser::processCommand(const char* command, char* response) {
     size_t i = 0;
 
     /* extract command */
-    while (*command != ' ' && *command != '\0' && i < MAX_COMMAND_NAME_LENGTH) name[i++] = *command++;
+    while (*command != ' ' && *command != '\0' && i < MAX_COMMAND_NAME_LENGTH) {
+        name[i++] = *command++;
+    }
     name[i] = '\0';
 
-    const char* argTypes = nullptr;
-    void (*callback)(Argument*, char*) = nullptr;
-
+#if 0
     /* get cmd def */
+    const char* argTypes = nullptr;
+    void (*callback)(Argument*, size_t argCount, char*) = nullptr;
+    
     size_t l;
     for (l = 0; l < numCommands; l++) {
         if (std::strcmp(commandDefinitions[l].name, name) == 0) {
@@ -229,39 +232,160 @@ bool CommandParser::processCommand(const char* command, char* response) {
         snprintf(response, MAX_RESPONSE_SIZE, "Error: Unknown command '%s'", name);
         return false;
     }
-
-    /* get cmd args */
-    char* args = (char*)command;
-    while (*args == ' ') {
-        ++args;             // skip spaces 
-    }
-    Argument commandArgs[MAX_COMMAND_ARGS] = {0};  // array var for args
-    size_t argIndex = 0;
-    size_t parsed = 0;
-
-
-    /* process args */
-    while (*args != '\0' && argIndex < MAX_COMMAND_ARGS) {
-        /* extract args */
-        /* arg is a string */
-        if (argTypes[argIndex] == 's') {  
-            parsed = parseString(args, commandArgs[argIndex].asString);  // get arg
-            if (parsed == 0) {
-                break;
-            }
-            args += parsed;     // get next arg
-            argIndex++;
-        }
-        /* you might want to add other types(int, float etc.) */
-        else 
+#endif 
+    /* get cmd def */
+    char* argTypes = nullptr;
+    void (*callback)(Argument*, size_t argCount, char*) = nullptr;
+    for (size_t i = 0; i < numCommands; i++) {
+        if (strcmp(commandDefinitions[i].name, name) == 0) {
+            argTypes = commandDefinitions[i].argTypes;
+            callback = commandDefinitions[i].callback;
             break;
+        }
     }
+    /* check if there was matching command definition */
+    if (argTypes == nullptr) {
+        snprintf(response, MAX_RESPONSE_SIZE, "parse error: unknown command name %s", name);
+        return false;
+    }
+
+
+
+
+    Argument commandArgs[MAX_COMMAND_ARGS] = { 0 };  // array var for args
+    size_t argIndex = 0;
+
+    /* command without args */
+    if (argTypes[0] == ' ') {
+        commandArgs[0].asString[0] = ' ';
+        /* execute callbacks */
+        if (callback) {
+            callback(commandArgs, argIndex, response);
+        }
+        return true;
+    }
+    else {
+
+        /* parse each arg */
+        for (size_t i = 0; ((argTypes[i] != '\0') && (*command != '\0')); i++,argIndex++) {
+            /* require and skip 1 or more whitespace characters */
+            if (*command != ' ') {
+                snprintf(response, MAX_RESPONSE_SIZE, "parse error: missing whitespace before arg %d", (int)(i + 1));
+                return false;
+            }
+            /* get first arg */
+            command++;
+            while (*command == ' ') {
+                command++;
+            }
+            //do { command++; } while (*command == ' ');
+
+            /* recognize correct arg type */
+            switch (argTypes[i]) {
+
+                /* double argument */
+                case 'd': { 
+                    char* after;
+                    commandArgs[i].asDouble = strtod(command, &after);
+                    if (after == command || (*after != ' ' && *after != '\0')) {
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid double for arg %d", (int)(i + 1));
+                        return false;
+                    }
+                    command = after;
+                    break;
+                }
+                /* uint64_t argument */
+                case 'u': {
+                    try {
+                        size_t pos;
+                        uint64_t value = std::stoull(command, &pos, 0); // Basis 0 erlaubt die Erkennung von Dezimal-, Hexadezimal- oder Oktalzahlen.
+
+                        if (value > std::numeric_limits<uint64_t>::max()) {
+                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for uint64_t for arg %d", (int)(i + 1));
+                            return false;
+                        }
+
+                        if (command[pos] != ' ' && command[pos] != '\0') {
+                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid uint64_t for arg %d", (int)(i + 1));
+                            return false;
+                        }
+
+                        commandArgs[i].asUInt64 = value;
+                        command += pos;
+                        }
+                    catch (const std::invalid_argument&) {
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid uint64_t for arg %d", (int)(i + 1));
+                        return false;
+                    }
+                    catch (const std::out_of_range&) {
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for uint64_t for arg %d", (int)(i + 1));
+                        return false;
+                    }
+                    break;
+                }
+                /* int64_t argument */
+                case 'i': { 
+                    try {
+                        size_t pos;
+                        int64_t value = std::stoll(command, &pos, 0); // Basis 0 erlaubt Erkennung von Dezimal-, Hexadezimal- und Oktalzahlen.
+
+                        if (value < std::numeric_limits<int64_t>::min() || value > std::numeric_limits<int64_t>::max()) {
+                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for int64_t for arg %d",(int)(i + 1));
+                            return false;
+                        }
+
+                        if (command[pos] != ' ' && command[pos] != '\0') {
+                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid int64_t for arg %d",(int)(i + 1));
+                            return false;
+                        }
+
+                        commandArgs[i].asInt64 = value;
+                        command += pos;
+                    }
+                    catch (const std::invalid_argument&) {
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid int64_t for arg %d",(int)(i + 1));
+                        return false;
+                    }
+                    catch (const std::out_of_range&) {
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for int64_t for arg %d",(int)(i + 1));
+                        return false;
+                    }
+                    break;
+                }
+                /* string argument */
+                case 's': {
+                    size_t readCount = parseString(command, commandArgs[i].asString);
+                    if (readCount == 0) {
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid string for arg %d",(int)(i + 1));
+                        return false;
+                    }
+                    command += readCount;
+                    break;
+                }
+                default:
+                    snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid argtype %c for arg %d", argTypes[i],(int)(i + 1));
+                    return false;
+            }
+        }
+    }
+    // skip whitespace
+    while (*command == ' ') { command++; }
+
+    // ensure that we're at the end of the command
+    if (*command != '\0') {
+        snprintf(response, MAX_RESPONSE_SIZE, "parse error: too many args (expected %d)", (int)strlen(argTypes));
+        return false;
+    }
+
+    // set response to empty string
+    response[0] = '\0';
 
     /* execute callbacks */
     if (callback) {
-        callback(commandArgs, response);
+        callback(commandArgs, argIndex, response);
     }
     return true;
+
 }
 
 
@@ -284,6 +408,13 @@ void command_parser_cmd_init(void){
         return;
     }
 
+    /* new game command, max 4 playera */
+    if (!parser.registerCommand("new", "ssss", set_new_game_Cb)) {
+        std::cerr << "err: could not register command!" << std::endl;
+        return;
+    }
+
+
 
 
 
@@ -292,7 +423,7 @@ void command_parser_cmd_init(void){
 
 
 /* hello world command */
-void helloCommandCallback(CommandParser::Argument* args, char* response) {
+void helloCommandCallback(CommandParser::Argument* args, size_t argCount, char* response) {
 
     // Check for missing argument, if so use the default name "DefaultName"
     if (args[0].asString[0] == '\0') {
@@ -307,9 +438,32 @@ void helloCommandCallback(CommandParser::Argument* args, char* response) {
 
 
 /* welcome Callback command */
-void welcomeCb(CommandParser::Argument* args, char* response) {
+void welcomeCb(CommandParser::Argument* args, size_t argCount, char* response) {
 
     snprintf(response, MAX_RESPONSE_SIZE, "Welcome to the Darts Command Line");
+
+}
+
+
+/* create a new game */
+void set_new_game_Cb(CommandParser::Argument* args, size_t argCount, char* response) {
+
+    char *names[2];
+
+    /* no players */
+    if ((args[0].asString[0] == '\0') || (argCount == 0)) {
+        snprintf(response, MAX_RESPONSE_SIZE,"err: not enough args");
+        return;
+    }
+
+    snprintf(response, MAX_RESPONSE_SIZE, "new game with:");
+    for (int i = 0; i < argCount; i++) {
+        names[i]=args[i].asString;
+        strncat_s(response, MAX_RESPONSE_SIZE, " ", MAX_RESPONSE_SIZE - strlen("    ") - 1);
+        strncat_s(response, MAX_RESPONSE_SIZE, args[i].asString, MAX_RESPONSE_SIZE - strlen(args[i].asString) - 1);
+    }
+
+    dart_board_set_new_game(names, argCount);
 
 }
 

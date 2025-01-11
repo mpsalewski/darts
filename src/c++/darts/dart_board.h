@@ -92,7 +92,8 @@ extern void dart_board_decide_sector(struct result_s* sec_board_top, struct resu
 
 
 
-extern void dart_board_create_scoreboard_gui(struct game_s* g, std::string name_win = "Darts Scoreboard", int w = SCOREBOARD_GUI_WIDTH, int h = SCOREBOARD_GUI_HEIGHT);
-extern int dart_board_update_scoreboard_gui(struct game_s* g, int new_throw, std::string last_dart_str);
-extern void dart_board_finish_scoreboard_gui(struct game_s* g, int player);
+extern void dart_board_create_scoreboard_gui(std::string name_win = "Darts Scoreboard", int w = SCOREBOARD_GUI_WIDTH, int h = SCOREBOARD_GUI_HEIGHT);
+extern int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str);
+extern void dart_board_finish_scoreboard_gui(int player);
+extern void dart_board_set_new_game(char* names[], int num_p);
 #endif 

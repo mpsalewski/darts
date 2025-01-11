@@ -54,9 +54,9 @@
 
 /*************************** local Defines ***********************************/
 /* define boundaries */
-constexpr size_t MAX_COMMANDS = 16;
-constexpr size_t MAX_COMMAND_ARGS = 4;
-constexpr size_t MAX_COMMAND_NAME_LENGTH = 10;
+constexpr size_t MAX_COMMANDS = 32;
+constexpr size_t MAX_COMMAND_ARGS = 8;
+constexpr size_t MAX_COMMAND_NAME_LENGTH = 16;
 constexpr size_t MAX_COMMAND_ARG_SIZE = 32;
 constexpr size_t MAX_RESPONSE_SIZE = 64;
 
@@ -80,7 +80,7 @@ public:
     CommandParser();
 
     /* registers commands */
-    bool registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, char* response));
+    bool registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, size_t argCount, char* response));
     
     /* process a command */
     bool processCommand(const char* command, char* response);
@@ -90,7 +90,7 @@ private:
     struct Command {
         char name[MAX_COMMAND_NAME_LENGTH + 1];
         char argTypes[MAX_COMMAND_ARGS + 1];
-        void (*callback)(Argument* args, char* response);
+        void (*callback)(Argument* args, size_t argCount, char* response);
     };
 
     /* attributes */
@@ -111,8 +111,10 @@ private:
 /************************** Function Declaration *****************************/
 extern void commandLineThread(void);
 extern void command_parser_cmd_init(void);
-extern void helloCommandCallback(CommandParser::Argument* args, char* response);
-extern void welcomeCb(CommandParser::Argument* args, char* response);
+extern void helloCommandCallback(CommandParser::Argument* args, size_t argCount, char* response);
+extern void welcomeCb(CommandParser::Argument* args, size_t argCount, char* response);
+extern void set_new_game_Cb(CommandParser::Argument* args, size_t argCount, char* response);
+
 size_t strToInt(const char* buf, void* value, bool isSigned, int64_t min_value, int64_t max_value);
 
 

@@ -100,7 +100,7 @@ void Dartsboard_GUI_Thread(void) {
     int key = 0;
 
     /* init gui */
-    dart_board_create_scoreboard_gui(g);
+    dart_board_create_scoreboard_gui();
     // example2: dart_board_create_scoreboard_gui(g, "Board2", 900,900);
     std::cout << "press [Enter] to start the game" << endl;
     while (waitKey(10) != 13 && running) {
@@ -120,9 +120,9 @@ void Dartsboard_GUI_Thread(void) {
             t_e.score_flag = 0;
 
             /* update scoreboard and check for finish */
-            fin = dart_board_update_scoreboard_gui(g, t_e.score, t_e.last_dart_str);
+            fin = dart_board_update_scoreboard_gui(t_e.score, t_e.last_dart_str);
             if (fin > 0) {
-                dart_board_finish_scoreboard_gui(g, fin - 1);
+                dart_board_finish_scoreboard_gui(fin - 1);
                 std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
                 /* next game ? yes --> [Enter]; no --> [q] */
                 while ((key != 13) && (key != 113) && running) {
@@ -131,7 +131,7 @@ void Dartsboard_GUI_Thread(void) {
                 }
                 if (key == 13) {
                     std::cout << "pressed [Enter] --> next leg" << endl;
-                    dart_board_create_scoreboard_gui(g);
+                    dart_board_create_scoreboard_gui();
                 }
                 else if(key == 113) {
                     std::cout << "pressed [q] --> quit and exit thread" << endl;
@@ -331,7 +331,7 @@ void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* s
 
 
 
-void dart_board_create_scoreboard_gui(struct game_s* g, std::string name_win, int w, int h) {
+void dart_board_create_scoreboard_gui(std::string name_win, int w, int h) {
 
 
     int ply_track = 0;
@@ -456,7 +456,7 @@ void dart_board_create_scoreboard_gui(struct game_s* g, std::string name_win, in
 
 
 
-int dart_board_update_scoreboard_gui(struct game_s* g, int new_throw, std::string last_dart_str) {
+int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
     /* keep track which players turn it is */
     static int count_player = 0 + pg->count_games;
@@ -611,7 +611,7 @@ int dart_board_update_scoreboard_gui(struct game_s* g, int new_throw, std::strin
 }
 
 
-void dart_board_finish_scoreboard_gui(struct game_s* g, int player) {
+void dart_board_finish_scoreboard_gui(int player) {
 
 
     string out;
@@ -665,6 +665,33 @@ void dart_board_finish_scoreboard_gui(struct game_s* g, int player) {
     /* reset row offset to first player position */
     pg->row_offset = 150;
 
+
+
+}
+
+
+
+
+/* Dartsboard manipulation */
+void dart_board_set_new_game(char* names[], int num_p) {
+
+   vector<player_s> players;
+
+    /* fill in new names */
+    for (int i = 0; i < num_p; i++) {
+        players.push_back({ names[i], 501, 0, 0, 0 }); 
+    }
+
+    /* re-initialize game structure */
+    g->num_p = num_p;
+    g->p = players;
+
+    pg->count_games = -1;
+
+
+    /* call create with new game */
+
+    dart_board_create_scoreboard_gui();
 
 
 }
