@@ -114,7 +114,7 @@ extern void command_parser_cmd_init(void);
 extern void helloCommandCallback(CommandParser::Argument* args, size_t argCount, char* response);
 extern void welcomeCb(CommandParser::Argument* args, size_t argCount, char* response);
 extern void set_new_game_Cb(CommandParser::Argument* args, size_t argCount, char* response);
-
+extern void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char* response);
 size_t strToInt(const char* buf, void* value, bool isSigned, int64_t min_value, int64_t max_value);
 
 

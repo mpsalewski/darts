@@ -96,4 +96,5 @@ extern void dart_board_create_scoreboard_gui(std::string name_win = "Darts Score
 extern int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str);
 extern void dart_board_finish_scoreboard_gui(int player);
 extern void dart_board_set_new_game(char* names[], int num_p);
+extern void dart_board_set_score(char* name, int score);
 #endif 
