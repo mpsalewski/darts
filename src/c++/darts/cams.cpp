@@ -177,7 +177,7 @@ void camsThread(void* arg) {
                 xp->count_throws++;
 
                 /* short delay to be sure dart is in board and was not on the fly */
-                this_thread::sleep_for(chrono::milliseconds(200));
+                this_thread::sleep_for(chrono::milliseconds(300));
 
                 /* get even newer frames, with darts which are definetly in the board */
                 top_cam >> cur_frame_top;
@@ -254,7 +254,8 @@ void camsThread(void* arg) {
                 xp->count_throws = 0;
 
                 /* wait for player left board */
-                this_thread::sleep_for(chrono::milliseconds(4000));
+                std::cout << "removing darts ..." << endl;
+                this_thread::sleep_for(chrono::milliseconds(3000));
 
                 top_cam >> cur_frame_top;
                 right_cam >> cur_frame_right;
@@ -274,7 +275,7 @@ void camsThread(void* arg) {
         }
 
 
-        this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
+        //this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
 
     }
 

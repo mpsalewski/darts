@@ -42,7 +42,7 @@ using namespace std;
 /*************************** local Defines ***********************************/
 #define SMOOTHING_KERNEL_SIZE 1
 #define CROSS_POINT_INTENSITY_MIN 18
-#define DIFF_MIN_THRESH 8e+5
+#define DIFF_MIN_THRESH 1e+6
 
 /************************** local Structure ***********************************/
 
@@ -224,8 +224,8 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
         //ip::drawLine(cur_line, r, theta);
 
         // set max to zero
-        for (int dx = -2; dx <= 2; ++dx) {
-            for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -4; dx <= 4; ++dx) {
+            for (int dy = -4; dy <= 4; ++dy) {
                 int nx = houghMaxLocation.x + dx; // Nachbarpixel in x-Richtung
                 int ny = houghMaxLocation.y + dy; // Nachbarpixel in y-Richtung
 
@@ -235,6 +235,7 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
                 }
             }
         }
+        ip::drawLine(edge_bin, r, theta);   // Debug
         circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
         r_avg += r / global_max;
