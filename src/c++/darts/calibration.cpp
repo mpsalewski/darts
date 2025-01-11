@@ -29,6 +29,7 @@
 #include <cmath>
 #include "calibration.h"
 #include "dart_board.h"
+#include "cams.h"
 
 /****************************** namespaces ***********************************/
 using namespace cv;
@@ -125,24 +126,24 @@ void calibration_get_img(cv::Mat& src, cv::Mat& dst, int ThreadId) {
 
     /*source points for top cam*/
     vector<Point2f> src_points_top;
-    src_points_top.push_back(Point2f(323, 80));  // 20
-    src_points_top.push_back(Point2f(519, 271)); // 6
-    src_points_top.push_back(Point2f(318, 358)); // 3
-    src_points_top.push_back(Point2f(126, 254)); // 11
+    src_points_top.push_back(Point2f(334, 81));  // 20
+    src_points_top.push_back(Point2f(535, 271)); // 6
+    src_points_top.push_back(Point2f(335, 364)); // 3
+    src_points_top.push_back(Point2f(138, 260)); // 11
 
     /*source points for left cam*/
     vector<Point2f> src_points_left;
-    src_points_left.push_back(Point2f(472, 317));  // 20
-    src_points_left.push_back(Point2f(242, 336)); // 6
-    src_points_left.push_back(Point2f(148, 173)); // 3
-    src_points_left.push_back(Point2f(492, 130)); // 11
+    src_points_left.push_back(Point2f(471, 329));  // 20
+    src_points_left.push_back(Point2f(242, 355)); // 6
+    src_points_left.push_back(Point2f(142, 200)); // 3
+    src_points_left.push_back(Point2f(475, 144)); // 11
 
     /*source points for right cam*/
     vector<Point2f> src_points_right;
-    src_points_right.push_back(Point2f(168, 339));  // 20
-    src_points_right.push_back(Point2f(199, 169)); // 6
-    src_points_right.push_back(Point2f(490, 243)); // 3
-    src_points_right.push_back(Point2f(377, 372)); // 11
+    src_points_right.push_back(Point2f(162, 339));  // 20
+    src_points_right.push_back(Point2f(175, 168)); // 6
+    src_points_right.push_back(Point2f(487, 234)); // 3
+    src_points_right.push_back(Point2f(373, 370)); // 11
 
     /*points of the numbers 20,6,3,11 on the warped picture*/
     vector<Point2f> dst_points;

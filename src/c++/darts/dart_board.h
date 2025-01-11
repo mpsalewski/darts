@@ -29,9 +29,9 @@
 
 
 /*************************** local Defines ***********************************/
-#define TOP_CAM     2
-#define LEFT_CAM    1
-#define RIGHT_CAM   3
+//#define TOP_CAM     3
+//#define LEFT_CAM    2
+//#define RIGHT_CAM   1
 
 #define DARTBOARD_SECTORS 40
 

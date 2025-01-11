@@ -40,6 +40,7 @@
 #define IMG_DIFFERENCE 1
 #define IMG_NO_DIFFERENCE 0 
 
+#define BIN_THRESH 45
 
 struct line_s {
 
@@ -65,5 +66,7 @@ extern int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_l
 
 
 extern int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId);
+extern int img_proc_diff_check_getback(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId);
+
 
 #endif 

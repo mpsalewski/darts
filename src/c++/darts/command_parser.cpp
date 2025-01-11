@@ -59,6 +59,7 @@ void commandLineThread(void) {
     cout << "Command Line is active" << endl;
     
     /* read command line and ignore first input --> flush and welcome */
+    
     getline(cin, input);
     parser.processCommand("welcome", response);
     cout << response << endl;

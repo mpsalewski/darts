@@ -42,7 +42,7 @@ using namespace std;
 /*************************** local Defines ***********************************/
 #define SMOOTHING_KERNEL_SIZE 1
 #define CROSS_POINT_INTENSITY_MIN 18
-#define DIFF_MIN_THRESH 2.5e+5
+#define DIFF_MIN_THRESH 8e+5
 
 /************************** local Structure ***********************************/
 
@@ -189,9 +189,9 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
     sharpenImage(diff_gray, sharp_after_diff_gray);
 
     /* edge image */
-    int thresh_top = 55;
+    //int thresh_top = 55;
     ip::sobelFilter(sharp_after_diff_gray, edge);
-    threshold(edge, edge_bin, thresh_top, 255, THRESH_BINARY);
+    threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);
 
 
     /* Calculate Hough transform */
@@ -383,6 +383,9 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
         //cout << "x: " << pt.x << ", y: " << pt.y << endl;
     }
 
+    if (maxLocations.size() == 0) {
+        return EXIT_FAILURE;
+    }
 
     Point centerOfMass(sumX / maxLocations.size(), sumY / maxLocations.size());
 
@@ -402,7 +405,8 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
 int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
 
     /* bin img threshold */
-    int thresh = 55;
+    //int thresh = 55;
+
     /* pixel sum*/
     Scalar p_sum;
 
@@ -439,9 +443,10 @@ int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
 
     /* edge image */
     ip::sobelFilter(diff, diff);
-    threshold(diff, diff, thresh, 255, THRESH_BINARY);
+    threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);
 
-
+    imshow("01 Wait DIFF", diff);
+    
     /* sum up all pixel */
     p_sum = sum(diff);
     //cout << "sum of pixel: " << p_sum[0] << endl;
@@ -454,3 +459,64 @@ int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
       
 
 }
+
+
+
+int img_proc_diff_check_getback(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
+
+    /* bin img threshold */
+    //int thresh = 55;
+    /* pixel sum*/
+    Scalar p_sum;
+
+    /* declare images */
+    Mat cur, last, diff;
+
+    /* clone images */
+    cur = cur_f.clone();
+    if (cur.empty()) {
+        std::cout << "[ERROR] Current Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    last = last_f.clone();
+    if (last.empty()) {
+        std::cout << "[ERROR] Last Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    /* calibrate images */
+    calibration_get_img(cur, cur, ThreadId);
+    calibration_get_img(last, last, ThreadId);
+
+    /* gray conversion */
+    cvtColor(cur, cur, COLOR_BGR2GRAY);
+    cvtColor(last, last, COLOR_BGR2GRAY);
+
+
+    /* check difference */
+    absdiff(last, cur, diff);
+
+    /* sharpen images after difference */
+    sharpenImage(diff, diff);
+
+    /* edge image */
+    //ip::sobelFilter(diff, diff);
+    //threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);
+
+    imshow("01 Wait DIFF", diff);
+
+    /* sum up all pixel */
+    p_sum = sum(diff);
+    cout << "sum of pixel: " << p_sum[0] << endl;
+    if (p_sum[0] > DIFF_MIN_THRESH) {
+        return IMG_DIFFERENCE;
+    }
+    else {
+        return IMG_NO_DIFFERENCE;
+    }
+
+
+}
+
+

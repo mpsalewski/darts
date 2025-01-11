@@ -45,6 +45,8 @@ void camsThread(void* arg) {
     Mat last_frame_top, last_frame_right, last_frame_left;
     /* raw empty init board (just top view) */
     Mat raw_empty_init_frame;
+    /* calm cams down in beginning, check diff with these frames */
+    Mat f_top, f_right, f_left;
 
     /* open top camera */
     VideoCapture top_cam(TOP_CAM);
@@ -77,7 +79,7 @@ void camsThread(void* arg) {
     string left_cam_win = CamName3.str();
 
     /* short delay */
-    this_thread::sleep_for(chrono::milliseconds(500));
+    this_thread::sleep_for(chrono::milliseconds(2000));
 
 
     /* init last frames */
@@ -85,11 +87,58 @@ void camsThread(void* arg) {
     right_cam >> last_frame_right;
     left_cam >> last_frame_left;
     if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
-        std::cout << "Error: empty init frame\n" << endl;;
+        std::cout << "Error: empty init frame 1\n" << last_frame_top.empty() << last_frame_right.empty() << last_frame_left.empty() << endl;
+        return;
+    }
+
+    this_thread::sleep_for(chrono::milliseconds(500));
+    
+#if 0
+    top_cam >> f_top;
+    right_cam >> f_right;
+    left_cam >> f_left;
+    /* check íf there are any differences */
+    xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, f_top, TOP_CAM);
+    xp->flags.diff_flag_right = img_proc_diff_check(last_frame_right, f_right, RIGHT_CAM);
+    xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, f_left, LEFT_CAM);
+
+    /* check detected difference && expecting throws (count_throws < 3) */
+    while ((xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left)) {
+        /* init last frames */
+        top_cam >> last_frame_top;
+        right_cam >> last_frame_right;
+        left_cam >> last_frame_left;
+        if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
+            std::cout << "Error: empty init frame\n" << endl;;
+            return;
+        }
+
+        this_thread::sleep_for(chrono::milliseconds(500));
+        top_cam >> f_top;
+        right_cam >> f_right;
+        left_cam >> f_left;
+
+        /* check íf there are any differences */
+        xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, f_top, TOP_CAM);
+        xp->flags.diff_flag_right = img_proc_diff_check(last_frame_right, f_right, RIGHT_CAM);
+        xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, f_left, LEFT_CAM);
+    }
+
+#endif 
+    /* init last frames */
+    top_cam >> last_frame_top;
+    right_cam >> last_frame_right;
+    left_cam >> last_frame_left;
+    if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
+        std::cout << "Error: empty init frame 2\n" << last_frame_top.empty() << last_frame_right.empty() << last_frame_left.empty() << endl;
         return;
     }
     /* init frame */
     raw_empty_init_frame = last_frame_top.clone();
+
+
+    
+
 
     /* loop */
     while (running == 1) {
@@ -128,7 +177,7 @@ void camsThread(void* arg) {
                 xp->count_throws++;
 
                 /* short delay to be sure dart is in board and was not on the fly */
-                this_thread::sleep_for(chrono::milliseconds(20));
+                this_thread::sleep_for(chrono::milliseconds(200));
 
                 /* get even newer frames, with darts which are definetly in the board */
                 top_cam >> cur_frame_top;
@@ -136,9 +185,9 @@ void camsThread(void* arg) {
                 left_cam >> cur_frame_left;
 
                 /* get líne polar coordinates */
-                image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_IMG_LINE, "Top");
-                image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_IMG_LINE, "Right");
-                image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_IMG_LINE, "Left");
+                image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_SHORT_ANALYSIS, "Top");
+                image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_SHORT_ANALYSIS, "Right");
+                image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_SHORT_ANALYSIS, "Left");
 
                 /* calculate cross point */
                 img_proc_cross_point(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);
@@ -164,10 +213,26 @@ void camsThread(void* arg) {
                 /* recognize 3 darts */
                 t_e.score_flag = 1;
 
-                /* wait till darts board is back to raw and empty */
-                xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
 
-                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27) && running) {
+                top_cam >> cur_frame_top;
+                last_frame_top = cur_frame_top.clone();
+                /* wait till darts board is back to raw and empty */
+                xp->flags.diff_flag_raw = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
+
+
+                //while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27) && running) {
+                while (!xp->flags.diff_flag_raw && !(cv::waitKey(10) == 27) && running) {
+
+                    /* get current frames from cams */
+                    top_cam >> cur_frame_top;
+
+                    xp->flags.diff_flag_raw = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
+                    if (xp->flags.diff_flag_raw) {
+                        break;
+                    }
+                    last_frame_top = cur_frame_top.clone();
+                    this_thread::sleep_for(chrono::milliseconds(500));
+#if 0
                     /* get current frames from cams */
                     top_cam >> cur_frame_top;
                     xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
@@ -175,11 +240,25 @@ void camsThread(void* arg) {
                         break;
                     }
                     this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
+#endif 
+                    
+                    
                 }
+
+
+
+                /* init frame */
+                raw_empty_init_frame = cur_frame_top.clone();
 
                 /* removing throws */
                 xp->count_throws = 0;
 
+                /* wait for player left board */
+                this_thread::sleep_for(chrono::milliseconds(4000));
+
+                top_cam >> cur_frame_top;
+                right_cam >> cur_frame_right;
+                left_cam >> cur_frame_left;
 
             }
 

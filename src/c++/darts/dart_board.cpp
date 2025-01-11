@@ -10,6 +10,7 @@
 #include "HoughLine.h"
 #include "dart_board.h"
 #include "globals.h"
+#include "cams.h"
 
 /****************************** namespaces ***********************************/
 using namespace cv;
@@ -75,14 +76,21 @@ static struct priv_gui_s* pg = &priv_gui;
 static Point Dartboard_Center(320, 240);
 
 static struct Dartboard_Radius_s Dartboard_Rad_top = { 
-     7, 20, 117, 129, 187, 200 
+     10, 22, 117, 129, 187, 200 
 };
+
+
+
 
 static struct Dartboard_Sector_s Db_sec_top = {
     Dartboard_Center,
     Dartboard_Rad_top,
     { 20, 1,1 , 18, 18, 4,4, 13,13, 6,6, 10,10, 15,15, 2,2, 17,17, 3,3, 19,19, 7,7, 16,16, 8,8,11,11,14,14,9,9,12,12,5,5,20 }
 };
+
+
+
+
 
 /************************* local Variables ***********************************/
 
@@ -178,7 +186,7 @@ void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct res
                     break;
     }
 
-    // Berechne Abstand und Winkel
+    /* distance to center */
     float dx = pixel.x - board.center.x;
     if (dx == 0)
         dx += 1;
