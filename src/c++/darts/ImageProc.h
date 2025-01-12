@@ -42,6 +42,8 @@
 
 #define BIN_THRESH 45
 
+#define GAUSSIAN_BLUR_SIGMA 0.75
+
 struct line_s {
 
 	double r = 0;

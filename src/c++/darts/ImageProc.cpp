@@ -161,6 +161,10 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
         return EXIT_FAILURE;
     }
 
+    /* noise reduction */
+    GaussianBlur(cur,cur, Size(3,3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    GaussianBlur(last, last, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+
     /* calibrate images */
     calibration_get_img(cur, cur, ThreadId);
     calibration_get_img(last, last, ThreadId);
@@ -192,7 +196,6 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
     //int thresh_top = 55;
     ip::sobelFilter(sharp_after_diff_gray, edge);
     threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);
-
 
     /* Calculate Hough transform */
     cur_line = cur.clone();
