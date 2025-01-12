@@ -340,9 +340,9 @@ void SIMULATION_OF_camsThread(void* arg) {
     //top_cam >> last_frame_top;
     //right_cam >> last_frame_right;
     //left_cam >> last_frame_left;
-    last_frame_top = imread(TOP_1DARTS, IMREAD_ANYCOLOR);
-    last_frame_right = imread(RIGHT_1DARTS, IMREAD_ANYCOLOR);
-    last_frame_left = imread(LEFT_1DARTS, IMREAD_ANYCOLOR);
+    last_frame_top = imread(TOP_2DARTS, IMREAD_ANYCOLOR);
+    last_frame_right = imread(RIGHT_2DARTS, IMREAD_ANYCOLOR);
+    last_frame_left = imread(LEFT_2DARTS, IMREAD_ANYCOLOR);
 
     if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
         std::cout << "Error: empty init frame\n" << endl;
@@ -370,9 +370,9 @@ void SIMULATION_OF_camsThread(void* arg) {
         //top_cam >> cur_frame_top;
         //right_cam >> cur_frame_right;
         //left_cam >> cur_frame_left;
-        cur_frame_top = imread(TOP_2DARTS, IMREAD_ANYCOLOR);
-        cur_frame_right = imread(RIGHT_2DARTS, IMREAD_ANYCOLOR);
-        cur_frame_left = imread(LEFT_2DARTS, IMREAD_ANYCOLOR);
+        cur_frame_top = imread(TOP_3DARTS, IMREAD_ANYCOLOR);
+        cur_frame_right = imread(RIGHT_3DARTS, IMREAD_ANYCOLOR);
+        cur_frame_left = imread(LEFT_3DARTS, IMREAD_ANYCOLOR);
 
         /* check if frames are not empty */
         if (!cur_frame_top.empty() && !cur_frame_right.empty() && !cur_frame_left.empty()) {
@@ -403,9 +403,12 @@ void SIMULATION_OF_camsThread(void* arg) {
                 //left_cam >> cur_frame_left;
 
                 /* get líne polar coordinates */
-                image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_IMG_LINE, "Top");
-                image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_IMG_LINE, "Right");
-                image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_IMG_LINE, "Left");
+                image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_SHORT_ANALYSIS, "Top");
+                //xp->t_line.line_top.r = 0.000001;
+                //xp->t_line.line_top.theta = 0.00001;//180.00001/180.0* 3.14159265359;
+                cout << xp->t_line.line_top.theta << endl;
+                image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_SHORT_ANALYSIS, "Right");
+                image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_SHORT_ANALYSIS, "Left");
 
                 /* calculate cross point */
                 img_proc_cross_point(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);

@@ -238,10 +238,11 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
         ip::drawLine(edge_bin, r, theta);   // Debug
         circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
-        r_avg += r / global_max;
-        theta_avg += theta / global_max;
+        r_avg += r / (double)global_max;
+        theta_avg += theta / (double)global_max;
 
     }
+    //cout << r_avg << "\t" << theta_avg << endl;
     /* draw average line */
     ip::drawLine(cur_line, r_avg, theta_avg);
 
