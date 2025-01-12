@@ -431,6 +431,10 @@ int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
         return EXIT_FAILURE;
     }
 
+    /* noise reduction */
+    GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
+    GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
+
     /* calibrate images */
     calibration_get_img(cur, cur, ThreadId);
     calibration_get_img(last, last, ThreadId);
