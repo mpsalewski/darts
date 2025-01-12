@@ -42,7 +42,7 @@ using namespace std;
 /*************************** local Defines ***********************************/
 #define SMOOTHING_KERNEL_SIZE 1
 #define CROSS_POINT_INTENSITY_MIN 18
-#define DIFF_MIN_THRESH 1e+6
+#define DIFF_MIN_THRESH 1.5e+5  //1e+6; this worked wo gaussian
 
 /************************** local Structure ***********************************/
 

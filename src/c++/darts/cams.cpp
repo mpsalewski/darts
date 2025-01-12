@@ -256,6 +256,7 @@ void camsThread(void* arg) {
                 /* wait for player left board */
                 std::cout << "removing darts ..." << endl;
                 this_thread::sleep_for(chrono::milliseconds(3000));
+                std::cout << "ready ..." << endl;
 
                 top_cam >> cur_frame_top;
                 right_cam >> cur_frame_right;
