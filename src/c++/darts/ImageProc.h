@@ -40,7 +40,8 @@
 #define IMG_DIFFERENCE 1
 #define IMG_NO_DIFFERENCE 0 
 
-#define BIN_THRESH 45
+#define BIN_THRESH 32
+#define DIFF_MIN_THRESH 1.75e+5  //1e+6; this worked wo gaussian
 
 #define GAUSSIAN_BLUR_SIGMA 0.75
 

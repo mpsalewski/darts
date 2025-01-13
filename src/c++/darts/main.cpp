@@ -84,7 +84,6 @@ void static_test(void);
 /****************************** main function ********************************/
 int main() {
 
-
     //dart_board_create_scoreboard_gui(&game);
     
 #if 0    
@@ -230,6 +229,7 @@ int main() {
 
 
 void static_test(void) {
+
 
     /* load image from file */
     Mat top_image = cv::imread(TOP_1DARTS, cv::IMREAD_ANYCOLOR);

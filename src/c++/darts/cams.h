@@ -36,8 +36,8 @@
 #define WAIT_TIME_MS 1000/FPS
 
 /* camera identities */
-#define TOP_CAM     1
-#define LEFT_CAM    3
+#define TOP_CAM     2
+#define LEFT_CAM    1
 #define RIGHT_CAM   0
 #define DIFF_THRESH 1e+6
 

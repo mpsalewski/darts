@@ -19,7 +19,7 @@ using namespace std;
 
 
 /*************************** local Defines ***********************************/
-#define CALIBRATION 1
+#define CALIBRATION 0
 
 
 /************************** local Structure ***********************************/
@@ -216,9 +216,9 @@ void camsThread(void* arg) {
                 left_cam >> cur_frame_left;
 
                 /* get líne polar coordinates */
-                image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_SHORT_ANALYSIS, "Top");
-                image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_SHORT_ANALYSIS, "Right");
-                image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_SHORT_ANALYSIS, "Left");
+                image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_EDGE_BIN , "Top"); //SHOW_SHORT_ANALYSIS
+                image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_EDGE_BIN, "Right");
+                image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_EDGE_BIN, "Left");
 
                 /* calculate cross point */
                 img_proc_cross_point(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);
@@ -287,7 +287,7 @@ void camsThread(void* arg) {
 
                 /* wait for player left board */
                 std::cout << "removing darts ..." << endl;
-                this_thread::sleep_for(chrono::milliseconds(3000));
+                this_thread::sleep_for(chrono::milliseconds(2000));
                 std::cout << "ready ..." << endl;
 
                 top_cam >> cur_frame_top;
@@ -463,10 +463,12 @@ void SIMULATION_OF_camsThread(void* arg) {
 
                 /* get líne polar coordinates */
                 image_proc_get_line(last_frame_top, cur_frame_top, TOP_CAM, &xp->t_line.line_top, SHOW_SHORT_ANALYSIS, "Top");
-                //xp->t_line.line_top.r = 0.000001;
-                //xp->t_line.line_top.theta = 0.00001;//180.00001/180.0* 3.14159265359;
+                xp->t_line.line_top.r = 0.000001;
+                xp->t_line.line_top.theta = 2.3402;//180.00001/180.0* 3.14159265359;
                 cout << xp->t_line.line_top.theta << endl;
                 image_proc_get_line(last_frame_right, cur_frame_right, RIGHT_CAM, &xp->t_line.line_right, SHOW_SHORT_ANALYSIS, "Right");
+                xp->t_line.line_right.r = 0;
+                xp->t_line.line_right.theta = 2.3402;
                 image_proc_get_line(last_frame_left, cur_frame_left, LEFT_CAM, &xp->t_line.line_left, SHOW_SHORT_ANALYSIS, "Left");
 
                 /* calculate cross point */

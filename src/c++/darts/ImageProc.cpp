@@ -44,7 +44,7 @@ using namespace std;
 /*************************** local Defines ***********************************/
 #define SMOOTHING_KERNEL_SIZE 1
 #define CROSS_POINT_INTENSITY_MIN 18
-#define DIFF_MIN_THRESH 1.5e+5  //1e+6; this worked wo gaussian
+
 #define DIFF_IMG "01 Wait DIFF"
 
 #define WINDOW_NAME_THRESHOLD "Thresh Windows"
@@ -218,7 +218,7 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
 
 
 
-    /* find 3 gloabl maxima */
+    /* find 2 gloabl maxima */
     Mat houghSpaceClone = houghSpace.clone();
     /* Prepare Hough space image for display */
     houghSpace = 255 - houghSpace;				// Invert
@@ -237,10 +237,11 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
             Size(houghSpace.cols, houghSpace.rows),
             houghMaxLocation.x, houghMaxLocation.y, r, theta);
         //ip::drawLine(cur_line, r, theta);
+        //cout << "Debug x: " << houghMaxLocation.x << "\ty: " << houghMaxLocation.y << endl;
 
         // set max to zero
-        for (int dx = -2; dx <= 2; ++dx) {
-            for (int dy = -2; dy <= 2; ++dy) {
+        for (int dx = -4; dx <= 4; ++dx) {
+            for (int dy = -4; dy <= 4; ++dy) {
                 int nx = houghMaxLocation.x + dx; // Nachbarpixel in x-Richtung
                 int ny = houghMaxLocation.y + dy; // Nachbarpixel in y-Richtung
 
@@ -253,11 +254,27 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
         ip::drawLine(edge_bin, r, theta);   // Debug
         circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
-        cout << "Debug r: " << r << "\ttheta" << theta << endl;
-        r_avg += r / (double)global_max;
-        theta_avg += theta / (double)global_max;
-
+        //out << "Debug r: " << r << "\ttheta" << theta << endl;
+        /* !watch out when delta_theta > 90° */
+        if ((i > 0) && (fabs(theta_avg - theta) > (CV_PI / 2))) {
+            r_avg = r_avg + (-r);   // toggle sign
+            if (theta > 0) {
+                theta_avg = theta_avg + (CV_PI-theta);
+            }
+            else {
+                theta_avg = theta_avg + (-  CV_PI - theta);
+            }
+        }
+        else {
+            r_avg += r; // / (double)global_max;
+            theta_avg += theta; /// (double)global_max;
+        }
     }
+    r_avg = r_avg / global_max;
+    theta_avg = theta_avg / global_max;
+    /*if (fabs(r_avg) < 0.000001) {
+        r_avg = 1;
+    }*/
     //cout << r_avg << "\t" << theta_avg << endl;
     /* draw average line */
     ip::drawLine(cur_line, r_avg, theta_avg);
@@ -265,7 +282,7 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
     /* return line values */
     line->r = r_avg;
     line->theta = theta_avg;
-    cout << "Debug r_avg: " << r_avg << "\ttheta_avg" << theta_avg << endl;
+    //cout << "Debug r_avg: " << r_avg << "\ttheta_avg" << theta_avg << endl;
 
     /* create windows */
     if (show_imgs == SHOW_NO_IMAGES) {
