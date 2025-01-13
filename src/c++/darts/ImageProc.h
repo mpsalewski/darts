@@ -68,7 +68,17 @@ extern int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_l
 
 
 extern int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId);
+extern int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* pixel_sum, bool show);
 extern int img_proc_diff_check_getback(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId);
 
+
+extern void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_left, cv::Mat& dart_top, cv::Mat& dart_right, cv::Mat& dart_left);
+extern void img_proc_auto_calibration();
+
+extern void on_trackbar_bin_thresh(int thresh, void* arg);
+extern void on_trackbar_diff_min_thresh(int thresh, void* arg);
+
+extern void img_proc_set_bin_thresh(int thresh);
+extern void img_proc_set_diff_min_thresh(int thresh);
 
 #endif 

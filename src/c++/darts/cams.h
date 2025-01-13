@@ -27,6 +27,7 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 #include "ImageProc.h"
+#include "dart_board.h"
 
 
 /*************************** global Defines **********************************/
@@ -37,7 +38,7 @@
 /* camera identities */
 #define TOP_CAM     1
 #define LEFT_CAM    3
-#define RIGHT_CAM   2
+#define RIGHT_CAM   0//2
 #define DIFF_THRESH 1e+6
 
 

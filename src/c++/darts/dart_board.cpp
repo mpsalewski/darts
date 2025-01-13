@@ -154,6 +154,7 @@ void Dartsboard_GUI_Thread(void) {
             t_e.score = 0;
             this_thread::sleep_for(chrono::milliseconds(250));
         }
+        this_thread::sleep_for(chrono::milliseconds(250));
     }
 
 }
@@ -729,7 +730,7 @@ void dart_board_set_score(char* name, int score) {
     pg->gui = Mat::zeros(pg->h, pg->w, CV_8UC3);
 
     /* settings */
-    pg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
+    pg->gui.setTo(Scalar(50, 50, 50));  // background color gray    
     pg->text_w = getTextSize(pg->name_win, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
     pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
     putText(pg->gui, pg->name_win, Point(pg->text_pos, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2); // titel

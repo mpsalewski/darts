@@ -19,7 +19,7 @@ using namespace std;
 
 
 /*************************** local Defines ***********************************/
-
+#define CALIBRATION 1
 
 
 /************************** local Structure ***********************************/
@@ -49,19 +49,19 @@ void camsThread(void* arg) {
     Mat f_top, f_right, f_left;
 
     /* open top camera */
-    VideoCapture top_cam(TOP_CAM);
+    VideoCapture top_cam(TOP_CAM, CAP_ANY);
     if (!top_cam.isOpened()) {
         std::cout << "[ERROR] cannot open TOP Camera" << endl;
         return;
     }
     /* open right camera */
-    VideoCapture right_cam(RIGHT_CAM);
+    VideoCapture right_cam(RIGHT_CAM, CAP_ANY);
     if (!right_cam.isOpened()) {
         std::cout << "[ERROR] cannot open RIGHT Camera" << endl;
         return;
     }
     /* open left camera */
-    VideoCapture left_cam(LEFT_CAM);
+    VideoCapture left_cam(LEFT_CAM, CAP_ANY);
     if (!left_cam.isOpened()) {
         std::cout << "[ERROR] cannot open LEFT Camera" << endl;
         return;
@@ -81,6 +81,36 @@ void camsThread(void* arg) {
     /* short delay */
     this_thread::sleep_for(chrono::milliseconds(2000));
 
+#if CALIBRATION
+    /* calibration */
+    /* init last frames */
+    top_cam >> last_frame_top;
+    right_cam >> last_frame_right;
+    left_cam >> last_frame_left;
+    if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
+        std::cout << "Error: empty init frame 1\n" << last_frame_top.empty() << last_frame_right.empty() << last_frame_left.empty() << endl;
+        return;
+    }
+    /* show frames */
+    imshow(top_cam_win, last_frame_top);
+    imshow(right_cam_win, last_frame_right);
+    imshow(left_cam_win, last_frame_left);
+    /**/
+    std::cout << "throw a dart in the board --> then press 'c' to calibrate thresholds" << endl;
+    while ((waitKey(10) != 'c') && running) {
+        top_cam >> cur_frame_top;
+        right_cam >> cur_frame_right;
+        left_cam >> cur_frame_left;
+        /* show frames */
+        imshow(top_cam_win, cur_frame_top);
+        imshow(right_cam_win, cur_frame_right);
+        imshow(left_cam_win, cur_frame_left);
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+    img_proc_calibration(last_frame_top, last_frame_right, last_frame_left, cur_frame_top, cur_frame_right, cur_frame_left);
+#endif
+
+    this_thread::sleep_for(chrono::milliseconds(500));
 
     /* init last frames */
     top_cam >> last_frame_top;
@@ -336,6 +366,32 @@ void SIMULATION_OF_camsThread(void* arg) {
     /* short delay */
     this_thread::sleep_for(chrono::milliseconds(500));
 
+#if CALIBRATION
+    /* calibration sim */
+    last_frame_top = imread(TOP_2DARTS, IMREAD_ANYCOLOR);
+    last_frame_right = imread(RIGHT_2DARTS, IMREAD_ANYCOLOR);
+    last_frame_left = imread(LEFT_2DARTS, IMREAD_ANYCOLOR);
+    /* show frames */
+    imshow(top_cam_win, last_frame_top);
+    imshow(right_cam_win, last_frame_right);
+    imshow(left_cam_win, last_frame_left);
+    /**/
+    std::cout << "throw a dart in the board --> then press 'c' to calibrate thresholds" << endl;
+    while ((waitKey(10) != 'c') && running) {
+        cur_frame_top = imread(TOP_3DARTS, IMREAD_ANYCOLOR);
+        cur_frame_right = imread(RIGHT_3DARTS, IMREAD_ANYCOLOR);
+        cur_frame_left = imread(LEFT_3DARTS, IMREAD_ANYCOLOR);
+        /* show frames */
+        imshow(top_cam_win, cur_frame_top);
+        imshow(right_cam_win, cur_frame_right);
+        imshow(left_cam_win, cur_frame_left);
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+    //cur_frame_top = imread(TOP_3DARTS, IMREAD_ANYCOLOR);
+    //cur_frame_right = imread(RIGHT_3DARTS, IMREAD_ANYCOLOR);
+    //cur_frame_left = imread(LEFT_3DARTS, IMREAD_ANYCOLOR);
+    img_proc_calibration(last_frame_top,last_frame_right,last_frame_left,cur_frame_top,cur_frame_right,cur_frame_left);
+#endif
 
     /* init last frames */
     //top_cam >> last_frame_top;
@@ -430,8 +486,8 @@ void SIMULATION_OF_camsThread(void* arg) {
                 t_e.last_dart_str = xp->r_final.str;
 
                 /* THIS IS WRONG ! JUST FOR TESTING ! recognize 3 darts */
-                t_e.score = 501;
-                t_e.last_dart_str = "Double 250.5";
+                //t_e.score = 501;
+                //t_e.last_dart_str = "Double 250.5";
                 t_e.score_flag = 1;
 
             }
