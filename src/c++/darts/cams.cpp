@@ -108,6 +108,7 @@ void camsThread(void* arg) {
         this_thread::sleep_for(chrono::milliseconds(100));
     }
     img_proc_calibration(last_frame_top, last_frame_right, last_frame_left, cur_frame_top, cur_frame_right, cur_frame_left);
+    std::cout << "calibration done" << endl;
 #endif
 
     this_thread::sleep_for(chrono::milliseconds(500));
@@ -247,12 +248,13 @@ void camsThread(void* arg) {
                 top_cam >> cur_frame_top;
                 last_frame_top = cur_frame_top.clone();
                 /* wait till darts board is back to raw and empty */
-                xp->flags.diff_flag_raw = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
+                xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
+                //xp->flags.diff_flag_raw = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
 
 
-                //while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27) && running) {
-                while (!xp->flags.diff_flag_raw && !(cv::waitKey(10) == 27) && running) {
-
+                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27) && running) {
+                //while (!xp->flags.diff_flag_raw && !(cv::waitKey(10) == 27) && running) {
+#if 0
                     /* get current frames from cams */
                     top_cam >> cur_frame_top;
 
@@ -262,7 +264,7 @@ void camsThread(void* arg) {
                     }
                     last_frame_top = cur_frame_top.clone();
                     this_thread::sleep_for(chrono::milliseconds(500));
-#if 0
+#else 
                     /* get current frames from cams */
                     top_cam >> cur_frame_top;
                     xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);

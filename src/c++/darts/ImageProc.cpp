@@ -239,8 +239,8 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
         //ip::drawLine(cur_line, r, theta);
 
         // set max to zero
-        for (int dx = -4; dx <= 4; ++dx) {
-            for (int dy = -4; dy <= 4; ++dy) {
+        for (int dx = -2; dx <= 2; ++dx) {
+            for (int dy = -2; dy <= 2; ++dy) {
                 int nx = houghMaxLocation.x + dx; // Nachbarpixel in x-Richtung
                 int ny = houghMaxLocation.y + dy; // Nachbarpixel in y-Richtung
 
@@ -253,6 +253,7 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
         ip::drawLine(edge_bin, r, theta);   // Debug
         circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
+        cout << "Debug r: " << r << "\ttheta" << theta << endl;
         r_avg += r / (double)global_max;
         theta_avg += theta / (double)global_max;
 
@@ -264,7 +265,7 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
     /* return line values */
     line->r = r_avg;
     line->theta = theta_avg;
-
+    cout << "Debug r_avg: " << r_avg << "\ttheta_avg" << theta_avg << endl;
 
     /* create windows */
     if (show_imgs == SHOW_NO_IMAGES) {
