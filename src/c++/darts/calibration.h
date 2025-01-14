@@ -20,8 +20,8 @@
 
 
 
-#ifndef CAlIBRATION_H
-#define CAlIBRATION_H
+#ifndef CALIBRATION_H
+#define CALIBRATION_H
 
 
 #include <opencv2/opencv.hpp>

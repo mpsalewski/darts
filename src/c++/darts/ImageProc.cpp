@@ -340,19 +340,19 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
     else if (show_imgs == SHOW_SHORT_ANALYSIS) {
 
         /* Hough transform (line images) */
-        string image_orig = string("Image Orig with line (").append(CamNameId).append(" Cam)");
+        string image_orig = string("1 Image Orig with line (").append(CamNameId).append(" Cam)");
         cv::imshow(image_orig, cur_line);
         /* edge image */
-        string image_edge = string("Edge Image (").append(CamNameId).append(" Cam)");
+        string image_edge = string("2 Edge Image (").append(CamNameId).append(" Cam)");
         cv::imshow(image_edge, edge);
         /* edge binary image */
-        string image_edge_bin = string("Image Edge Bin (").append(CamNameId).append(" Cam)");
+        string image_edge_bin = string("3 Image Edge Bin (").append(CamNameId).append(" Cam)");
         cv::imshow(image_edge_bin, edge_bin);
         /* sharpened images after diff */
         //string image_sharp_diff = string("Image Sharpened After Diff (").append(CamNameId).append(" Cam)");
-        string image_sharp_diff_gray = string("Image Sharpened After Diff Gray (").append(CamNameId).append(" Cam)");
+        //string image_sharp_diff_gray = string("4 Image Sharpened After Diff Gray (").append(CamNameId).append(" Cam)");
         //cv::imshow(image_sharp_diff, sharp_after_diff);
-        cv::imshow(image_sharp_diff_gray, sharp_after_diff_gray);
+        //cv::imshow(image_sharp_diff_gray, sharp_after_diff_gray);
         return EXIT_SUCCESS;
     }
 
@@ -387,6 +387,313 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
 
 
 
+int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p) {
+
+    Mat frame = Mat::zeros(frameSize, CV_8UC3);
+
+
+    ip::drawLine_light_add(frame, tri_line->line_top.r, tri_line->line_top.theta);
+    ip::drawLine_light_add(frame, tri_line->line_right.r, tri_line->line_right.theta);
+    ip::drawLine_light_add(frame, tri_line->line_left.r, tri_line->line_left.theta);
+
+
+
+    imshow("Z Cross Line", frame);
+
+
+    // Vektor, um alle Positionen der maximalen Pixel zu speichern
+    vector<Point> maxLocations;
+
+    // Finde alle maximalen Positionen
+    //findAllMaxima(frame_gray, maxLocations);
+    findAllCrossPoints(frame, maxLocations);
+
+    int sumX = 0, sumY = 0;
+
+    // Ausgabe der maximalen Positionen
+    //cout << "Maximale Positionen:" << endl;
+    for (const Point& pt : maxLocations) {
+        sumX += pt.x;
+        sumY += pt.y;
+        //cout << "x: " << pt.x << ", y: " << pt.y << endl;
+    }
+
+    if (maxLocations.size() == 0) {
+        return EXIT_FAILURE;
+    }
+
+    Point centerOfMass(sumX / maxLocations.size(), sumY / maxLocations.size());
+
+    // Ausgabe des Mittelpunkts
+    //cout << "Mittelpunkt der maximalen Positionen: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
+
+    cross_p.x = centerOfMass.x;
+    cross_p.y = centerOfMass.y;
+
+    return EXIT_SUCCESS;
+
+}
+
+
+
+
+int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
+
+    /* bin img threshold */
+    //int thresh = 55;
+
+    /* pixel sum*/
+    Scalar p_sum;
+
+    /* declare images */
+    Mat cur, last, diff;
+
+    /* clone images */
+    cur = cur_f.clone();
+    if (cur.empty()) {
+        std::cout << "[ERROR] Current Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    last = last_f.clone();
+    if (last.empty()) {
+        std::cout << "[ERROR] Last Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    /* noise reduction */
+    GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
+    GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
+
+    /* calibrate images */
+    calibration_get_img(cur, cur, ThreadId);
+    calibration_get_img(last, last, ThreadId);
+
+    /* gray conversion */
+    cvtColor(cur, cur, COLOR_BGR2GRAY);
+    cvtColor(last, last, COLOR_BGR2GRAY);
+
+
+    /* check difference */
+    absdiff(last, cur, diff);
+
+    /* sharpen images after difference */
+    sharpenImage(diff, diff);
+
+    /* edge image */
+    ip::sobelFilter(diff, diff);
+    //threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
+    threshold(diff, diff, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
+
+    imshow(DIFF_IMG, diff);
+    
+    /* sum up all pixel */
+    p_sum = sum(diff);
+    //cout << "sum of pixel: " << p_sum[0] << endl;
+    //if (p_sum[0]>DIFF_MIN_THRESH) { // fixed macro
+    if (p_sum[0]>img_proc.diff_min_thresh) { 
+        return IMG_DIFFERENCE;
+    }
+    else {
+        return IMG_NO_DIFFERENCE;
+    }
+      
+
+}
+
+
+int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* pixel_sum, bool show) {
+
+    /* bin img threshold */
+    //int thresh = 55;
+
+    /* pixel sum*/
+    Scalar p_sum;
+
+    /* declare images */
+    Mat cur, last, diff;
+
+    /* clone images */
+    cur = cur_f.clone();
+    if (cur.empty()) {
+        std::cout << "[ERROR] Current Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    last = last_f.clone();
+    if (last.empty()) {
+        std::cout << "[ERROR] Last Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    /* noise reduction */
+    GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
+    GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
+
+    /* calibrate images */
+    calibration_get_img(cur, cur, ThreadId);
+    calibration_get_img(last, last, ThreadId);
+
+    /* gray conversion */
+    cvtColor(cur, cur, COLOR_BGR2GRAY);
+    cvtColor(last, last, COLOR_BGR2GRAY);
+
+
+    /* check difference */
+    absdiff(last, cur, diff);
+
+    /* sharpen images after difference */
+    sharpenImage(diff, diff);
+
+    /* edge image */
+    ip::sobelFilter(diff, diff);
+    //threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
+    threshold(diff, diff, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
+
+    imshow(DIFF_IMG, diff);
+
+    /* sum up all pixel */
+    p_sum = sum(diff);
+    if (show)
+        cout << "sum of pixel: " << p_sum[0] << endl;
+    
+    *pixel_sum = (int)(p_sum[0]);
+    //if (p_sum[0]>DIFF_MIN_THRESH) { // fixed macro
+    if (p_sum[0] > img_proc.diff_min_thresh) { 
+        return IMG_DIFFERENCE;
+    }
+    else {
+        return IMG_NO_DIFFERENCE;
+    }
+
+
+}
+
+
+
+
+
+void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_left, cv::Mat& dart_top, cv::Mat& dart_right, cv::Mat& dart_left) {
+
+    Mat frame;
+    int key = 0;
+    int p_sum_last = 10e+6;
+    int p_sum = 0;
+    string input;
+
+    frame = Mat::zeros(200, 600, CV_8UC3);
+    /* settings */
+    frame.setTo(Scalar(50, 50, 50));  // background color gray 
+    imshow(WINDOW_NAME_THRESHOLD, frame);
+
+    createTrackbar(TRACKBAR_NAME_BIN_THRESH, WINDOW_NAME_THRESHOLD, NULL, 255, on_trackbar_bin_thresh, &img_proc);
+    createTrackbar(TRACKBAR_NAME_DIFF_MIN_THRESH, WINDOW_NAME_THRESHOLD, NULL, 200 , on_trackbar_diff_min_thresh, &img_proc);
+
+    setTrackbarPos(TRACKBAR_NAME_BIN_THRESH, WINDOW_NAME_THRESHOLD, BIN_THRESH);
+    setTrackbarPos(TRACKBAR_NAME_DIFF_MIN_THRESH, WINDOW_NAME_THRESHOLD, (int)(DIFF_MIN_THRESH/1e+4));
+
+    
+    cout << "go through cams with enter; adjust bin thresh with trackbar; leave with [Esc]" << endl;
+    /* view diff, and wait for escape to quit img analysis */
+    while ((waitKey(10) != 27) && running){
+
+        while ((waitKey(10) != 13) && running){
+            img_proc_diff_check_cal(raw_top, dart_top, TOP_CAM, &p_sum, false);
+            this_thread::sleep_for(chrono::milliseconds(10));
+        }
+        
+        while ((waitKey(10) != 13) && running) {
+            img_proc_diff_check_cal(raw_right, dart_right, RIGHT_CAM, &p_sum, false);
+            this_thread::sleep_for(chrono::milliseconds(10));
+        }
+
+        while ((waitKey(10) != 13) && running) {
+            img_proc_diff_check_cal(raw_left, dart_left, LEFT_CAM, &p_sum, false);
+            this_thread::sleep_for(chrono::milliseconds(10));
+        }
+
+        /* hit enter to view images again and [Esc] to leave calibration */
+        while ((key != 13) && (key != 27) && running) {
+            key = waitKey(10);
+            this_thread::sleep_for(chrono::milliseconds(10));
+        }
+
+        if ((key == 27))
+            break;
+        else
+            key = 0;
+
+    }
+
+    if (!running)
+        return;
+
+    /* now adjust diff_min_thresh (depends directly on bin_thresh) */
+    img_proc_diff_check_cal(raw_top, dart_top, TOP_CAM, &p_sum, true);
+    if (p_sum < p_sum_last)
+        p_sum_last = p_sum;
+
+    img_proc_diff_check_cal(raw_right, dart_right, RIGHT_CAM, &p_sum, true);
+    if (p_sum < p_sum_last)
+        p_sum_last = p_sum;
+
+    img_proc_diff_check_cal(raw_left, dart_left, LEFT_CAM, &p_sum, true);
+    if (p_sum < p_sum_last)
+        p_sum_last = p_sum;
+
+    /* p_sum_last is smallest sum val */
+    cout << "smallest sum: " << p_sum_last << "\tsuggested diff min thresh: " << p_sum_last * 0.6 << " (Trackbar: " << p_sum_last * 0.6 / 1e+4 << ")" << endl;
+    cout << "adjust diff min thresh with trackbar [0...200 * 1e+4]; remove dart and finish calibration with [Esc]" << endl;
+    
+    while ((waitKey(10) != 27) && running) 
+        this_thread::sleep_for(chrono::milliseconds(10));
+
+    return;
+
+}
+
+
+void on_trackbar_bin_thresh(int thresh, void* arg) {
+    
+    struct img_proc_s* iproc = (struct img_proc_s*)(arg);  
+    
+    /* update value */
+    iproc->bin_thresh = thresh;
+
+
+}
+
+
+
+void on_trackbar_diff_min_thresh(int thresh, void* arg) {
+
+    struct img_proc_s* iproc = (struct img_proc_s*)(arg);
+
+    /* update value */
+    iproc->diff_min_thresh = thresh*1e+4;
+
+
+}
+
+
+
+void img_proc_set_bin_thresh(int thresh) {
+
+    /* update value */
+    img_proc.bin_thresh = thresh;
+
+}
+
+void img_proc_set_diff_min_thresh(int thresh) {
+
+    /* update value */
+    img_proc.bin_thresh = thresh;
+
+}
+
+
+
+/* Large Debug Copy, that's why this def is at the bottom */
 int image_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs, std::string CamNameId) {
 
 
@@ -642,368 +949,3 @@ int image_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadI
 
 }
 
-
-
-
-int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p) {
-
-    Mat frame = Mat::zeros(frameSize, CV_8UC3);
-
-
-    ip::drawLine_light_add(frame, tri_line->line_top.r, tri_line->line_top.theta);
-    ip::drawLine_light_add(frame, tri_line->line_right.r, tri_line->line_right.theta);
-    ip::drawLine_light_add(frame, tri_line->line_left.r, tri_line->line_left.theta);
-
-
-
-    imshow("Just Line", frame);
-
-
-    // Vektor, um alle Positionen der maximalen Pixel zu speichern
-    vector<Point> maxLocations;
-
-    // Finde alle maximalen Positionen
-    //findAllMaxima(frame_gray, maxLocations);
-    findAllCrossPoints(frame, maxLocations);
-
-    int sumX = 0, sumY = 0;
-
-    // Ausgabe der maximalen Positionen
-    //cout << "Maximale Positionen:" << endl;
-    for (const Point& pt : maxLocations) {
-        sumX += pt.x;
-        sumY += pt.y;
-        //cout << "x: " << pt.x << ", y: " << pt.y << endl;
-    }
-
-    if (maxLocations.size() == 0) {
-        return EXIT_FAILURE;
-    }
-
-    Point centerOfMass(sumX / maxLocations.size(), sumY / maxLocations.size());
-
-    // Ausgabe des Mittelpunkts
-    //cout << "Mittelpunkt der maximalen Positionen: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
-
-    cross_p.x = centerOfMass.x;
-    cross_p.y = centerOfMass.y;
-
-    return EXIT_SUCCESS;
-
-}
-
-
-
-
-int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
-
-    /* bin img threshold */
-    //int thresh = 55;
-
-    /* pixel sum*/
-    Scalar p_sum;
-
-    /* declare images */
-    Mat cur, last, diff;
-
-    /* clone images */
-    cur = cur_f.clone();
-    if (cur.empty()) {
-        std::cout << "[ERROR] Current Image is empty" << endl;
-        return EXIT_FAILURE;
-    }
-
-    last = last_f.clone();
-    if (last.empty()) {
-        std::cout << "[ERROR] Last Image is empty" << endl;
-        return EXIT_FAILURE;
-    }
-
-    /* noise reduction */
-    GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
-    GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
-
-    /* calibrate images */
-    calibration_get_img(cur, cur, ThreadId);
-    calibration_get_img(last, last, ThreadId);
-
-    /* gray conversion */
-    cvtColor(cur, cur, COLOR_BGR2GRAY);
-    cvtColor(last, last, COLOR_BGR2GRAY);
-
-
-    /* check difference */
-    absdiff(last, cur, diff);
-
-    /* sharpen images after difference */
-    sharpenImage(diff, diff);
-
-    /* edge image */
-    ip::sobelFilter(diff, diff);
-    //threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
-    threshold(diff, diff, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
-
-    imshow(DIFF_IMG, diff);
-    
-    /* sum up all pixel */
-    p_sum = sum(diff);
-    //cout << "sum of pixel: " << p_sum[0] << endl;
-    //if (p_sum[0]>DIFF_MIN_THRESH) { // fixed macro
-    if (p_sum[0]>img_proc.diff_min_thresh) { 
-        return IMG_DIFFERENCE;
-    }
-    else {
-        return IMG_NO_DIFFERENCE;
-    }
-      
-
-}
-
-
-int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* pixel_sum, bool show) {
-
-    /* bin img threshold */
-    //int thresh = 55;
-
-    /* pixel sum*/
-    Scalar p_sum;
-
-    /* declare images */
-    Mat cur, last, diff;
-
-    /* clone images */
-    cur = cur_f.clone();
-    if (cur.empty()) {
-        std::cout << "[ERROR] Current Image is empty" << endl;
-        return EXIT_FAILURE;
-    }
-
-    last = last_f.clone();
-    if (last.empty()) {
-        std::cout << "[ERROR] Last Image is empty" << endl;
-        return EXIT_FAILURE;
-    }
-
-    /* noise reduction */
-    GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
-    GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
-
-    /* calibrate images */
-    calibration_get_img(cur, cur, ThreadId);
-    calibration_get_img(last, last, ThreadId);
-
-    /* gray conversion */
-    cvtColor(cur, cur, COLOR_BGR2GRAY);
-    cvtColor(last, last, COLOR_BGR2GRAY);
-
-
-    /* check difference */
-    absdiff(last, cur, diff);
-
-    /* sharpen images after difference */
-    sharpenImage(diff, diff);
-
-    /* edge image */
-    ip::sobelFilter(diff, diff);
-    //threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
-    threshold(diff, diff, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
-
-    imshow(DIFF_IMG, diff);
-
-    /* sum up all pixel */
-    p_sum = sum(diff);
-    if (show)
-        cout << "sum of pixel: " << p_sum[0] << endl;
-    
-    *pixel_sum = (int)(p_sum[0]);
-    //if (p_sum[0]>DIFF_MIN_THRESH) { // fixed macro
-    if (p_sum[0] > img_proc.diff_min_thresh) { 
-        return IMG_DIFFERENCE;
-    }
-    else {
-        return IMG_NO_DIFFERENCE;
-    }
-
-
-}
-
-
-
-#if 0
-int img_proc_diff_check_getback(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
-
-    /* bin img threshold */
-    //int thresh = 55;
-    /* pixel sum*/
-    Scalar p_sum;
-
-    /* declare images */
-    Mat cur, last, diff;
-
-    /* clone images */
-    cur = cur_f.clone();
-    if (cur.empty()) {
-        std::cout << "[ERROR] Current Image is empty" << endl;
-        return EXIT_FAILURE;
-    }
-
-    last = last_f.clone();
-    if (last.empty()) {
-        std::cout << "[ERROR] Last Image is empty" << endl;
-        return EXIT_FAILURE;
-    }
-
-    /* calibrate images */
-    calibration_get_img(cur, cur, ThreadId);
-    calibration_get_img(last, last, ThreadId);
-
-    /* gray conversion */
-    cvtColor(cur, cur, COLOR_BGR2GRAY);
-    cvtColor(last, last, COLOR_BGR2GRAY);
-
-
-    /* check difference */
-    absdiff(last, cur, diff);
-
-    /* sharpen images after difference */
-    sharpenImage(diff, diff);
-
-    /* edge image */
-    //ip::sobelFilter(diff, diff);
-    //threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);
-
-    imshow("01 Wait DIFF", diff);
-
-    /* sum up all pixel */
-    p_sum = sum(diff);
-    cout << "sum of pixel: " << p_sum[0] << endl;
-    if (p_sum[0] > DIFF_MIN_THRESH) {
-        return IMG_DIFFERENCE;
-    }
-    else {
-        return IMG_NO_DIFFERENCE;
-    }
-
-
-}
-#endif
-
-
-
-void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_left, cv::Mat& dart_top, cv::Mat& dart_right, cv::Mat& dart_left) {
-
-    Mat frame;
-    int key = 0;
-    int p_sum_last = 10e+6;
-    int p_sum = 0;
-    string input;
-
-    frame = Mat::zeros(200, 600, CV_8UC3);
-    /* settings */
-    frame.setTo(Scalar(50, 50, 50));  // background color gray 
-    imshow(WINDOW_NAME_THRESHOLD, frame);
-
-    createTrackbar(TRACKBAR_NAME_BIN_THRESH, WINDOW_NAME_THRESHOLD, NULL, 255, on_trackbar_bin_thresh, &img_proc);
-    createTrackbar(TRACKBAR_NAME_DIFF_MIN_THRESH, WINDOW_NAME_THRESHOLD, NULL, 200 , on_trackbar_diff_min_thresh, &img_proc);
-
-    setTrackbarPos(TRACKBAR_NAME_BIN_THRESH, WINDOW_NAME_THRESHOLD, BIN_THRESH);
-    setTrackbarPos(TRACKBAR_NAME_DIFF_MIN_THRESH, WINDOW_NAME_THRESHOLD, (int)(DIFF_MIN_THRESH/1e+4));
-
-    
-    cout << "go through cams with enter; adjust bin thresh with trackbar; leave with [Esc]" << endl;
-    /* view diff, and wait for escape to quit img analysis */
-    while ((waitKey(10) != 27) && running){
-
-        while ((waitKey(10) != 13) && running){
-            img_proc_diff_check_cal(raw_top, dart_top, TOP_CAM, &p_sum, false);
-            this_thread::sleep_for(chrono::milliseconds(10));
-        }
-        
-        while ((waitKey(10) != 13) && running) {
-            img_proc_diff_check_cal(raw_right, dart_right, RIGHT_CAM, &p_sum, false);
-            this_thread::sleep_for(chrono::milliseconds(10));
-        }
-
-        while ((waitKey(10) != 13) && running) {
-            img_proc_diff_check_cal(raw_left, dart_left, LEFT_CAM, &p_sum, false);
-            this_thread::sleep_for(chrono::milliseconds(10));
-        }
-
-        /* hit enter to view images again and [Esc] to leave calibration */
-        while ((key != 13) && (key != 27) && running) {
-            key = waitKey(10);
-            this_thread::sleep_for(chrono::milliseconds(10));
-        }
-
-        if ((key == 27))
-            break;
-        else
-            key = 0;
-
-    }
-
-    if (!running)
-        return;
-
-    /* now adjust diff_min_thresh (depends directly on bin_thresh) */
-    img_proc_diff_check_cal(raw_top, dart_top, TOP_CAM, &p_sum, true);
-    if (p_sum < p_sum_last)
-        p_sum_last = p_sum;
-
-    img_proc_diff_check_cal(raw_right, dart_right, RIGHT_CAM, &p_sum, true);
-    if (p_sum < p_sum_last)
-        p_sum_last = p_sum;
-
-    img_proc_diff_check_cal(raw_left, dart_left, LEFT_CAM, &p_sum, true);
-    if (p_sum < p_sum_last)
-        p_sum_last = p_sum;
-
-    /* p_sum_last is smallest sum val */
-    cout << "smallest sum: " << p_sum_last << "\tsuggested diff min thresh: " << p_sum_last * 0.6 << " (Trackbar: " << p_sum_last * 0.6 / 1e+4 << ")" << endl;
-    cout << "adjust diff min thresh with trackbar [0...200 * 1e+4]; remove dart and finish calibration with [Esc]" << endl;
-    
-    while ((waitKey(10) != 27) && running) 
-        this_thread::sleep_for(chrono::milliseconds(10));
-
-    return;
-
-}
-
-
-void on_trackbar_bin_thresh(int thresh, void* arg) {
-    
-    struct img_proc_s* iproc = (struct img_proc_s*)(arg);  
-    
-    /* update value */
-    iproc->bin_thresh = thresh;
-
-
-}
-
-
-
-void on_trackbar_diff_min_thresh(int thresh, void* arg) {
-
-    struct img_proc_s* iproc = (struct img_proc_s*)(arg);
-
-    /* update value */
-    iproc->diff_min_thresh = thresh*1e+4;
-
-
-}
-
-
-
-void img_proc_set_bin_thresh(int thresh) {
-
-    /* update value */
-    img_proc.bin_thresh = thresh;
-
-}
-
-void img_proc_set_diff_min_thresh(int thresh) {
-
-    /* update value */
-    img_proc.bin_thresh = thresh;
-
-}
