@@ -65,6 +65,7 @@ extern int ImgP_newDart(cv::Mat& lastImg, cv::Mat& newImg);
 
 extern void findAllMaxima(const cv::Mat& image, std::vector<cv::Point>& maxLocations);
 extern int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs = 0, std::string CamNameId = "Default");
+extern int image_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs = 0, std::string CamNameId = "Default");
 extern int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p);
 
 

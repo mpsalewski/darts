@@ -136,6 +136,263 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
     /* declare images */
     Mat cur;
     Mat cur_gray;
+    //Mat cur_sharp;
+    //Mat cur_sharp_gray;
+
+    Mat last;
+    Mat last_gray;
+    //Mat last_sharp;
+    //Mat last_sharp_gray;
+
+    //Mat diff;
+    Mat diff_gray;
+    //Mat diff_sharp;
+    //Mat diff_sharp_gray;
+
+    //Mat sharp_after_diff;
+    Mat sharp_after_diff_gray;
+
+    Mat edge;
+    Mat edge_bin;
+
+    Mat houghSpace;
+    Mat cur_line;
+
+
+    /* clone images */
+    cur = currentImg.clone();
+    if (cur.empty()) {
+        std::cout << "[ERROR] Current Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    last = lastImg.clone();
+    if (last.empty()) {
+        std::cout << "[ERROR] Last Image is empty" << endl;
+        return EXIT_FAILURE;
+    }
+
+    /* noise reduction */
+    GaussianBlur(cur,cur, Size(3,3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    GaussianBlur(last, last, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+
+    /* calibrate images */
+    calibration_get_img(cur, cur, ThreadId);
+    calibration_get_img(last, last, ThreadId);
+
+    /* gray conversion */
+    cvtColor(cur, cur_gray, COLOR_BGR2GRAY);
+    cvtColor(last, last_gray, COLOR_BGR2GRAY);
+
+    /* sharpen images */
+    //sharpenImage(cur, cur_sharp);
+    //sharpenImage(cur_gray, cur_sharp_gray);
+
+    //harpenImage(last, last_sharp);
+    //sharpenImage(last_gray, last_sharp_gray);
+
+
+    /* check difference */
+    //absdiff(last, cur, diff);
+    absdiff(last_gray, cur_gray, diff_gray);
+    //absdiff(last_sharp, cur_sharp, diff_sharp);
+    //absdiff(last_sharp_gray, cur_sharp_gray, diff_sharp_gray);
+
+
+    /* sharpen images after difference */
+    //sharpenImage(diff, sharp_after_diff);
+    sharpenImage(diff_gray, sharp_after_diff_gray);
+
+    /* edge image */
+    //int thresh_top = 55;
+    ip::sobelFilter(sharp_after_diff_gray, edge);
+    //threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
+    threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
+
+    /* Calculate Hough transform */
+    cur_line = cur.clone();
+    ip::houghTransform(edge_bin, houghSpace);
+
+    GaussianBlur(houghSpace, houghSpace, Size(SMOOTHING_KERNEL_SIZE, SMOOTHING_KERNEL_SIZE), 0.0);
+
+
+
+
+    /* find 2 gloabl maxima */
+    Mat houghSpaceClone = houghSpace.clone();
+    /* Prepare Hough space image for display */
+    houghSpace = 255 - houghSpace;				// Invert
+    ip::drawHoughLineLabels(houghSpace);		// Axes
+
+    Point houghMaxLocation;
+    double r, theta;
+    double r_avg = 0;
+    double theta_avg = 0;
+    /* find global maxima */
+    int global_max = 2;
+    for (int i = 0; i < global_max; i++) {
+        minMaxLoc(houghSpaceClone, NULL, NULL, NULL, &houghMaxLocation);
+        ip::houghSpaceToLine(
+            Size(edge_bin.cols, edge_bin.rows),
+            Size(houghSpace.cols, houghSpace.rows),
+            houghMaxLocation.x, houghMaxLocation.y, r, theta);
+        //ip::drawLine(cur_line, r, theta);
+        //cout << "Debug x: " << houghMaxLocation.x << "\ty: " << houghMaxLocation.y << endl;
+
+        // set max to zero
+        for (int dx = -4; dx <= 4; ++dx) {
+            for (int dy = -4; dy <= 4; ++dy) {
+                int nx = houghMaxLocation.x + dx; // Nachbarpixel in x-Richtung
+                int ny = houghMaxLocation.y + dy; // Nachbarpixel in y-Richtung
+
+                // Überprüfen, ob der Nachbarpixel innerhalb der Bildgrenzen liegt
+                if (nx >= 0 && nx < houghSpaceClone.cols && ny >= 0 && ny < houghSpaceClone.rows) {
+                    houghSpaceClone.at<uchar>(ny, nx) = 0; // Setze den Pixel auf Null (nur für Grauwertbilder, CV_8U)
+                }
+            }
+        }
+        ip::drawLine(edge_bin, r, theta);   // Debug
+        circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
+        /* averaging */
+        //out << "Debug r: " << r << "\ttheta" << theta << endl;
+        /* !watch out when delta_theta > 90° */
+        if ((i > 0) && (fabs(theta_avg - theta) > (CV_PI / 2))) {
+            r_avg = r_avg + (-r);   // toggle sign
+            if (theta > 0) {
+                theta_avg = theta_avg + (CV_PI-theta);
+            }
+            else {
+                theta_avg = theta_avg + (-  CV_PI - theta);
+            }
+        }
+        else {
+            r_avg += r; // / (double)global_max;
+            theta_avg += theta; /// (double)global_max;
+        }
+    }
+    r_avg = r_avg / global_max;
+    theta_avg = theta_avg / global_max;
+    /*if (fabs(r_avg) < 0.000001) {
+        r_avg = 1;
+    }*/
+    //cout << r_avg << "\t" << theta_avg << endl;
+    /* draw average line */
+    ip::drawLine(cur_line, r_avg, theta_avg);
+
+    /* return line values */
+    line->r = r_avg;
+    line->theta = theta_avg;
+    //cout << "Debug r_avg: " << r_avg << "\ttheta_avg" << theta_avg << endl;
+
+    /* create windows */
+    if (show_imgs == SHOW_NO_IMAGES) {
+        return EXIT_SUCCESS;
+    }
+    else if (show_imgs == SHOW_ALL_IMAGES) {
+
+        /* curent image plots */
+        string image_basic = string("Current Image (").append(CamNameId).append(" Cam)");
+        string image_gray = string("Current Image Gray (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_basic, cur);
+        cv::imshow(image_gray, cur_gray);
+
+        /* sharpend images */
+        //string image_sharp = string("Image Sharp (").append(CamNameId).append(" Cam)");
+        //string image_sharp_gray = string("Image Sharp Gray (").append(CamNameId).append(" Cam)");
+        //cv::imshow(image_sharp, cur_sharp);
+        //cv::imshow(image_sharp_gray, cur_sharp_gray);
+
+        /* difference images */
+        //string image_diff_basic = string("Image Diff (").append(CamNameId).append(" Cam)");
+        string image_diff_gray = string("Image Diff Gray (").append(CamNameId).append(" Cam)");
+        //string image_diff_sharp = string("Image Diff Sharp (").append(CamNameId).append(" Cam)");
+        //string image_diff_sharp_gray = string("Image Diff Sharp Gray (").append(CamNameId).append(" Cam)");
+        //cv::imshow(image_diff_basic, diff);
+        cv::imshow(image_diff_gray, diff_gray);
+        //cv::imshow(image_diff_sharp, diff_sharp);
+        //cv::imshow(image_diff_sharp_gray, diff_sharp_gray);
+
+        /* sharpened images after diff */
+        //string image_sharp_diff = string("Image Sharpened After Diff (").append(CamNameId).append(" Cam)");
+        string image_sharp_diff_gray = string("Image Sharpened After Diff Gray (").append(CamNameId).append(" Cam)");
+        //cv::imshow(image_sharp_diff, sharp_after_diff);
+        cv::imshow(image_sharp_diff_gray, sharp_after_diff_gray);
+
+
+        /* edge image */
+        string image_edge = string("Edge Image (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_edge, edge);
+        /* edge binary image */
+        string image_edge_bin = string("Image Edge Bin (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_edge_bin, edge_bin);
+
+        /* Hough transform (line images) */
+        string image_orig = string("Image Orig with line (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_orig, cur_line);
+        // redundant string image_edge = string("Edge Image ").append(CamNameId);
+        string image_hspace = string("HoughSpace (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_hspace, houghSpace);
+
+
+        return EXIT_SUCCESS;
+
+    }
+    else if (show_imgs == SHOW_SHORT_ANALYSIS) {
+
+        /* Hough transform (line images) */
+        string image_orig = string("Image Orig with line (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_orig, cur_line);
+        /* edge image */
+        string image_edge = string("Edge Image (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_edge, edge);
+        /* edge binary image */
+        string image_edge_bin = string("Image Edge Bin (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_edge_bin, edge_bin);
+        /* sharpened images after diff */
+        //string image_sharp_diff = string("Image Sharpened After Diff (").append(CamNameId).append(" Cam)");
+        string image_sharp_diff_gray = string("Image Sharpened After Diff Gray (").append(CamNameId).append(" Cam)");
+        //cv::imshow(image_sharp_diff, sharp_after_diff);
+        cv::imshow(image_sharp_diff_gray, sharp_after_diff_gray);
+        return EXIT_SUCCESS;
+    }
+
+
+    if (show_imgs == SHOW_IMG_LINE) {
+        /* Hough transform (line images) */
+        string image_orig = string("Image Orig with line (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_orig, cur_line);
+    }
+    if (show_imgs == SHOW_EDGE_IMG) {
+        /* edge image */
+        string image_edge = string("Edge Image (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_edge, edge);
+    }
+    if (show_imgs == SHOW_EDGE_BIN) {
+        /* edge binary image */
+        string image_edge_bin = string("Image Edge Bin (").append(CamNameId).append(" Cam)");
+        cv::imshow(image_edge_bin, edge_bin);
+    }
+    if (show_imgs == SHOW_SHARP_AFTER_DIFF) {
+        /* sharpened images after diff */
+        //string image_sharp_diff = string("Image Sharpened After Diff (").append(CamNameId).append(" Cam)");
+        string image_sharp_diff_gray = string("Image Sharpened After Diff Gray (").append(CamNameId).append(" Cam)");
+        //cv::imshow(image_sharp_diff, sharp_after_diff);
+        cv::imshow(image_sharp_diff_gray, sharp_after_diff_gray);
+    }
+
+
+    return EXIT_SUCCESS;
+
+}
+
+
+
+int image_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs, std::string CamNameId) {
+
+
+    /* declare images */
+    Mat cur;
+    Mat cur_gray;
     Mat cur_sharp;
     Mat cur_sharp_gray;
 
@@ -173,7 +430,7 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
     }
 
     /* noise reduction */
-    GaussianBlur(cur,cur, Size(3,3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    GaussianBlur(cur, cur, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
     GaussianBlur(last, last, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
 
     /* calibrate images */
@@ -259,10 +516,10 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
         if ((i > 0) && (fabs(theta_avg - theta) > (CV_PI / 2))) {
             r_avg = r_avg + (-r);   // toggle sign
             if (theta > 0) {
-                theta_avg = theta_avg + (CV_PI-theta);
+                theta_avg = theta_avg + (CV_PI - theta);
             }
             else {
-                theta_avg = theta_avg + (-  CV_PI - theta);
+                theta_avg = theta_avg + (-CV_PI - theta);
             }
         }
         else {
@@ -384,6 +641,7 @@ int image_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, str
     return EXIT_SUCCESS;
 
 }
+
 
 
 

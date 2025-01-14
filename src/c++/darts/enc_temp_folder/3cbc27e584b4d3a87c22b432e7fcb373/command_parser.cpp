@@ -474,7 +474,7 @@ void command_parser_cmd_init(void){
 
     /* new game command, max 4 players */
     if (!parser.registerCommand("new", "ssss", set_new_game_Cb,
-        "create new darts game. example: new Lars Peter"
+        "new darts game. example: new Lars Peter"
         )) {
         std::cerr << "err: could not register command!" << std::endl;
         return;
