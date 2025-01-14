@@ -1,23 +1,32 @@
 /******************************************************************************
  *
- * $NAME.cpp
- *
- * Digital Image / Video Processing
- * HAW Hamburg, Prof.Dr.Marc Hensel
- *
- * TEMPLATE
+ * cams.h
  *
  *
- * author: 			m.salewski
- * created on :
- *last revision :
+ * Automated Dart Detection and Scoring System
+ *
+ *
+ * This project was developed as part of the Digital Image / Video Processing
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
  *
  *
  *
- * * Copyright: 2024, Marc Hensel
- * Version: 2024.09.13
- * License: CC BY-NC-SA 4.0, see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ * Author(s):   	Mika Paul Salewski <mika.paul.salewski@gmail.com>
  *
+ * Created on :     2025-01-06
+ * Last revision :  None
+ *
+ *
+ *
+ * Copyright (c) 2025, Mika Paul Salewski
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ *
+ * Further information about this source-file:
+ *      --> control external cameras  
+ *      --> call image processing
 ******************************************************************************/
 
 

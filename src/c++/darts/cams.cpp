@@ -1,3 +1,38 @@
+/******************************************************************************
+ *
+ * cams.h
+ *
+ *
+ * Automated Dart Detection and Scoring System
+ *
+ *
+ * This project was developed as part of the Digital Image / Video Processing
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
+ *
+ *
+ *
+ * Author(s):   	Mika Paul Salewski <mika.paul.salewski@gmail.com>
+ *
+ * Created on :     2025-01-06
+ * Last revision :  None
+ *
+ *
+ *
+ * Copyright (c) 2025, Mika Paul Salewski
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ *
+ * Further information about this source-file:
+ *      --> control external cameras
+ *      --> call image processing
+******************************************************************************/
+
+
+/* compiler settings */
+#define _CRT_SECURE_NO_WARNINGS     // enable getenv()
+
 /***************************** includes **************************************/
 #include <iostream>
 #include <cstdlib>
@@ -28,13 +63,30 @@ using namespace std;
 /************************* local Variables ***********************************/
 
 
-
 /************************** Function Declaration *****************************/
 
 
 /******************************* CAM THREADS **********************************/
-
-
+/***
+ * 
+ * camsThread(void* arg) 
+ *
+ * About this function ...
+ *
+ * 
+ * @param:	void* arg
+ *          No parameters are required for this function
+ *
+ * 
+ * @return: void
+ *
+ * 
+ * @note:	None
+ * 
+ * 
+ * Example usage: None 
+ *
+***/
 void camsThread(void* arg) {
 
     /* assign void pointer */
@@ -123,39 +175,8 @@ void camsThread(void* arg) {
     }
 
     this_thread::sleep_for(chrono::milliseconds(500));
-    
-#if 0
-    top_cam >> f_top;
-    right_cam >> f_right;
-    left_cam >> f_left;
-    /* check íf there are any differences */
-    xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, f_top, TOP_CAM);
-    xp->flags.diff_flag_right = img_proc_diff_check(last_frame_right, f_right, RIGHT_CAM);
-    xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, f_left, LEFT_CAM);
 
-    /* check detected difference && expecting throws (count_throws < 3) */
-    while ((xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left)) {
-        /* init last frames */
-        top_cam >> last_frame_top;
-        right_cam >> last_frame_right;
-        left_cam >> last_frame_left;
-        if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
-            std::cout << "Error: empty init frame\n" << endl;;
-            return;
-        }
 
-        this_thread::sleep_for(chrono::milliseconds(500));
-        top_cam >> f_top;
-        right_cam >> f_right;
-        left_cam >> f_left;
-
-        /* check íf there are any differences */
-        xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, f_top, TOP_CAM);
-        xp->flags.diff_flag_right = img_proc_diff_check(last_frame_right, f_right, RIGHT_CAM);
-        xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, f_left, LEFT_CAM);
-    }
-
-#endif 
     /* init last frames */
     top_cam >> last_frame_top;
     right_cam >> last_frame_right;
@@ -166,9 +187,6 @@ void camsThread(void* arg) {
     }
     /* init frame */
     raw_empty_init_frame = last_frame_top.clone();
-
-
-    
 
 
     /* loop */
@@ -324,6 +342,26 @@ void camsThread(void* arg) {
 
 
 
+/***
+ *
+ * SIMULATION_OF_camsThread(void* arg)
+ *
+ * About this function ...
+ *
+ *
+ * @param:	void* arg
+ *          No parameters are required for this function
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void SIMULATION_OF_camsThread(void* arg) {
 
     /* assign void pointer */

@@ -1,3 +1,39 @@
+/******************************************************************************
+ *
+ * dart_board.cpp
+ *
+ *
+ * Automated Dart Detection and Scoring System
+ *
+ *
+ * This project was developed as part of the Digital Image / Video Processing
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
+ *
+ *
+ *
+ * author(s):   	Mika Paul Salewski <mika.paul.salewski@gmail.com>
+ *
+ * created on :     2025-01-06
+ * last revision :  None
+ *
+ *
+ *
+ * Copyright (c) 2025, Mika Paul Salewski
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ *
+ * Further information about this source-file:
+ *      --> Darts Scoreboard ("GUI")
+ *      --> Handle Darts Game (Logic) 
+******************************************************************************/
+
+
+
+/* compiler settings */
+#define _CRT_SECURE_NO_WARNINGS     // enable getenv()
+
 /***************************** includes **************************************/
 #include <iostream>
 #include <cstdlib>
@@ -12,10 +48,10 @@
 #include "globals.h"
 #include "cams.h"
 
+
 /****************************** namespaces ***********************************/
 using namespace cv;
 using namespace std;
-
 
 
 /*************************** local Defines ***********************************/
@@ -24,7 +60,7 @@ using namespace std;
 
 /************************** local Structure ***********************************/
 /***
-    * create game
+ * create game
 ***/
 /* players */
 static std::vector<player_s> players = {
@@ -41,6 +77,7 @@ static struct game_s game = {
 static struct game_s* g = &game;
 
 
+/* create gui struct */
 static struct priv_gui_s {
 
     /* creat empty gui frame */
@@ -67,20 +104,17 @@ static struct priv_gui_s {
     string name_win;
 
 }priv_gui;
-
+/* create ptr for access and compatibility */
 static struct priv_gui_s* pg = &priv_gui;
 
 
 
-
+/* create DartsBoard */
 static Point Dartboard_Center(320, 240);
 
 static struct Dartboard_Radius_s Dartboard_Rad_top = { 
      10, 22, 117, 129, 187, 200 
 };
-
-
-
 
 static struct Dartboard_Sector_s Db_sec_top = {
     Dartboard_Center,
@@ -90,16 +124,33 @@ static struct Dartboard_Sector_s Db_sec_top = {
 
 
 
-
-
 /************************* local Variables ***********************************/
-
 
 
 /************************** Function Declaration *****************************/
 
 
 /******************************* GUI THREAD **********************************/
+/***
+ *
+ * Dartsboard_GUI_Thread(void)
+ *
+ * About this function ...
+ *
+ *
+ * @param:	void
+ *          No parameters are required for this function
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void Dartsboard_GUI_Thread(void) {
 
     /* unused void pointer assignment bc moved game structure in this module */
@@ -162,8 +213,26 @@ void Dartsboard_GUI_Thread(void) {
 
 
 /************************** Function Definitions *****************************/
-
-// Funktion zur Bestimmung des Sektors und des entsprechenden Werts
+/***
+ *
+ * dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s* r)
+ *
+ * Compute the Darts result by given Pixel
+ *
+ *
+ * @param:	void
+ *          No parameters are required for this function
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s* r) {
 
     struct Dartboard_Sector_s board;
@@ -235,16 +304,36 @@ void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct res
 
 
 
-    // Bestimme den Sektor
+    /* define sector; 360/40 =9 --> angle/9 */
     int sector = static_cast<int>(angle / 9) + 1;
     //cout << sector << endl;
 
-    // Erhalte den Wert (Single, Triple, Double) für den Sektor
-    dart_board_getSectorValue(sector, distance, board, r); // +1, da Sektoren 1 bis 20 gehen
+    /* sector to value */
+    dart_board_getSectorValue(sector, distance, board, r); 
 }
 
 
-// Funktion, um den richtigen Wert (Single, Double, Triple) und die Sektorzahl zu ermitteln
+
+/***
+ *
+ * dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r)
+ *
+ * Compute correct result by given sector and distance
+ *
+ *
+ * @param:	void
+ *          No parameters are required for this function
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r) {
     // Bestimme den Wert je nach Entfernung (Single, Double, Triple)
     if (distance <= board.Db_r.radiusBullseye) {
@@ -280,8 +369,26 @@ void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sect
 
 
 
-
-/* do the final sector decision based on multiple raw board sector results */
+/***
+ *
+ * dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* sec_board_right, struct result_s* sec_board_left, struct result_s* r)
+ *
+ * Do the final sector decision based on multiple raw board sector results
+ *
+ *
+ * @param:	void
+ *          No parameters are required for this function
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* sec_board_right, struct result_s* sec_board_left, struct result_s* r) {
 
 

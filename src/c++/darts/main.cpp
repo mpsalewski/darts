@@ -1,26 +1,37 @@
 /******************************************************************************
  *
- * $NAME.cpp
+ * main.cpp
  *
- * Digital Image / Video Processing
- * HAW Hamburg, Prof. Dr. Marc Hensel
- *
- * TEMPLATE
- *
- *
- * author: 			m. salewski
- * created on:
- * last revision:
+ * 
+ * Automated Dart Detection and Scoring System
+ * 
+ * 
+ * This project was developed as part of the Digital Image / Video Processing 
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
+ * 
  *
  *
+ * author(s):   	Mika Paul Salewski <mika.paul.salewski@gmail.com>, 
+ *                  Lukas Grose <lukas@grose.de>  
+ * created on :     2025-01-06
+ * last revision :  None
  *
  *
  *
+ * Copyright (c) 2025, Mika Paul Salewski, Lukas Grose 
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ * 
+ * Further information about this source-file:
+ *      None
 ******************************************************************************/
 
 
 /* compiler settings */
 #define _CRT_SECURE_NO_WARNINGS     // enable getenv()
+
 /***************************** includes **************************************/
 #include <iostream>
 #include <cstdlib>
@@ -116,23 +127,16 @@ int main() {
 
 /* use threads */
 #if !SIMULATION && THREADING
-    /* open parallel cams */
+
+    /* create cams thread */
     thread cams(camsThread, &darts);
-    //std::thread topCam(camThread, TOP_CAM);
-    //std::thread leftCam(camThread, LEFT_CAM);
-    //std::thread rightCam(camThread, RIGHT_CAM);
 
     /* create darts gui thread */
     thread guiThread(Dartsboard_GUI_Thread);
 
     this_thread::sleep_for(chrono::milliseconds(2000));
 
-    /* wait on enter to quit */
-    //std::cout << "Press Enter to quit Threads...\n";
-    //cin.get();
-
-    /* kill threads */
-    //running = false;
+    /* kill all threads through the command line thread */
     while (running == 1) {
         this_thread::sleep_for(chrono::milliseconds(500));
     };
@@ -140,10 +144,7 @@ int main() {
     /* clear threads */
     cams.join();
     guiThread.join();
-    //topCam.join();
-    //leftCam.join();
-    //rightCam.join();
-
+    
 #elif THREADING
     /***
      * run simualtion cams thread
@@ -197,6 +198,12 @@ int main() {
 
     /* kill threads */
     //running = false;
+    this_thread::sleep_for(chrono::milliseconds(2000));
+
+    /* kill all threads through the command line thread */
+    while (running == 1) {
+        this_thread::sleep_for(chrono::milliseconds(500));
+    };
 
     /* clear threads */
     SIM_cams.join();
@@ -213,7 +220,7 @@ int main() {
 #endif 
 
 
-    /* clear thread */
+    /* clear command line thread */
     command_line.join();
 
     destroyAllWindows();

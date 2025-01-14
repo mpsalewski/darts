@@ -1,23 +1,33 @@
 /******************************************************************************
  *
- * $NAME.cpp
- *
- * Digital Image / Video Processing
- * HAW Hamburg, Prof.Dr.Marc Hensel
- *
- * TEMPLATE
+ * dart_board.cpp
  *
  *
- * author: 			m.salewski
- * created on :
- *last revision :
+ * Automated Dart Detection and Scoring System
+ *
+ *
+ * This project was developed as part of the Digital Image / Video Processing
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
  *
  *
  *
+ * author(s):   	Mika Paul Salewski <mika.paul.salewski@gmail.com>
+ *
+ * created on :     2025-01-06
+ * last revision :  None
  *
  *
+ *
+ * Copyright (c) 2025, Mika Paul Salewski
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ *
+ * Further information about this source-file:
+ *      --> Darts Scoreboard ("GUI")
+ *      --> Handle Darts Game (Logic)
 ******************************************************************************/
-
 
 
 #ifndef DART_BOARD_H
