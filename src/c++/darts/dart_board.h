@@ -53,41 +53,11 @@
 
 //const int Dartboard_Sectors_right_round[DARTBOARD_SECTORS] = { 20, 1,1 , 18, 18, 4,4, 13,13, 6,6, 10,10, 15,15, 2,2, 17,17, 3,3, 19,19, 7,7, 16,16, 8,8,11,11,14,14,9,9,12,12,5,5,20 };
 
-/************************** local Structure ***********************************/
-struct Dartboard_Radius_s {
-    float radiusBullseye, radiusSingleBull, radiusTripleInner, radiusTripleOuter, radiusDoubleInner, radiusDoubleOuter;
-
-};
-
-
-struct Dartboard_Sector_s {
-    cv::Point center;
-    struct Dartboard_Radius_s Db_r;
-    int sectorNumbers[DARTBOARD_SECTORS];
-    
-};
-
-
+/************************* global Structure **********************************/
 struct result_s {
     int val = 0;
     std::string str = "void";
 };
-
-
-
-struct player_s {
-    std::string p_name = "user";
-    int score = 501;
-    int last_throw = 0;
-    int leg = 0;
-    int set = 0;
-};
-
-struct game_s {
-    int num_p;
-    std::vector<player_s> p;
-};
-
 
 /************************* local Variables ***********************************/
 
