@@ -60,7 +60,7 @@ using namespace std;
 /*************************** local Defines ***********************************/
 /* main program */
 #define THREADING 1                 // use Camera Threads
-#define SIMULATION 0                // use Simluation Cams Thread instead of 
+#define SIMULATION 1                // use Simluation Cams Thread instead of 
                                     // real cams Thread
 #define LOAD_STATIC_TEST_IMAGES 0   // use this macro for debugging and test
 
@@ -75,7 +75,7 @@ using namespace std;
 struct thread_exchange_s t_e;   // GLOBAL!
 
 /* default init in main() via pointer */
-static struct darts_s darts;
+//static struct darts_s darts;
 
 
 /************************* local Variables ***********************************/
@@ -149,7 +149,8 @@ int main() {
     /***
      * run simualtion cams thread
     ***/
-    thread SIM_cams(SIMULATION_OF_camsThread, &darts);
+    //thread SIM_cams(SIMULATION_OF_camsThread, &darts);
+    thread SIM_cams(SIMULATION_OF_camsThread);
     
     /* create darts gui thread */
     thread guiThread(Dartsboard_GUI_Thread);
@@ -322,7 +323,7 @@ void static_test(void) {
 }
 
 
-
+#if 0
 /* old implementation, one thread per cam, delete later */
 void camThread(int threadId) {
 
@@ -419,7 +420,7 @@ void camThread(int threadId) {
 }
 
 
-
+#endif
 
 
 

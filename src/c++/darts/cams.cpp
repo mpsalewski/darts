@@ -54,11 +54,52 @@ using namespace std;
 
 
 /*************************** local Defines ***********************************/
-#define CALIBRATION 0
+/* do threshold calibration at program start */
+#define CALIBRATION 0       // 1 = on; 0 = off
 
+/* Timing */
+#define FPS 15                      // defines Samplingrate in Cams Thread
+#define WAIT_TIME_MS 1000/FPS
+
+/* size for cross_point calc */
+#define RAW_CAL_IMG_WIDTH 640       
+#define RAW_CAL_IMG_HEIGHT 480
 
 /************************** local Structure ***********************************/
+/***
+ * local sub structs
+***/
+/* flags */
+struct flags_s {
+    int diff_flag_top = 0;
+    int diff_flag_right = 0;
+    int diff_flag_left = 0;
+    int diff_flag_raw = 0;
+};
 
+
+/* cam structure for data exchange */
+struct darts_s {
+
+    /* flags */
+    struct flags_s flags;
+
+    /* count throws [0..3] */
+    int count_throws = 0;
+
+    /* dart position */
+    struct tripple_line_s t_line;
+    cv::Point cross_point;
+
+    /* results */
+    struct result_s r_top;
+    struct result_s r_right;
+    struct result_s r_left;
+    struct result_s r_final;
+
+};
+
+static struct darts_s darts;
 
 /************************* local Variables ***********************************/
 
@@ -362,10 +403,11 @@ void camsThread(void* arg) {
  * Example usage: None
  *
 ***/
-void SIMULATION_OF_camsThread(void* arg) {
+void SIMULATION_OF_camsThread(void) {
 
     /* assign void pointer */
-    struct darts_s* xp = (struct darts_s*)arg;
+    //struct darts_s* xp = (struct darts_s*)arg;
+    struct darts_s* xp = &darts;
 
     Mat cur_frame_top, cur_frame_right, cur_frame_left;
     Mat last_frame_top, last_frame_right, last_frame_left;

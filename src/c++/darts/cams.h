@@ -42,9 +42,7 @@
 
 
 /*************************** global Defines **********************************/
-/* Timing */
-#define FPS 15                      // defines Samplingrate in Cams Thread
-#define WAIT_TIME_MS 1000/FPS
+
 
 /* camera identities */
 #define TOP_CAM     2
@@ -53,9 +51,7 @@
 #define DIFF_THRESH 1e+6
 
 
-/* size for cross_point calc */
-#define RAW_CAL_IMG_WIDTH 640       
-#define RAW_CAL_IMG_HEIGHT 480
+
 
 
 
@@ -75,38 +71,7 @@
 #define RIGHT_3DARTS "images/test_img/right/right_3darts.jpg"
 
 /************************** local Structure ***********************************/
-/***
- * local sub structs
-***/
-/* flags */
-struct flags_s {
-    int diff_flag_top = 0;
-    int diff_flag_right = 0;
-    int diff_flag_left = 0;
-    int diff_flag_raw = 0;
-};
 
-
-/* cam structure for data exchange */
-struct darts_s {
-
-    /* flags */
-    struct flags_s flags;
-
-    /* count throws [0..3] */
-    int count_throws = 0;
-
-    /* dart position */
-    struct tripple_line_s t_line;
-    cv::Point cross_point;
-
-    /* results */
-    struct result_s r_top;
-    struct result_s r_right;
-    struct result_s r_left;
-    struct result_s r_final;
-
-};
 
 /************************* local Variables ***********************************/
 
@@ -114,7 +79,7 @@ struct darts_s {
 
 /************************** Function Declaration *****************************/
 void camsThread(void* arg);
-void SIMULATION_OF_camsThread(void* arg);
+void SIMULATION_OF_camsThread(void);
 
 
 #endif 
