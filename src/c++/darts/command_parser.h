@@ -59,6 +59,7 @@ constexpr size_t MAX_COMMAND_ARGS = 8;
 constexpr size_t MAX_COMMAND_NAME_LENGTH = 16;
 constexpr size_t MAX_COMMAND_ARG_SIZE = 32;
 constexpr size_t MAX_RESPONSE_SIZE = 64;
+constexpr size_t MAX_HELP_LENGTH = 200;
 
 /************************** local Structure ***********************************/
 
@@ -80,10 +81,13 @@ public:
     CommandParser();
 
     /* registers commands */
-    bool registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, size_t argCount, char* response));
+    bool registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, size_t argCount, char* response), const char* help);
     
     /* process a command */
     bool processCommand(const char* command, char* response);
+
+    /* process help command */
+    void process_help_Command(Argument*args, size_t argCount, char* response);
 
 private:
     /* command structure */
@@ -91,6 +95,7 @@ private:
         char name[MAX_COMMAND_NAME_LENGTH + 1];
         char argTypes[MAX_COMMAND_ARGS + 1];
         void (*callback)(Argument* args, size_t argCount, char* response);
+        char help[MAX_HELP_LENGTH + 1];
     };
 
     /* attributes */
@@ -111,11 +116,12 @@ private:
 /************************** Function Declaration *****************************/
 extern void commandLineThread(void* arg);
 extern void command_parser_cmd_init(void);
+extern void help_Cb(CommandParser::Argument* args, size_t argCount, char* response);
 extern void helloCommandCallback(CommandParser::Argument* args, size_t argCount, char* response);
 extern void welcomeCb(CommandParser::Argument* args, size_t argCount, char* response);
 extern void set_new_game_Cb(CommandParser::Argument* args, size_t argCount, char* response);
 extern void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char* response);
-size_t strToInt(const char* buf, void* value, bool isSigned, int64_t min_value, int64_t max_value);
+
 
 
 

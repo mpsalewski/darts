@@ -176,7 +176,7 @@ size_t CommandParser::parseString(const char* buf, char* output) {
 }
 
 /* register commands */
-bool CommandParser::registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, size_t argCount,char* response)) {
+bool CommandParser::registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, size_t argCount,char* response), const char* help) {
     /* check if your allowed to register more commands */
     if (numCommands >= MAX_COMMANDS) {
         return false;
@@ -193,10 +193,15 @@ bool CommandParser::registerCommand(const char* name, const char* argTypes, void
     if (!callback) {
         return false;
     }
+    /* check command name length */
+    if (strlen(help) > MAX_HELP_LENGTH) {
+        return false;
+    }
     /* register in CommandParser Class */
     strncpy_s(commandDefinitions[numCommands].name, name, MAX_COMMAND_NAME_LENGTH);
     strncpy_s(commandDefinitions[numCommands].argTypes, argTypes, MAX_COMMAND_ARGS);
     commandDefinitions[numCommands].callback = callback;
+    strncpy_s(commandDefinitions[numCommands].help, help, MAX_HELP_LENGTH);
 
     /* increment numer of cmds */
     numCommands++;
@@ -390,6 +395,52 @@ bool CommandParser::processCommand(const char* command, char* response) {
 }
 
 
+/* process help command */
+void CommandParser::process_help_Command(Argument* args, size_t argCount, char* response){
+
+
+    /* "help" call without args, show every help command */
+    if (argCount == 0) {
+        /* create a response */
+        snprintf(response, MAX_RESPONSE_SIZE, "help menu done.\n");
+        /* show every help string */
+        for (size_t i = 0; i < numCommands; i++) {
+            
+            cout << commandDefinitions[i].name << "\t" << commandDefinitions[i].help << endl;
+            
+        }
+
+        return;
+
+    }
+
+    bool matched_cmd = 0;
+    /* show help of specific commnad passed by first arg */
+    for (size_t i = 0; i < numCommands; i++) {
+        if (strcmp(commandDefinitions[i].name, args[0].asString) == 0) {
+            cout << commandDefinitions[i].name << "\t" << commandDefinitions[i].help << endl;
+            matched_cmd = 1;
+            break;
+        }
+    }
+
+    /* no matching command */
+    if (!matched_cmd) {
+        snprintf(response, MAX_RESPONSE_SIZE, "parse error: unknown command name %s", args[0].asString);
+
+        return;
+    }
+
+
+    /* create a response */
+    snprintf(response, MAX_RESPONSE_SIZE, " ");
+
+    return;
+
+}
+
+
+
 /************************** Function Definitions *****************************/
 void command_parser_cmd_init(void){
 
@@ -397,33 +448,57 @@ void command_parser_cmd_init(void){
      * REGISTER YOUR COMMANDS
     ***/
 
+    /* help command */
+    if (!parser.registerCommand("help", "s", help_Cb,
+        "help menu: [type: 'help $CMD_NAME$' for specific command]"
+    )) {
+        std::cerr << "err: could not register command!" << std::endl;
+        return;
+    }
+
     /* "hello world" command */
-    if (!parser.registerCommand("hello", "s", helloCommandCallback)) {
+    if (!parser.registerCommand("hello", "s", helloCommandCallback,
+        "hello world of the command line. type 'hello max' to echo."
+        )) {
         std::cerr << "err: could not register command!" << std::endl;
         return;
     }
 
     /* welcome command */
-    if (!parser.registerCommand("welcome", " ", welcomeCb)) {
+    if (!parser.registerCommand("welcome", " ", welcomeCb,
+        "just a welcome :)"
+        )) {
         std::cerr << "err: could not register command!" << std::endl;
         return;
     }
 
     /* new game command, max 4 players */
-    if (!parser.registerCommand("new", "ssss", set_new_game_Cb)) {
+    if (!parser.registerCommand("new", "ssss", set_new_game_Cb,
+        "new darts game. example: new Lars Peter"
+        )) {
         std::cerr << "err: could not register command!" << std::endl;
         return;
     }
 
     /* set scoreboard command */
-    if (!parser.registerCommand("set", "ssi", set_dart_board_params)) {
+    if (!parser.registerCommand("set", "ssi", set_dart_board_params,
+        "set functions for the ScoreBoard. usage: set score $NAME$ $SCORE$; set leg $NAME$ $NUM$ not defined a.t.m."
+        )) {
         std::cerr << "err: could not register command!" << std::endl;
         return;
     }
 
 
+}
+
+
+/* help command */
+void help_Cb(CommandParser::Argument* args, size_t argCount, char* response) {
+
+    parser.process_help_Command(args, argCount, response);
 
 }
+
 
 
 /* hello world command */
@@ -484,7 +559,7 @@ void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char*
 
     /* check whcih param should be set */
     if ( strcmp(args[0].asString, "score") == 0) {
-        if (argCount < 2) {
+        if (argCount < 3) {
             snprintf(response, MAX_RESPONSE_SIZE, "err: not enough args for param %s",args[0].asString);
             return;
         }
@@ -508,106 +583,3 @@ void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char*
 
 }
 
-
-
-#if 0
-
-size_t strToInt(const char* buf, void* value, bool isSigned, int64_t min_value, int64_t max_value) {
-    size_t position = 0;
-    bool isNegative = false;
-
-    // Vorzeichen parsen, falls erlaubt (nur für vorzeichenbehaftete Typen)
-    if (isSigned && min_value < 0 && (buf[position] == '+' || buf[position] == '-')) {
-        isNegative = (buf[position] == '-');
-        position++;
-    }
-
-    // Basis bestimmen (Binär, Oktal, Dezimal, Hexadezimal)
-    int base = 10;
-    if (buf[position] == '0' && buf[position + 1] == 'b') {
-        base = 2;
-        position += 2;
-    }
-    else if (buf[position] == '0' && buf[position + 1] == 'o') {
-        base = 8;
-        position += 2;
-    }
-    else if (buf[position] == '0' && buf[position + 1] == 'x') {
-        base = 16;
-        position += 2;
-    }
-
-    int digit = -1;
-    if (isSigned) {
-        int64_t* result = static_cast<int64_t*>(value);
-        *result = 0;
-
-        while (true) {
-            // Ziffern ermitteln
-            if (base >= 2 && buf[position] >= '0' && buf[position] <= '1') {
-                digit = buf[position] - '0';
-            }
-            else if (base >= 8 && buf[position] >= '2' && buf[position] <= '7') {
-                digit = buf[position] - '0';
-            }
-            else if (base >= 10 && buf[position] >= '8' && buf[position] <= '9') {
-                digit = buf[position] - '0';
-            }
-            else if (base >= 16 && buf[position] >= 'a' && buf[position] <= 'f') {
-                digit = buf[position] - 'a' + 10;
-            }
-            else if (base >= 16 && buf[position] >= 'A' && buf[position] <= 'F') {
-                digit = buf[position] - 'A' + 10;
-            }
-            else {
-                break;
-            }
-
-            // Über-/Unterlauf prüfen
-            if (*result < min_value / base || *result > max_value / base) return 0;
-            *result *= base;
-            if (isNegative ? *result < min_value + digit : *result > max_value - digit) return 0;
-            *result += digit;
-
-            position++;
-        }
-    }
-    else {
-        uint64_t* result = static_cast<uint64_t*>(value);
-        *result = 0;
-
-        while (true) {
-            // Ziffern ermitteln
-            if (base >= 2 && buf[position] >= '0' && buf[position] <= '1') {
-                digit = buf[position] - '0';
-            }
-            else if (base >= 8 && buf[position] >= '2' && buf[position] <= '7') {
-                digit = buf[position] - '0';
-            }
-            else if (base >= 10 && buf[position] >= '8' && buf[position] <= '9') {
-                digit = buf[position] - '0';
-            }
-            else if (base >= 16 && buf[position] >= 'a' && buf[position] <= 'f') {
-                digit = buf[position] - 'a' + 10;
-            }
-            else if (base >= 16 && buf[position] >= 'A' && buf[position] <= 'F') {
-                digit = buf[position] - 'A' + 10;
-            }
-            else {
-                break;
-            }
-
-            // Überlauf prüfen
-            if (*result > static_cast<uint64_t>(max_value) / base) return 0;
-            *result *= base;
-            if (*result > static_cast<uint64_t>(max_value) - digit) return 0;
-            *result += digit;
-
-            position++;
-        }
-    }
-
-    return (digit == -1) ? 0 : position;
-}
-
-#endif 
