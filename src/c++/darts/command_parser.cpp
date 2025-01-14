@@ -41,7 +41,7 @@ static CommandParser parser;
 
 /**************************** Command Line Thread ****************************/
 /* Command Line thread */
-void commandLineThread(void) {
+void commandLineThread(void*arg) {
 
     string input;
     int cmd_return = 0;

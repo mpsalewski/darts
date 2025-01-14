@@ -65,6 +65,9 @@ using namespace std;
 #define RAW_CAL_IMG_WIDTH 640       
 #define RAW_CAL_IMG_HEIGHT 480
 
+
+
+
 /************************** local Structure ***********************************/
 /***
  * local sub structs
@@ -130,7 +133,10 @@ static struct darts_s darts;
 ***/
 void camsThread(void* arg) {
 
-    /* assign void pointer */
+    /* assign void pointer, thread safe exchange */
+    struct thread_share_s* t_s = (struct thread_share_s*)(arg);
+
+    /* assign this pointer due to campatibility reasons with older version */
     struct darts_s* xp = (struct darts_s*)(arg);
 
     /* cur = curent frames; last = last frames */
@@ -403,10 +409,12 @@ void camsThread(void* arg) {
  * Example usage: None
  *
 ***/
-void SIMULATION_OF_camsThread(void) {
+void SIMULATION_OF_camsThread(void*arg) {
 
-    /* assign void pointer */
-    //struct darts_s* xp = (struct darts_s*)arg;
+    /* assign void pointer, thread safe exchange */
+    struct thread_share_s* t_s = (struct thread_share_s*)(arg);
+    
+    /* assign this pointer due to campatibility reasons with older version */
     struct darts_s* xp = &darts;
 
     Mat cur_frame_top, cur_frame_right, cur_frame_left;
@@ -565,21 +573,26 @@ void SIMULATION_OF_camsThread(void) {
                 std::cout << "Dart is (String): " << xp->r_final.str << std::endl;
                 std::cout << "Dart is (int Val): " << xp->r_final.val << std::endl;
 
+                /* thread safe */
+                t_s->mutex.lock();
                 /* accumulate 3-dart score */
-                t_e.score += xp->r_final.val;
-                t_e.last_dart_str = xp->r_final.str;
+                t_s->score += xp->r_final.val;
+                t_s->last_dart_str = xp->r_final.str;
 
                 /* THIS IS WRONG ! JUST FOR TESTING ! recognize 3 darts */
-                //t_e.score = 501;
-                //t_e.last_dart_str = "Double 250.5";
-                t_e.score_flag = 1;
-
+                //t_s->score = 501;
+                //t_s->last_dart_str = "Double 250.5";
+                t_s->score_flag = 1;
+                t_s->mutex.unlock();
             }
             /* 3 throws detected --> wait for Darts removed from Board */
             else if (xp->count_throws == 3) {
 
+                /* thread safe */
+                t_s->mutex.lock();
                 /* recognize 3 darts */
-                t_e.score_flag = 1;
+                t_s->score_flag = 1;
+                t_s->mutex.unlock();
 
                 /* wait till darts board is back to raw and empty */
                 xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);

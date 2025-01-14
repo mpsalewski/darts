@@ -38,20 +38,9 @@
 #include <string>
 
 
-/*************************** local Defines ***********************************/
-//#define TOP_CAM     3
-//#define LEFT_CAM    2
-//#define RIGHT_CAM   1
-
-#define DARTBOARD_SECTORS 40
-
+/*************************** global Defines **********************************/
 #define SCOREBOARD_GUI_WIDTH 800
 #define SCOREBOARD_GUI_HEIGHT 600
-
-#define DOUBLE_CHECKOUT 1
-
-
-//const int Dartboard_Sectors_right_round[DARTBOARD_SECTORS] = { 20, 1,1 , 18, 18, 4,4, 13,13, 6,6, 10,10, 15,15, 2,2, 17,17, 3,3, 19,19, 7,7, 16,16, 8,8,11,11,14,14,9,9,12,12,5,5,20 };
 
 /************************* global Structure **********************************/
 struct result_s {
@@ -64,7 +53,7 @@ struct result_s {
 
 
 /************************** Function Declaration *****************************/
-extern void Dartsboard_GUI_Thread(void);
+extern void Dartsboard_GUI_Thread(void*arg);
 
 extern void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s*r);
 extern void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r);

@@ -109,7 +109,7 @@ private:
 
 
 /************************** Function Declaration *****************************/
-extern void commandLineThread(void);
+extern void commandLineThread(void* arg);
 extern void command_parser_cmd_init(void);
 extern void helloCommandCallback(CommandParser::Argument* args, size_t argCount, char* response);
 extern void welcomeCb(CommandParser::Argument* args, size_t argCount, char* response);

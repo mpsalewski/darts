@@ -27,12 +27,25 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <atomic>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 
 /*************************** local Defines ***********************************/
 
 
 /************************** local Structure ***********************************/
+struct thread_share_s {
+    std::mutex mutex;                       // mutex --> thread safe
+    //std::condition_variable cond_score;   // condition var --> no polling 
+    int score = 0;                          // 3 darts score
+    int score_flag = 0;                     // recognize new 3 darts score
+    std::string last_dart_str = "d";        // give last dart score as string to check double out
+};
+
+
+
 /* score, exchange between threads */
 struct thread_exchange_s {
 

@@ -73,6 +73,8 @@ using namespace std;
 /************************** local Structure ***********************************/
 /* score, exchange between threads */
 struct thread_exchange_s t_e;   // GLOBAL!
+struct thread_share_s t_s;      
+
 
 /* default init in main() via pointer */
 //static struct darts_s darts;
@@ -120,7 +122,7 @@ int main() {
 
 
     /* always register the command line */
-    thread command_line(commandLineThread);
+    thread command_line(commandLineThread, &t_s);
 
     cout << "type 'exit' to quit" << endl;
 
@@ -150,10 +152,10 @@ int main() {
      * run simualtion cams thread
     ***/
     //thread SIM_cams(SIMULATION_OF_camsThread, &darts);
-    thread SIM_cams(SIMULATION_OF_camsThread);
+    thread SIM_cams(SIMULATION_OF_camsThread, &t_s);
     
     /* create darts gui thread */
-    thread guiThread(Dartsboard_GUI_Thread);
+    thread guiThread(Dartsboard_GUI_Thread, &t_s);
 
     this_thread::sleep_for(chrono::milliseconds(2000));
 

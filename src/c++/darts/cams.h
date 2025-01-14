@@ -79,7 +79,7 @@
 
 /************************** Function Declaration *****************************/
 void camsThread(void* arg);
-void SIMULATION_OF_camsThread(void);
+void SIMULATION_OF_camsThread(void *arg);
 
 
 #endif 

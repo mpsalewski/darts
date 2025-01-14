@@ -55,6 +55,11 @@ using namespace std;
 
 
 /*************************** local Defines ***********************************/
+#define DARTBOARD_SECTORS 40
+
+
+
+#define DOUBLE_CHECKOUT 1
 
 
 
@@ -64,16 +69,12 @@ struct Dartboard_Radius_s {
 
 };
 
-
 struct Dartboard_Sector_s {
     cv::Point center;
     struct Dartboard_Radius_s Db_r;
     int sectorNumbers[DARTBOARD_SECTORS];
 
 };
-
-
-
 
 struct player_s {
     std::string p_name = "user";
@@ -88,7 +89,7 @@ struct game_s {
     std::vector<player_s> p;
 };
 
-
+/*****************************************************************************/
 /***
  * create game
 ***/
@@ -181,10 +182,11 @@ static struct Dartboard_Sector_s Db_sec_top = {
  * Example usage: None
  *
 ***/
-void Dartsboard_GUI_Thread(void) {
+void Dartsboard_GUI_Thread(void*arg) {
 
-    /* unused void pointer assignment bc moved game structure in this module */
-    //struct game_s* g = (struct game_s*)(arg);
+    /* assign void pointer, thread safe exchange */
+    struct thread_share_s* t_s = (struct thread_share_s*)(arg);
+
     int fin = 0;
     int key = 0;
 
@@ -204,12 +206,17 @@ void Dartsboard_GUI_Thread(void) {
             break;
         }
 
-        if (t_e.score_flag) {
+        /* thread safe */
+        t_s->mutex.lock();
+
+        if (t_s->score_flag) {
             /* reset flag */
-            t_e.score_flag = 0;
+            t_s->score_flag = 0;
 
             /* update scoreboard and check for finish */
-            fin = dart_board_update_scoreboard_gui(t_e.score, t_e.last_dart_str);
+            fin = dart_board_update_scoreboard_gui(t_s->score, t_s->last_dart_str);
+            t_s->score = 0;
+            t_s->mutex.unlock();
             if (fin > 0) {
                 dart_board_finish_scoreboard_gui(fin - 1);
                 std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
@@ -232,9 +239,13 @@ void Dartsboard_GUI_Thread(void) {
                     break;
                 }
             }
-            t_e.score = 0;
+
             this_thread::sleep_for(chrono::milliseconds(250));
+        } {
+            t_s->mutex.unlock();
         }
+        
+
         this_thread::sleep_for(chrono::milliseconds(250));
     }
 
