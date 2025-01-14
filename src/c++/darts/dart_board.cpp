@@ -241,7 +241,8 @@ void Dartsboard_GUI_Thread(void*arg) {
             }
 
             this_thread::sleep_for(chrono::milliseconds(250));
-        } {
+        }
+        else{
             t_s->mutex.unlock();
         }
         

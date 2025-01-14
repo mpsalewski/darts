@@ -72,7 +72,7 @@ using namespace std;
 
 /************************** local Structure ***********************************/
 /* score, exchange between threads */
-struct thread_exchange_s t_e;   // GLOBAL!
+//struct thread_exchange_s t_e;   // GLOBAL!
 struct thread_share_s t_s;      
 
 

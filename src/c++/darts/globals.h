@@ -38,14 +38,13 @@
 /************************** local Structure ***********************************/
 struct thread_share_s {
     std::mutex mutex;                       // mutex --> thread safe
-    //std::condition_variable cond_score;   // condition var --> no polling 
     int score = 0;                          // 3 darts score
     int score_flag = 0;                     // recognize new 3 darts score
     std::string last_dart_str = "d";        // give last dart score as string to check double out
 };
 
 
-
+#if 0
 /* score, exchange between threads */
 struct thread_exchange_s {
 
@@ -54,7 +53,7 @@ struct thread_exchange_s {
     std::string last_dart_str = "d";
 
 };
-
+#endif
 
 /************************* globals Variables *********************************/
 extern struct thread_exchange_s t_e;

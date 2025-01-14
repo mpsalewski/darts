@@ -1,3 +1,5 @@
+/***************** C ************************/
+
 #include <stdio.h>
 #include <threads.h>
 
@@ -53,6 +55,49 @@ int main() {
 
     // Zerstöre den Mutex
     mtx_destroy(&resource.mutex);
+
+    return 0;
+}
+
+
+/************* c++ **************/
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+struct SharedResource {
+    std::mutex mutex;                  // Mutex zur Synchronisation
+    std::condition_variable cond_var;  // Bedingungsvariable
+    int sharedData = 0;                // Zu schreibende/lesende Variable
+    bool ready = false;                // Statusvariable
+};
+
+void producer(SharedResource& resource) {
+    std::unique_lock<std::mutex> lock(resource.mutex); // Mutex sperren
+    resource.sharedData = 42;                         // Daten schreiben
+    resource.ready = true;                            // Status setzen
+    std::cout << "Producer hat die Daten geschrieben.\n";
+    resource.cond_var.notify_one();                   // Signal an Consumer senden
+}
+
+void consumer(SharedResource& resource) {
+    std::unique_lock<std::mutex> lock(resource.mutex); // Mutex sperren
+    resource.cond_var.wait(lock, [&resource] { return resource.ready; }); // Auf Signal warten
+    std::cout << "Consumer liest: " << resource.sharedData << "\n";
+    // Mutex wird automatisch freigegeben, wenn `lock` aus dem Gültigkeitsbereich geht
+}
+
+int main() {
+    SharedResource resource;
+
+    // Erstelle Producer- und Consumer-Threads
+    std::thread producerThread(producer, std::ref(resource));
+    std::thread consumerThread(consumer, std::ref(resource));
+
+    // Warte auf beide Threads
+    producerThread.join();
+    consumerThread.join();
 
     return 0;
 }

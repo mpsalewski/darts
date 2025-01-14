@@ -137,7 +137,7 @@ void camsThread(void* arg) {
     struct thread_share_s* t_s = (struct thread_share_s*)(arg);
 
     /* assign this pointer due to campatibility reasons with older version */
-    struct darts_s* xp = (struct darts_s*)(arg);
+    struct darts_s* xp = &darts;
 
     /* cur = curent frames; last = last frames */
     Mat cur_frame_top, cur_frame_right, cur_frame_left;
@@ -299,16 +299,24 @@ void camsThread(void* arg) {
                 std::cout << "Dart is (String): " << xp->r_final.str << std::endl;
                 std::cout << "Dart is (int Val): " << xp->r_final.val << std::endl;
 
+                /* thread safe */
+                t_s->mutex.lock();
                 /* accumulate 3-dart score */
-                t_e.score += xp->r_final.val;
-                t_e.last_dart_str = xp->r_final.str;
+                t_s->score += xp->r_final.val;
+                t_s->last_dart_str = xp->r_final.str;
+                /* thread safe */
+                t_s->mutex.unlock();
+
             }
             /* 3 throws detected --> wait for Darts removed from Board */
             else if (xp->count_throws == 3) {
 
+                /* thread safe */
+                t_s->mutex.lock();
                 /* recognize 3 darts */
-                t_e.score_flag = 1;
-
+                t_s->score_flag = 1;
+                /* thread safe */
+                t_s->mutex.unlock();
 
                 top_cam >> cur_frame_top;
                 last_frame_top = cur_frame_top.clone();
