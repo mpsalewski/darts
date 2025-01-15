@@ -51,11 +51,6 @@
 #define DIFF_THRESH 1e+6
 
 
-
-
-
-
-
 /* Image Paths; mostly for test and sims */
 #define TOP_RAW_IMG_CAL "images/test_img/top/top_raw.jpg"
 #define RIGHT_RAW_IMG_CAL "images/test_img/right/right_raw.jpg"

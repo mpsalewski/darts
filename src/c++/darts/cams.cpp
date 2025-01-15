@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * cams.h
+ * cams.cpp
  *
  *
  * Automated Dart Detection and Scoring System
@@ -83,6 +83,8 @@ struct flags_s {
 
 /* cam structure for data exchange */
 struct darts_s {
+
+    /* struct does not need mutex, neither of these funct (threads) is called */
 
     /* flags */
     struct flags_s flags;
@@ -644,10 +646,6 @@ void SIMULATION_OF_camsThread(void*arg) {
     //left_cam.release();
 
 }
-
-
-
-
 
 
 /************************** Function Definitions *****************************/

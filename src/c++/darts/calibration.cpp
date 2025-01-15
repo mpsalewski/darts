@@ -1,22 +1,34 @@
 /******************************************************************************
  *
- * $NAME.cpp
- *
- * Digital Image / Video Processing
- * HAW Hamburg, Prof. Dr. Marc Hensel
- *
- * TEMPLATE
+ * calibration.c 
  *
  *
- * author: 			m. salewski
- * created on:
- * last revision:
+ * Automated Dart Detection and Scoring System
+ *
+ *
+ * This project was developed as part of the Digital Image / Video Processing
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
  *
  *
  *
+ * Author(s):   	Lukas Grose <lukas@grose.de>  
+ *                  Mika Paul Salewski <mika.paul.salewski@gmail.com>
+ *
+ * Created on :     2025-01-06
+ * Last revision :  None
  *
  *
+ *
+ * Copyright (c) 2025, Lukas Grose, Mika Paul Salewski
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ *
+ * Further information about this source-file:
+ *      --> warp perspective of 3 external cameras to get a consistent view
 ******************************************************************************/
+
 
 
 /* compiler settings */

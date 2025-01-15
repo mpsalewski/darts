@@ -1,3 +1,73 @@
+/******************************************************************************
+ *
+ * command_parser.h
+ *
+ ******************************************************************************
+ *
+ * Origin:
+ *
+ * CommandParser.h - Library for parsing commands of the form "COMMAND_NAME ARG1 ARG2 ARG3 ...".
+ *
+ * Copyright 2020 Anthony Zhang (Uberi) <me@anthonyz.ca>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ *
+ *
+ ******************************************************************************
+ *
+ *      !!! NOTE: !!!
+ * This file is based on and extends the original work by Anthony Zhang (Uberi).
+ * Original work: Copyright 2020 Anthony Zhang (Uberi) <me@anthonyz.ca>
+ *
+ * Modifications and extensions include significant restructuring, functionality
+ * updates, and integration into the Automated Dart Detection and Scoring System.
+ * Large Parts are deleted and / or rewritten.
+ *
+ *      --> Original functions have been restructured into .c/.h files.
+ *      --> Added various new features
+ *
+ ******************************************************************************
+ *
+ *
+ * Automated Dart Detection and Scoring System
+ *
+ *
+ * This project was developed as part of the Digital Image / Video Processing
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
+ *
+ *
+ *
+ * Author(s):   	Mika Paul Salewski <mika.paul.salewski@gmail.com>
+ *
+ * Created on :     2025-01-06
+ * Last revision :  None
+ *
+ *
+ *
+ * Copyright (c) 2025, Mika Paul Salewski
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ *
+ * Further information about this source-file:
+ *      --> Command parser for processing text-based commands received
+ *          through a command line interface.
+ *      --> Supports parsing commands with arguments in the format:
+ *          "COMMAND_NAME ARG1 ARG2 ARG3 ...".
+ *      --> Provides an extensible interface for adding new commands
+ *          and handling errors gracefully.
+ *
+ *
+******************************************************************************/
+
+
+
 /***************************** includes **************************************/
 #include <iostream>
 #include <chrono>
@@ -48,25 +118,19 @@ void commandLineThread(void*arg) {
     char response[MAX_RESPONSE_SIZE];
 
     /* assign void pointer */
-    // here unsued bc parser class only used in this module (static), so no 
-    // pointer muss be actually passed to thread 
-    // CommandParser* p = (CommandParser*)(arg);
+
 
     /* init registers all commands */
     command_parser_cmd_init();
 
-
+    /* welcome */
     cout << "Command Line is active" << endl;
-    
-    /* read command line and ignore first input --> flush and welcome */
-    
-    getline(cin, input);
     parser.processCommand("welcome", response);
     cout << response << endl;
 
-    
-    //cin.ignore(std::numeric_limits<streamsize>::max(), '\n');  
-    //cin.sync();
+    /* flush command line  */
+    cin.sync();
+
 
     this_thread::sleep_for(chrono::milliseconds(500));
     /* loop */
@@ -83,8 +147,6 @@ void commandLineThread(void*arg) {
             break;
         }
 
-        /* mirror input */
-        //cout << input << endl;  
         
         /* process command */
         cmd_return = parser.processCommand(input.c_str(), response);
@@ -220,25 +282,6 @@ bool CommandParser::processCommand(const char* command, char* response) {
     }
     name[i] = '\0';
 
-#if 0
-    /* get cmd def */
-    const char* argTypes = nullptr;
-    void (*callback)(Argument*, size_t argCount, char*) = nullptr;
-    
-    size_t l;
-    for (l = 0; l < numCommands; l++) {
-        if (std::strcmp(commandDefinitions[l].name, name) == 0) {
-            argTypes = commandDefinitions[l].argTypes;
-            callback = commandDefinitions[l].callback;
-            break;
-        }
-    }
-    /* check if there was matching command definition */
-    if(l>=numCommands){
-        snprintf(response, MAX_RESPONSE_SIZE, "Error: Unknown command '%s'", name);
-        return false;
-    }
-#endif 
     /* get cmd def */
     char* argTypes = nullptr;
     void (*callback)(Argument*, size_t argCount, char*) = nullptr;
@@ -450,7 +493,7 @@ void command_parser_cmd_init(void){
 
     /* help command */
     if (!parser.registerCommand("help", "s", help_Cb,
-        "help menu: [type: 'help $CMD_NAME$' for specific command]"
+        "help menu: [type: 'help $CMD_NAME$' for specific command]\nexit\tshutdown program"
     )) {
         std::cerr << "err: could not register command!" << std::endl;
         return;

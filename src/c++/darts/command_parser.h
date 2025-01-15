@@ -1,22 +1,10 @@
 /******************************************************************************
  *
- * $NAME.cpp
- *
- * Digital Image / Video Processing
- * HAW Hamburg, Prof.Dr.Marc Hensel
- *
- * TEMPLATE
- *
- *
- * author: 			m.salewski
- * created on :
- * last revision :
- *
- *
+ * command_parser.h
  * 
+ ******************************************************************************
  * 
- * 
- * 
+ * Origin:
  * 
  * CommandParser.h - Library for parsing commands of the form "COMMAND_NAME ARG1 ARG2 ARG3 ...".
  *
@@ -30,11 +18,50 @@
  * 
  * 
  * 
+ ****************************************************************************** 
+ * 
+ *      !!! NOTE: !!!
+ * This file is based on and extends the original work by Anthony Zhang (Uberi).
+ * Original work: Copyright 2020 Anthony Zhang (Uberi) <me@anthonyz.ca>
+ *
+ * Modifications and extensions include significant restructuring, functionality 
+ * updates, and integration into the Automated Dart Detection and Scoring System. 
+ * Large Parts are deleted and / or rewritten.
+ * 
+ *      --> Original functions have been restructured into .c/.h files.
+ *      --> Added various new features 
+ * 
+ ******************************************************************************
  * 
  * 
- * NOTE:
- * The refered software from above ist completely restructured and in many parts modified by m. salewski 
- * 
+ * Automated Dart Detection and Scoring System
+ *
+ *
+ * This project was developed as part of the Digital Image / Video Processing
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
+ *
+ *
+ *
+ * Author(s):   	Mika Paul Salewski <mika.paul.salewski@gmail.com>
+ *
+ * Created on :     2025-01-06
+ * Last revision :  None
+ *
+ *
+ *
+ * Copyright (c) 2025, Mika Paul Salewski
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ *
+ * Further information about this source-file:
+ *      --> Command parser for processing text-based commands received 
+ *          through a command line interface.
+ *      --> Supports parsing commands with arguments in the format: 
+ *          "COMMAND_NAME ARG1 ARG2 ARG3 ...".
+ *      --> Provides an extensible interface for adding new commands 
+ *          and handling errors gracefully.
  * 
  * 
 ******************************************************************************/
@@ -60,6 +87,7 @@ constexpr size_t MAX_COMMAND_NAME_LENGTH = 16;
 constexpr size_t MAX_COMMAND_ARG_SIZE = 32;
 constexpr size_t MAX_RESPONSE_SIZE = 64;
 constexpr size_t MAX_HELP_LENGTH = 200;
+
 
 /************************** local Structure ***********************************/
 

@@ -56,7 +56,7 @@ struct thread_exchange_s {
 #endif
 
 /************************* globals Variables *********************************/
-extern struct thread_exchange_s t_e;
+//extern struct thread_exchange_s t_e;
 /* control threads */
 extern std::atomic<bool> running;
 
