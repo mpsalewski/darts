@@ -109,7 +109,14 @@ void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& max
             }
         }
     }
-
+    /*
+    for (int y = 0; y < image_gray.rows; ++y) {
+        for (int x = 0; x < image_gray.cols; ++x) {
+            if (image_gray.at<uchar>(y, x) > CROSS_POINT_INTENSITY_MIN) {
+                maxLocations.push_back(Point(x, y));
+            }
+        }
+    }*/
 }
 
 

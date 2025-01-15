@@ -57,9 +57,10 @@
 #include "HoughLine.h"
 #include <cmath>
 #include <opencv2/opencv.hpp>
-#define CROSS_IMG_COLOR_INTENSITY 20
 /* Namespaces */
 using namespace cv;
+
+#define CROSS_IMG_COLOR_INTENSITY 20
 
 namespace ip {
 

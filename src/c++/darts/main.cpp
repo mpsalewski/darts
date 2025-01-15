@@ -244,19 +244,19 @@ void static_test(void) {
     left_raw = cv::imread(LEFT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
 
 #if 0 
-    image_proc_get_line(top_raw, top_image, TOP_CAM, &line, SHOW_IMG_LINE, "Top Static Test");
-    image_proc_get_line(right_raw, right_image, RIGHT_CAM, &line, SHOW_SHORT_ANALYSIS, "Right Static Test");
-    image_proc_get_line(left_raw, left_image, LEFT_CAM, &line, SHOW_IMG_LINE, "Left Static Test");
+    img_proc_get_line(top_raw, top_image, TOP_CAM, &line, SHOW_IMG_LINE, "Top Static Test");
+    img_proc_get_line(right_raw, right_image, RIGHT_CAM, &line, SHOW_SHORT_ANALYSIS, "Right Static Test");
+    img_proc_get_line(left_raw, left_image, LEFT_CAM, &line, SHOW_IMG_LINE, "Left Static Test");
 #endif 
 #if 1 
-    image_proc_get_line(top_image, top_image2, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top Static Test");
-    image_proc_get_line(right_image, right_image2, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right Static Test");
-    image_proc_get_line(left_image, left_image2, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
+    img_proc_get_line(top_image, top_image2, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top Static Test");
+    img_proc_get_line(right_image, right_image2, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right Static Test");
+    img_proc_get_line(left_image, left_image2, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
 #endif
 #if 0
-    image_proc_get_line(top_image2, top_image3, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top Static Test");
-    image_proc_get_line(right_image2, right_image3, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right Static Test");
-    image_proc_get_line(left_image2, left_image3, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
+    img_proc_get_line(top_image2, top_image3, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top Static Test");
+    img_proc_get_line(right_image2, right_image3, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right Static Test");
+    img_proc_get_line(left_image2, left_image3, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
 #endif
 
 
