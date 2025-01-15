@@ -38,7 +38,7 @@
 #include <cstdlib>
 #include <string>
 #include <opencv2/opencv.hpp>
-#include "ImageProc.h"
+#include "image_proc.h"
 #include <opencv2/opencv.hpp>
 #include "calibration.h"
 #include "Sobel.h"

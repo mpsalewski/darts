@@ -39,7 +39,7 @@
 #include <cstdlib>
 #include <string>
 #include <opencv2/opencv.hpp>
-#include "ImageProc.h"
+#include "image_proc.h"
 #include <opencv2/opencv.hpp>
 #include "calibration.h"
 #include "Sobel.h"
@@ -933,6 +933,7 @@ void dart_board_set_new_game(char* names[], int num_p) {
     d->g->p = players;
 
     d->dg->count_games = -1;
+    d->dg->count_player = 0;
 
     d->mtx.unlock();
 

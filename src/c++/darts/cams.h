@@ -35,10 +35,6 @@
 #define CAMS_H
 
 /* Include files */
-#include <opencv2/opencv.hpp>
-#include <string>
-#include "ImageProc.h"
-#include "dart_board.h"
 
 
 /*************************** global Defines **********************************/

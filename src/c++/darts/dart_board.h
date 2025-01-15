@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * dart_board.cpp
+ * dart_board.h
  *
  *
  * Automated Dart Detection and Scoring System
