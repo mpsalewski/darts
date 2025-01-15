@@ -195,9 +195,9 @@ void Dartsboard_GUI_Thread(void*arg) {
     /* init gui */
     dart_board_create_scoreboard_gui();
     // example2: dart_board_create_scoreboard_gui(d->g, "Board2", 900,900);
-    std::cout << "press [Enter] to start the game" << endl;
+    //std::cout << "press [Enter] to start the game" << endl;
     while (waitKey(10) != 13 && running) {
-        this_thread::sleep_for(chrono::milliseconds(250));
+        this_thread::sleep_for(chrono::milliseconds(50));
     }
 
     while (running == 1) {
@@ -693,7 +693,7 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
     d->mtx.lock();
 
     /* keep track which players turn it is */
-    d->dg->count_player = d->dg->count_games;
+    //d->dg->count_player = d->dg->count_games;
     int ply_track = 0;
 
     //d->dg->row_offset += d->dg->count_player*50;

@@ -65,7 +65,7 @@ using namespace std;
 
 /************************** local Structure ***********************************/
 static struct img_proc_s {
-    int bin_thresh = 45;
+    int bin_thresh = 41;
     int diff_min_thresh = 1.5e+5;
 }img_proc;
 
@@ -192,6 +192,89 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     //threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
     threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
+#if 1
+/*********************************************** under construction *****************************************************/
+    /* everything thats outcommented for performance, but are images for debug and analysis reasons */
+
+    cv::morphologyEx(edge_bin, edge_bin, cv::MORPH_CLOSE, cv::Mat::ones(1, 1, CV_8U));
+
+    Mat edge_bin_cont = edge_bin.clone();
+    cvtColor(edge_bin_cont, edge_bin_cont, COLOR_GRAY2BGR);
+    /* find contour of dart */
+    vector<vector<Point>> cont;
+    vector<Vec4i> hier;
+    findContours(edge_bin, cont, hier, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+    /* draw cont */
+    
+    //Mat contoursImg = Mat::zeros(edge_bin.size(), CV_8UC3);
+    for (size_t i = 0; i < cont.size(); i++) {
+        drawContours(edge_bin_cont, cont, (int)i, Scalar(0, 255, 0), 1, LINE_8, hier, 0);
+    }
+
+
+    
+    //Mat result = Mat::zeros(edge_bin.size(), CV_8UC3);
+    //Mat cont_rect = Mat::zeros(edge_bin.size(), CV_8UC3);
+    
+    /* fitted final contour --> just the barrel as rectangle */
+    Mat cont_rect_fitted = Mat::zeros(edge_bin.size(), CV_8UC3);
+    /* store all endpoints */
+    vector<Point> allPoints; 
+
+    for (size_t i = 0; i < cont.size(); i++) {
+        /* rotating bounding box */
+        RotatedRect rotatedRect = minAreaRect(cont[i]);
+
+        /* calculate properties */
+        float width = rotatedRect.size.width;
+        float height = rotatedRect.size.height;
+        float aspectRatio = (width < height) ? width / height : height / width; 
+        double area = contourArea(cont[i]);
+
+        /* criteria: narrow and elongated */
+        if ((aspectRatio < 0.2 )&& (area > 50 )) { // Passen Sie die Werte für Ihre Bedürfnisse an
+            drawContours(edge_bin_cont, cont, (int)i, Scalar(255, 0, 0), 1);
+            /* calculate corners of ratating rectangle */
+            Point2f points[4];
+            rotatedRect.points(points);
+
+            /* draw rot rect */
+            for (int j = 0; j < 4; j++) {
+                allPoints.push_back(points[j]);
+                //line(cont_rect, points[j], points[(j + 1) % 4], Scalar(255, 0, 0), 1);
+                //line(result, points[j], points[(j + 1) % 4], Scalar(255, 0, 0), 1);
+            }
+
+        }
+    }
+    /* calaculate just one rot rect which fits all other rect, ther might be more than bc of shaft and barrel might be divided through its haptic */
+    if (!allPoints.empty()) {
+        RotatedRect enclosingRect = minAreaRect(allPoints); 
+        Point2f points_enc[4];
+        enclosingRect.points(points_enc);
+
+        /* draw rect */
+        for (int j = 0; j < 4; j++) {
+            cv::line(edge_bin_cont, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 1);
+            cv::line(cont_rect_fitted, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 1);  
+        }
+
+    }
+
+
+
+    //imshow("narrow contours", result);
+    //imshow("edges", edge_bin);
+    //imshow("contoura", contoursImg);
+    //imshow("Fitted all", cont_rect_fitted);
+    /**/
+    cvtColor(cont_rect_fitted, edge_bin, COLOR_BGR2GRAY);
+    threshold(edge_bin, edge_bin, 10, 255, THRESH_BINARY);
+    /*********************************************** under construction end **************************************************/
+#endif 
+
+
     /* Calculate Hough transform */
     cur_line = cur.clone();
     ip::houghTransform(edge_bin, houghSpace);
@@ -223,8 +306,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         //cout << "Debug x: " << houghMaxLocation.x << "\ty: " << houghMaxLocation.y << endl;
 
         // set max to zero
-        for (int dx = -4; dx <= 4; ++dx) {
-            for (int dy = -4; dy <= 4; ++dy) {
+        for (int dx = -3; dx <= 3; ++dx) {
+            for (int dy = -3; dy <= 3; ++dy) {
                 int nx = houghMaxLocation.x + dx; // Nachbarpixel in x-Richtung
                 int ny = houghMaxLocation.y + dy; // Nachbarpixel in y-Richtung
 
@@ -234,7 +317,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
                 }
             }
         }
-        ip::drawLine(edge_bin, r, theta);   // Debug
+        ip::drawLine(edge_bin_cont, r, theta);   // Debug
         circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
         //out << "Debug r: " << r << "\ttheta" << theta << endl;
@@ -307,7 +390,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         cv::imshow(image_edge, edge);
         /* edge binary image */
         string image_edge_bin = string("Image Edge Bin (").append(CamNameId).append(" Cam)");
-        cv::imshow(image_edge_bin, edge_bin);
+        //cv::imshow(image_edge_bin, edge_bin);
+        cv::imshow(image_edge_bin, edge_bin_cont);
 
         /* Hough transform (line images) */
         string image_orig = string("Image Orig with line (").append(CamNameId).append(" Cam)");
@@ -326,11 +410,12 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         string image_orig = string("1 Image Orig with line (").append(CamNameId).append(" Cam)");
         cv::imshow(image_orig, cur_line);
         /* edge image */
-        string image_edge = string("2 Edge Image (").append(CamNameId).append(" Cam)");
-        cv::imshow(image_edge, edge);
+        //string image_edge = string("2 Edge Image (").append(CamNameId).append(" Cam)");
+        //cv::imshow(image_edge, edge);
         /* edge binary image */
         string image_edge_bin = string("3 Image Edge Bin (").append(CamNameId).append(" Cam)");
-        cv::imshow(image_edge_bin, edge_bin);
+        //cv::imshow(image_edge_bin, edge_bin);
+        cv::imshow(image_edge_bin, edge_bin_cont);
         /* sharpened images after diff */
         //string image_sharp_diff = string("Image Sharpened After Diff (").append(CamNameId).append(" Cam)");
         //string image_sharp_diff_gray = string("4 Image Sharpened After Diff Gray (").append(CamNameId).append(" Cam)");
@@ -353,7 +438,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     if (show_imgs == SHOW_EDGE_BIN) {
         /* edge binary image */
         string image_edge_bin = string("Image Edge Bin (").append(CamNameId).append(" Cam)");
-        cv::imshow(image_edge_bin, edge_bin);
+        //cv::imshow(image_edge_bin, edge_bin);
+        cv::imshow(image_edge_bin, edge_bin_cont);
     }
     if (show_imgs == SHOW_SHARP_AFTER_DIFF) {
         /* sharpened images after diff */
@@ -411,6 +497,143 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
 
     cross_p.x = centerOfMass.x;
     cross_p.y = centerOfMass.y;
+
+    return EXIT_SUCCESS;
+
+}
+
+struct line_kart_s {
+    Point p0;
+    Point p1;
+};
+
+struct tri_line_kart_s {
+    struct line_kart_s top;
+    struct line_kart_s right;
+    struct line_kart_s left;
+
+};
+
+// Umrechnung von Polar-Koordinaten (r, theta) in kartesische Koordinaten
+void polarToCartesian(const cv::Mat& image, struct line_s l, struct line_kart_s& kart) {
+    Point imgCenter(image.cols / 2, image.rows / 2);
+    
+    double cosine = cos(l.theta);
+    double sine = sin(l.theta);
+    // Line end points for "almost horizontal" lines
+    if ((l.theta > 1.0 / 4.0 * CV_PI) && (l.theta < 3.0 / 4.0 * CV_PI)) {
+        int x0 = 0;
+        int x1 = image.cols - 1;
+        int xc0 = x0 - image.cols / 2;
+        int xc1 = x1 - image.cols / 2;
+        int yc0 = (int)((l.r - xc0 * cosine) / sine);
+        int yc1 = (int)((l.r - xc1 * cosine) / sine);
+
+        kart.p0 = Point(x0, yc0 + imgCenter.y);
+        kart.p1 = Point(x1, yc1 + imgCenter.y);
+    }
+    // Line end points for "almost vertical" lines
+    else {
+        int y0 = 0;
+        int y1 = image.rows - 1;
+        int yc0 = y0 - image.rows / 2;
+        int yc1 = y1 - image.rows / 2;
+        int xc0 = (int)((l.r - yc0 * sine) / cosine);
+        int xc1 = (int)((l.r - yc1 * sine) / cosine);
+
+        kart.p0 = Point(xc0 + imgCenter.x, y0);
+        kart.p1 = Point(xc1 + imgCenter.x, y1);
+    }
+    return;
+}
+
+// Berechnung des Schnittpunkts zweier Linien
+bool find_intersection(const line_kart_s& line1, const line_kart_s& line2, Point& intersection) {
+    // Koordinaten der ersten Linie
+    int x0_1 = line1.p0.x, y0_1 = line1.p0.y;
+    int x1_1 = line1.p1.x, y1_1 = line1.p1.y;
+    
+    // Koordinaten der zweiten Linie
+    int x0_2 = line2.p0.x, y0_2 = line2.p0.y;
+    int x1_2 = line2.p1.x, y1_2 = line2.p1.y;
+
+    // Berechnung der Parameter für die Gleichungen der beiden Linien
+    int A1 = y1_1 - y0_1;
+    int B1 = x0_1 - x1_1;
+    int C1 = x1_1 * y0_1 - x0_1 * y1_1;
+
+    int A2 = y1_2 - y0_2;
+    int B2 = x0_2 - x1_2;
+    int C2 = x1_2 * y0_2 - x0_2 * y1_2;
+
+    // Berechnung des Determinanten
+    int det = A1 * B2 - A2 * B1;
+
+    // Wenn der Determinant null ist, sind die Linien parallel und schneiden sich nicht
+    if (det == 0) {
+        intersection.x = -66666;
+        intersection.y = -66666;
+        return false;
+    }
+
+    // Berechnung der Schnittpunkt-Koordinaten
+    intersection.x = (B1 * C2 - B2 * C1) / det;
+    intersection.y = (A2 * C1 - A1 * C2) / det;
+
+    return true;
+}
+
+
+// Berechnung des Mittelpunkts der Schnittpunkte
+Point calculate_midpoint(const Point& p1, const Point& p2, const Point& p3) {
+    Point midpoint;
+    midpoint.x = (p1.x + p2.x + p3.x) / 3;
+    midpoint.y = (p1.y + p2.y + p3.y) / 3;
+    return midpoint;
+}
+int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p) {
+
+    Mat frame = Mat::zeros(frameSize, CV_8UC3);
+
+
+    ip::drawLine_light_add(frame, tri_line->line_top.r, tri_line->line_top.theta);
+    ip::drawLine_light_add(frame, tri_line->line_right.r, tri_line->line_right.theta);
+    ip::drawLine_light_add(frame, tri_line->line_left.r, tri_line->line_left.theta);
+
+    struct tri_line_kart_s tlk;
+    // Umwandlung der Polar-Koordinaten der Linien in kartesische Koordinaten
+    // Berechnung von Punkten für jede Linie auf dem Bild
+    polarToCartesian(frame, tri_line->line_top, tlk.top);
+    polarToCartesian(frame, tri_line->line_right, tlk.right);
+    polarToCartesian(frame, tri_line->line_left, tlk.left);
+
+    // Berechnung der Schnittpunkte der Linien
+    Point intersection1, intersection2, intersection3;
+    find_intersection(tlk.top, tlk.right, intersection1);
+    find_intersection(tlk.top, tlk.left, intersection2);
+    find_intersection(tlk.left, tlk.right, intersection3);
+
+    // Berechnung des Mittelpunkts der Schnittpunkte
+    Point midpoint = calculate_midpoint(intersection1, intersection2, intersection3);
+
+
+    
+
+    // Zeichnen der Schnittpunkte und des Mittelpunkts
+    //circle(image, intersection1, 5, Scalar(0, 0, 255), 1); // Schnittpunkt Linie 1 und 2 in Rot
+    //circle(image, intersection2, 5, Scalar(0, 255, 0), 1); // Schnittpunkt Linie 2 und 3 in Grün
+    //circle(image, intersection3, 5, Scalar(255, 0, 0), 1); // Schnittpunkt Linie 3 und 1 in Blau
+    circle(frame, midpoint, 8, Scalar(255, 255, 0), 1.5); // Mittelpunkt in Gelb
+
+    // Ausgabe des Mittelpunkts
+    //cout << "Mittelpunkt der maximalen Positionen: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
+
+    cross_p.x = midpoint.x;
+    cross_p.y = midpoint.y;
+
+
+    imshow("Z Cross Line", frame);
+    waitKey(0); // Warten, bis eine Taste gedrückt wird
 
     return EXIT_SUCCESS;
 
@@ -676,7 +899,7 @@ void img_proc_set_diff_min_thresh(int thresh) {
 
 
 /* Large Debug Copy, that's why this def is at the bottom */
-int image_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs, std::string CamNameId) {
+int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs, std::string CamNameId) {
 
 
     /* declare images */
@@ -755,6 +978,78 @@ int image_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadI
     //threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
     threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
+#if 1
+/*********************************************** under construction *****************************************************/
+    //imshow("darts", edge_bin);
+    //waitKey(0);
+    //destroyWindow("darts");
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(edge_bin, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+
+    // Konturen auf einem neuen Bild zeichnen
+    cv::Mat contoursImg = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
+    for (size_t i = 0; i < contours.size(); i++) {
+        cv::drawContours(contoursImg, contours, (int)i, cv::Scalar(0, 255, 0), 1, cv::LINE_8, hierarchy, 0);
+    }
+    // Neue Bildmaske für schmale Konturen
+    cv::Mat result = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
+    cv::Mat cont_rect = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
+    cv::Mat cont_rect_fitted = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
+    std::vector<cv::Point> allPoints; // Hier speichern wir alle Eckpunkte
+
+    for (size_t i = 0; i < contours.size(); i++) {
+        // Rotierende Begrenzungsbox
+        cv::RotatedRect rotatedRect = cv::minAreaRect(contours[i]);
+
+        // Eigenschaften berechnen
+        float width = rotatedRect.size.width;
+        float height = rotatedRect.size.height;
+        float aspectRatio = (width < height) ? width / height : height / width; // Aspektverhältnis (immer <= 1)
+        double area = cv::contourArea(contours[i]);
+
+        // Filterkriterien: Schmal und länglich
+        if (aspectRatio < 0.2 && area > 40) { // Passen Sie die Werte für Ihre Bedürfnisse an
+            cv::drawContours(result, contours, (int)i, cv::Scalar(0, 255, 0), 1);
+            // Eckpunkte des rotierenden Rechtecks berechnen
+            cv::Point2f points[4];
+            rotatedRect.points(points);
+
+            // Rotierendes Rechteck zeichnen
+            for (int j = 0; j < 4; j++) {
+                allPoints.push_back(points[j]);
+                cv::line(cont_rect, points[j], points[(j + 1) % 4], cv::Scalar(255, 0, 0), 1);
+                cv::line(result, points[j], points[(j + 1) % 4], cv::Scalar(255, 0, 0), 1);
+            }
+           
+        }
+    }
+    // Berechne das größte rotierte Rechteck, das alle gesammelten Punkte umschließt
+    if (!allPoints.empty()) {
+        cv::RotatedRect enclosingRect = cv::minAreaRect(allPoints); // Berechne das RotatedRect für alle Eckpunkte
+
+        // Berechne die Eckpunkte des großen rotierenden Rechtecks
+        cv::Point2f points[4];
+        enclosingRect.points(points);
+
+        // Zeichne das größte rotierte Rechteck
+        for (int j = 0; j < 4; j++) {
+            //cv::line(result, points[j], points[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);  // Rotes Rechteck
+            cv::line(cont_rect_fitted, points[j], points[(j + 1) % 4], cv::Scalar(0, 0, 255), 1);  // Rotes Rechteck
+        }
+  
+    }
+
+
+
+    cv::imshow("Schmale Konturen", result);
+    cv::imshow("Kanten", edge_bin);
+    cv::imshow("Konturen", contoursImg);
+    cv::imshow("Fitted all", cont_rect_fitted);
+    cvtColor(cont_rect_fitted, cont_rect_fitted, COLOR_BGR2GRAY);
+    threshold(cont_rect_fitted, edge_bin, 10, 255, THRESH_BINARY);
+/*********************************************** under construction end **************************************************/
+#endif 
     /* Calculate Hough transform */
     cur_line = cur.clone();
     ip::houghTransform(edge_bin, houghSpace);

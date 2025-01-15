@@ -75,6 +75,7 @@ extern void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Poin
 
 extern int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs = 0, std::string CamNameId = "Default");
 extern int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p);
+extern int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p);
 extern int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId);
 extern int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* pixel_sum, bool show);
 
@@ -90,6 +91,6 @@ extern void img_proc_set_diff_min_thresh(int thresh);
 
 
 
-extern int image_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs = 0, std::string CamNameId = "Default");
+extern int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs = 0, std::string CamNameId = "Default");
 
 #endif 

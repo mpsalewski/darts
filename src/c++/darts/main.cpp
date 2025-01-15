@@ -92,6 +92,24 @@ void static_test(void);
 /****************************** main function ********************************/
 int main() {
 
+    /*
+    cv::Mat edge_bin = cv::imread("images/bin_edge_w_flight/edge_bin_w_flight_01.jpg", cv::IMREAD_GRAYSCALE);
+
+    // Konturen finden
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(edge_bin, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+
+    // Konturen auf einem neuen Bild zeichnen
+    cv::Mat contoursImg = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
+    for (size_t i = 0; i < contours.size(); i++) {
+        cv::drawContours(contoursImg, contours, (int)i, cv::Scalar(0, 255, 0), 2, cv::LINE_8, hierarchy, 0);
+    }
+    cv::imshow("Kanten", edge_bin);
+    cv::imshow("Konturen", contoursImg);
+    cv::waitKey(0);
+    return 0;
+    */
 
     /* always register the command line */
     thread command_line(commandLineThread, &t_s);
@@ -103,10 +121,10 @@ int main() {
 #if !SIMULATION && THREADING
 
     /* create cams thread */
-    thread cams(camsThread, &darts);
+    thread cams(camsThread, &t_s);
 
     /* create darts gui thread */
-    thread guiThread(Dartsboard_GUI_Thread);
+    thread guiThread(Dartsboard_GUI_Thread, &t_s);
 
     this_thread::sleep_for(chrono::milliseconds(2000));
 
@@ -243,14 +261,17 @@ void static_test(void) {
     right_raw = cv::imread(RIGHT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
     left_raw = cv::imread(LEFT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
 
-#if 0 
-    img_proc_get_line(top_raw, top_image, TOP_CAM, &line, SHOW_IMG_LINE, "Top Static Test");
-    img_proc_get_line(right_raw, right_image, RIGHT_CAM, &line, SHOW_SHORT_ANALYSIS, "Right Static Test");
-    img_proc_get_line(left_raw, left_image, LEFT_CAM, &line, SHOW_IMG_LINE, "Left Static Test");
+#if 1
+    img_proc_get_line_debug(top_raw, top_image, TOP_CAM, &t_line.line_top, SHOW_SHORT_ANALYSIS, "Top Static Test");
+    waitKey(0);
+    img_proc_get_line_debug(right_raw, right_image, RIGHT_CAM, &t_line.line_right, SHOW_SHORT_ANALYSIS, "Right Static Test");
+    waitKey(0);
+    img_proc_get_line_debug(left_raw, left_image, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
+    waitKey(0);
 #endif 
-#if 1 
-    img_proc_get_line(top_image, top_image2, TOP_CAM, &t_line.line_top, SHOW_IMG_LINE, "Top Static Test");
-    img_proc_get_line(right_image, right_image2, RIGHT_CAM, &t_line.line_right, SHOW_IMG_LINE, "Right Static Test");
+#if 0
+    img_proc_get_line(top_image, top_image2, TOP_CAM, &t_line.line_top, SHOW_SHORT_ANALYSIS, "Top Static Test");
+    img_proc_get_line(right_image, right_image2, RIGHT_CAM, &t_line.line_right, SHOW_SHORT_ANALYSIS, "Right Static Test");
     img_proc_get_line(left_image, left_image2, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
 #endif
 #if 0
@@ -259,11 +280,12 @@ void static_test(void) {
     img_proc_get_line(left_image2, left_image3, LEFT_CAM, &t_line.line_left, SHOW_SHORT_ANALYSIS, "Left Static Test");
 #endif
 
-
+    destroyAllWindows();
     Point cross_point;
     calibration_get_img(top_raw, top_raw, TOP_CAM);
     cv::imwrite("top_raw_cal.jpg", top_raw);
     img_proc_cross_point(top_raw.size(), &t_line, cross_point);
+    img_proc_cross_point_math(top_raw.size(), &t_line, cross_point);
     cout << "Raw Cal Size" << top_raw.size() << endl;
 
     /*
@@ -296,253 +318,3 @@ void static_test(void) {
     cv::waitKey(0);
 }
 
-
-#if 0
-/* old implementation, one thread per cam, delete later */
-void camThread(int threadId) {
-
-    Mat lastFrame;
-    Mat currentFrame;
-    Mat currentCalFrame;
-    Mat diffFrame;
-    Scalar diffVal;
-
-    /* open camera */
-    VideoCapture camera(threadId);
-    if (!camera.isOpened()) {
-        std::cout << "[ERROR] cannot open Camera" << endl;
-        return;
-    }
-
-    /* create camera window */
-    ostringstream CamName;
-    CamName << "Cam " << threadId << " [press Esc to quit]";
-    string camWindowName = CamName.str();
-    ostringstream CamNameDiff;
-    CamNameDiff << "Diff Cam " << threadId << " [press Esc to quit]";
-    string camWindowNameDiff = CamNameDiff.str();
-
-    /* load raw init image from file */
-    /*Mat lastImg = cv::imread(TOP_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
-    if (lastImg.empty()) {
-        cout << "[ERROR] cannot open iamge: " << TOP_RAW_IMG_CAL << endl;
-        return;
-    }*/
-    camera >> lastFrame;
-    if (lastFrame.empty()) {
-        return;
-    }
-
-
-
-
-    while (running) {
-
-        /* quit on [Esc] */
-        if ((cv::waitKey(WAIT_TIME_MS) == 27)) {
-            break;
-        }
-
-        /* get next frame from cam (current image) */
-        camera >> currentFrame;
-        if (currentFrame.empty())
-            break;
-
-        /* create camera window */
-        //imshow(camWindowName, currentFrame);
-
-        /* Image Processing */
-
-        /* get calibrated view */
-        //cal_get_images(CamFrame, CalImg);
-
-
-        //cvtColor(currentFrame, currentFrame, COLOR_BGR2GRAY);
-        GaussianBlur(currentFrame, currentFrame, Size(3, 3), 0);
-
-
-
-        /* check difference */
-        absdiff(currentFrame, lastFrame, diffFrame);
-        Mat diffFrame_gray;
-
-        cvtColor(diffFrame, diffFrame_gray, COLOR_BGR2GRAY);
-        Mat binaryEdges;
-        double tau = 25; // initial threshold value
-        threshold(diffFrame_gray, binaryEdges, tau, 255, THRESH_BINARY);
-        imshow(camWindowNameDiff, binaryEdges);
-        diffVal = sum(diffFrame_gray);
-        if (diffVal[0] > DIFF_THRESH) {
-            std::cout << camWindowNameDiff << "Diff Val detected : " << diffVal[0] << endl;
-            this_thread::sleep_for(chrono::milliseconds(1000));
-        }
-
-        /* update last frame */
-        lastFrame = currentFrame.clone();
-
-
-        /* define sampling rate */
-        this_thread::sleep_for(chrono::milliseconds(10));
-
-    }
-
-    /* free resoruces */
-    camera.release();
-
-    /* Thread finished */
-    std::cout << "Thread " << threadId << " beendet.\n";
-}
-
-
-#endif
-
-
-
-
-
-
-
-
-// Programm ausführen: STRG+F5 oder Menüeintrag "Debuggen" > "Starten ohne Debuggen starten"
-// Programm debuggen: F5 oder "Debuggen" > Menü "Debuggen starten"
-
-// Tipps für den Einstieg: 
-//   1. Verwenden Sie das Projektmappen-Explorer-Fenster zum Hinzufügen/Verwalten von Dateien.
-//   2. Verwenden Sie das Team Explorer-Fenster zum Herstellen einer Verbindung mit der Quellcodeverwaltung.
-//   3. Verwenden Sie das Ausgabefenster, um die Buildausgabe und andere Nachrichten anzuzeigen.
-//   4. Verwenden Sie das Fenster "Fehlerliste", um Fehler anzuzeigen.
-//   5. Wechseln Sie zu "Projekt" > "Neues Element hinzufügen", um neue Codedateien zu erstellen, bzw. zu "Projekt" > "Vorhandenes Element hinzufügen", um dem Projekt vorhandene Codedateien hinzuzufügen.
-//   6. Um dieses Projekt später erneut zu öffnen, wechseln Sie zu "Datei" > "Öffnen" > "Projekt", und wählen Sie die SLN-Datei aus.
-
-
-
-
-#if 0
-    /***
-    * IMAGES BASICS
-    ***/
-    /* create input image file path with env var */
-string inputImagePath = string(DATA_ROOT_PATH).append(INPUT_IMAGE);
-/* create output file path with env var */
-string outputImagePath = string(DATA_ROOT_PATH).append(OUTPUT_IMAGE);
-
-/* load image from file */
-Mat image = cv::imread(inputImagePath, cv::IMREAD_ANYCOLOR);
-if (image.empty()) {
-    cout << "[ERROR] cannot open iamge: " << inputImagePath << endl;
-    return EXIT_FAILURE;
-}
-/* display image in named window */
-imshow("Image 01", image);
-
-/* wait for keypress and terminate */
-waitKey(0);
-
-/* load again as grayscale */
-image = imread(inputImagePath, IMREAD_GRAYSCALE);
-if (image.empty()) {
-    cout << "[ERROR] cannot open iamge: " << inputImagePath << endl;
-    return EXIT_FAILURE;
-}
-/* display image in named window */
-imshow("Image 02", image);
-
-/* wait for keypress and terminate */
-waitKey(0);
-
-/* save image to file */
-imwrite(outputImagePath, image);
-
-
-
-
-
-/***
-* VIDEO BASICS
-***/
-/* create input video file path with env var */
-string inVidPath = string(DATA_ROOT_PATH).append(VIDEO_PATH);
-VideoCapture video(inVidPath);
-if (!video.isOpened()) {
-    cout << "[ERROR] cannot open video: " << inVidPath << endl;
-    return EXIT_FAILURE;
-}
-
-double fps = video.get(CAP_PROP_FPS);
-int waitTimeMs = (int)(1000.0 / fps);
-
-/* loop through frames */
-Mat frame;
-while (1) {
-    /* get next frame from file */
-    video >> frame;
-
-    if (frame.empty())
-        break;
-
-    imshow("Video [press any key to quit]", frame);
-
-    if (waitKey(waitTimeMs) >= 0)
-        break;
-
-}
-/* free resoruces */
-video.release();
-waitKey(0);
-
-
-
-
-
-
-Mat frame;
-
-
-/* open camera */
-VideoCapture camera(1);
-if (!camera.isOpened()) {
-    cout << "[ERROR] cannot open Camera" << endl;
-    return EXIT_FAILURE;
-}
-
-int imageCount = 1; // Zähler für die Bildnamen
-
-/* loop through frames */
-while (1) {
-    /* get next frame from cam */
-    camera >> frame;
-
-    if (frame.empty())
-        break;
-
-    imshow("Camera [press any key to quit]", frame);
-
-    //if (waitKey(WAIT_TIME_MS) >= 0)
-        //break;
-    if ((waitKey(WAIT_TIME_MS) == ' ')) { // Wenn die Leertaste gedrückt wird
-        // Erzeuge den Dateinamen für das Bild
-        ostringstream fileName;
-        fileName << "bild" << imageCount << ".jpg";
-        string outputImagePath = fileName.str();
-
-        // Speichere das Bild
-        imwrite(outputImagePath, frame);
-        std::cout << "Bild gespeichert: " << outputImagePath << std::endl;
-
-        // Zähler hochzählen
-        imageCount++;
-    }
-
-    if ((waitKey(WAIT_TIME_MS) == 27)) {
-        break;
-    }
-
-    }
-/* free resoruces */
-camera.release();
-waitKey(0);
-
-
-
-
-#endif  

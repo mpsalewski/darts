@@ -249,6 +249,8 @@ namespace ip {
 			p1 = Point(xc1 + imgCenter.x, y1);
 		}
 
+
+
 		// Bresenham's line algorithm for drawing a line
 		int dx = abs(p1.x - p0.x);
 		int dy = abs(p1.y - p0.y);
