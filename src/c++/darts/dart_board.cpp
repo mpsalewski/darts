@@ -99,7 +99,7 @@ struct darts_gui_s {
     int dot_col = last_throw_col + last_throw_width;
     int dot_width = 100;
     int count_games = -1;
-
+    int count_player = 0;
 
     string name_win;
 
@@ -142,10 +142,8 @@ struct dart_board_s {
 
 
 /*****************************************************************************/
-
-
 /***
- * summarize all structs into one 
+ * summarize all structs into one struct
 ***/
 static struct dart_board_s dart_board = {
     {},
@@ -223,11 +221,13 @@ void Dartsboard_GUI_Thread(void*arg) {
             t_s->mutex.unlock();
             if (fin > 0) {
                 dart_board_finish_scoreboard_gui(fin - 1);
+                d->mtx.lock();
                 std::cout << "finished by: " << d->g->p[fin - 1].p_name << endl;
+                d->mtx.unlock();
                 /* next game ? yes --> [Enter]; no --> [q] */
                 while ((key != 13) && (key != 113) && running) {
                     key = waitKey(10);
-                    this_thread::sleep_for(chrono::milliseconds(250));
+                    this_thread::sleep_for(chrono::milliseconds(50));
                 }
                 if (key == 13) {
                     std::cout << "pressed [Enter] --> next leg" << endl;
@@ -244,14 +244,14 @@ void Dartsboard_GUI_Thread(void*arg) {
                 }
             }
 
-            this_thread::sleep_for(chrono::milliseconds(250));
+            this_thread::sleep_for(chrono::milliseconds(50));
         }
         else{
             t_s->mutex.unlock();
         }
         
 
-        this_thread::sleep_for(chrono::milliseconds(250));
+        this_thread::sleep_for(chrono::milliseconds(50));
     }
 
 }
@@ -693,15 +693,15 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
     d->mtx.lock();
 
     /* keep track which players turn it is */
-    static int count_player = 0 + d->dg->count_games;
+    d->dg->count_player = d->dg->count_games;
     int ply_track = 0;
 
-    //d->dg->row_offset += count_player*50;
+    //d->dg->row_offset += d->dg->count_player*50;
 
 
     /* update player */
-    d->g->p[count_player].score -= new_throw;
-    d->g->p[count_player].last_throw = new_throw;
+    d->g->p[d->dg->count_player].score -= new_throw;
+    d->g->p[d->dg->count_player].last_throw = new_throw;
 
     /* create empty gui frame */
     d->dg->gui = Mat::zeros(d->dg->h, d->dg->w, CV_8UC3);
@@ -752,9 +752,9 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
 
     /* busted */
-    if (d->g->p[count_player].score < 0) {
-        cout << "busted! no score: " << d->g->p[count_player].score << endl;
-        d->g->p[count_player].score += new_throw;
+    if (d->g->p[d->dg->count_player].score < 0) {
+        cout << "busted! no score: " << d->g->p[d->dg->count_player].score << endl;
+        d->g->p[d->dg->count_player].score += new_throw;
         /* no score mesage in lower area of frame */
         d->dg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
         d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
@@ -762,16 +762,16 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
     }
 
     /* finished */
-    if (d->g->p[count_player].score == 0) {
+    if (d->g->p[d->dg->count_player].score == 0) {
         /* check double checkout if defined */
         if (DOUBLE_CHECKOUT) {
             if (strncmp("Double", last_dart_str.c_str(), 6) == 0) {
                 d->mtx.unlock();
-                return (count_player + 1);
+                return (d->dg->count_player + 1);
             }
             else {
-                cout << "no double checkout! no score: " << d->g->p[count_player].score << endl;
-                d->g->p[count_player].score += new_throw;
+                cout << "no double checkout! no score: " << d->g->p[d->dg->count_player].score << endl;
+                d->g->p[d->dg->count_player].score += new_throw;
                 /* no score message in lower area of frame */
                 d->dg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
                 d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
@@ -780,7 +780,7 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
         }
         else {
             d->mtx.unlock();
-            return (count_player + 1);
+            return (d->dg->count_player + 1);
         }
 
     }
@@ -815,7 +815,7 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
 
         /* dot */
-        if ((ply_track % d->g->num_p) == ((count_player+1)%d->g->num_p)) {
+        if ((ply_track % d->g->num_p) == ((d->dg->count_player+1)%d->g->num_p)) {
             d->dg->text_w = 10; // circle radius
             d->dg->text_pos = d->dg->dot_col + (int)((d->dg->dot_width - d->dg->text_w) / 2);
             cv::circle(d->dg->gui, Point(d->dg->text_pos, d->dg->row_offset - 7), 8, Scalar(0, 0, 255), -1);     // red dot, center
@@ -831,9 +831,9 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
 
     /* calc next player */
-    count_player++;
-    if (count_player == d->g->num_p) {
-        count_player = 0;
+    d->dg->count_player++;
+    if (d->dg->count_player == d->g->num_p) {
+        d->dg->count_player = 0;
     }
 
     /* reset row offset to first player position */
@@ -902,7 +902,8 @@ void dart_board_finish_scoreboard_gui(int player) {
 
     /* reset row offset to first player position */
     d->dg->row_offset = 150;
-
+    /* reset count_player */
+    d->dg->count_player = 0;
 
     d->mtx.unlock();
 }
@@ -1054,7 +1055,7 @@ void dart_board_set_score(char* name, int score) {
 
 
         /* dot */
-        if ((ply_track % d->g->num_p) == ((player + 1) % d->g->num_p)) {
+        if ((ply_track % d->g->num_p) == ((d->dg->count_player) % d->g->num_p)) {
             d->dg->text_w = 10; // circle radius
             d->dg->text_pos = d->dg->dot_col + (int)((d->dg->dot_width - d->dg->text_w) / 2);
             cv::circle(d->dg->gui, Point(d->dg->text_pos, d->dg->row_offset - 7), 8, Scalar(0, 0, 255), -1);     // red dot, center
