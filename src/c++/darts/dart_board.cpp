@@ -47,6 +47,7 @@
 #include "dart_board.h"
 #include "globals.h"
 #include "cams.h"
+#include <mutex>
 
 
 /****************************** namespaces ***********************************/
@@ -56,26 +57,12 @@ using namespace std;
 
 /*************************** local Defines ***********************************/
 #define DARTBOARD_SECTORS 40
-
-
-
 #define DOUBLE_CHECKOUT 1
 
 
 
 /************************** local Structure ***********************************/
-struct Dartboard_Radius_s {
-    float radiusBullseye, radiusSingleBull, radiusTripleInner, radiusTripleOuter, radiusDoubleInner, radiusDoubleOuter;
-
-};
-
-struct Dartboard_Sector_s {
-    cv::Point center;
-    struct Dartboard_Radius_s Db_r;
-    int sectorNumbers[DARTBOARD_SECTORS];
-
-};
-
+/* game */
 struct player_s {
     std::string p_name = "user";
     int score = 501;
@@ -89,27 +76,9 @@ struct game_s {
     std::vector<player_s> p;
 };
 
-/*****************************************************************************/
-/***
- * create game
-***/
-/* players */
-static std::vector<player_s> players = {
-    {"Lukas", 501, 0, 0, 0},
-    {"Mika", 501, 0, 0, 0},
-    {"Marek", 501, 0, 0, 0},
-};
-/* game */
-static struct game_s game = {
-    players.size(),     // number of players
-    players,            // players
-};
-/* create ptr for access and compatibility */
-static struct game_s* g = &game;
-
-
+/* GUI */ 
 /* create gui struct */
-static struct priv_gui_s {
+struct darts_gui_s {
 
     /* creat empty gui frame */
     Mat gui;
@@ -134,26 +103,58 @@ static struct priv_gui_s {
 
     string name_win;
 
-}priv_gui;
+};
+
+/* dart board */
+struct Dartboard_Radius_s {
+    float radiusBullseye, radiusSingleBull, radiusTripleInner, radiusTripleOuter, radiusDoubleInner, radiusDoubleOuter;
+
+};
+
+struct Dartboard_Sector_s {
+    cv::Point center;
+    struct Dartboard_Radius_s Db_r;
+    int sectorNumbers[DARTBOARD_SECTORS];
+
+};
+
+
+
+
+/* summarize all structs into one */
+struct dart_board_s {
+
+    /* thread safe */
+    mutex mtx;
+
+    /* game */
+    struct game_s* g = NULL;
+
+    /* gui */
+    struct darts_gui_s* dg = NULL;
+
+    /* dart board */
+    struct Dartboard_Sector_s *db = NULL;
+
+};
+
+
+
+
+/*****************************************************************************/
+
+
+/***
+ * summarize all structs into one 
+***/
+static struct dart_board_s dart_board = {
+    {},
+   NULL,
+   NULL,
+   NULL,
+};
 /* create ptr for access and compatibility */
-static struct priv_gui_s* pg = &priv_gui;
-
-
-
-/* create DartsBoard */
-static Point Dartboard_Center(320, 240);
-
-static struct Dartboard_Radius_s Dartboard_Rad_top = { 
-     10, 22, 117, 129, 187, 200 
-};
-
-static struct Dartboard_Sector_s Db_sec_top = {
-    Dartboard_Center,
-    Dartboard_Rad_top,
-    { 20, 1,1 , 18, 18, 4,4, 13,13, 6,6, 10,10, 15,15, 2,2, 17,17, 3,3, 19,19, 7,7, 16,16, 8,8,11,11,14,14,9,9,12,12,5,5,20 }
-};
-
-
+static struct dart_board_s* d = &dart_board;
 
 /************************* local Variables ***********************************/
 
@@ -190,9 +191,12 @@ void Dartsboard_GUI_Thread(void*arg) {
     int fin = 0;
     int key = 0;
 
+    /* init struct */
+    dart_board_init();
+
     /* init gui */
     dart_board_create_scoreboard_gui();
-    // example2: dart_board_create_scoreboard_gui(g, "Board2", 900,900);
+    // example2: dart_board_create_scoreboard_gui(d->g, "Board2", 900,900);
     std::cout << "press [Enter] to start the game" << endl;
     while (waitKey(10) != 13 && running) {
         this_thread::sleep_for(chrono::milliseconds(250));
@@ -219,7 +223,7 @@ void Dartsboard_GUI_Thread(void*arg) {
             t_s->mutex.unlock();
             if (fin > 0) {
                 dart_board_finish_scoreboard_gui(fin - 1);
-                std::cout << "finished by: " << g->p[fin - 1].p_name << endl;
+                std::cout << "finished by: " << d->g->p[fin - 1].p_name << endl;
                 /* next game ? yes --> [Enter]; no --> [q] */
                 while ((key != 13) && (key != 113) && running) {
                     key = waitKey(10);
@@ -255,6 +259,62 @@ void Dartsboard_GUI_Thread(void*arg) {
 
 
 /************************** Function Definitions *****************************/
+void dart_board_init(void) {
+
+    d->mtx.lock();
+
+    /***
+     * create game
+    ***/
+    /* players */
+    static vector<player_s> players = {
+        {"Lukas", 501, 0, 0, 0},
+        {"Mika", 501, 0, 0, 0},
+        {"Marek", 501, 0, 0, 0},
+    };
+    /* game */
+    static struct game_s game = {
+        players.size(),     // number of players
+        players,            // players
+    };
+    /* create ptr for access and compatibility */
+    //static struct game_s* d->g = &game;
+
+    /***
+     * create gui
+    ***/
+    static struct darts_gui_s darts_gui;
+    /* create ptr for access and compatibility */
+    //static struct darts_gui_s* d->dg = &darts_gui;
+
+
+    /***
+     * create DartBoard
+    ***/
+    static Point Dartboard_Center(320, 240);
+
+    static struct Dartboard_Radius_s Dartboard_Rad_top = {
+         10, 22, 117, 129, 187, 200
+    };
+
+    static struct Dartboard_Sector_s Db_sec_top = {
+        Dartboard_Center,
+        Dartboard_Rad_top,
+        { 20, 1,1 , 18, 18, 4,4, 13,13, 6,6, 10,10, 15,15, 2,2, 17,17, 3,3, 19,19, 7,7, 16,16, 8,8,11,11,14,14,9,9,12,12,5,5,20 }
+    };
+
+    /* create ptr for access and compatibility */
+    //static struct Dartboard_Sector_s* db = &Db_sec_top;
+
+
+    d->g = &game;
+    d->dg = &darts_gui;
+    d->db = &Db_sec_top;
+
+    d->mtx.unlock();
+
+}
+
 /***
  *
  * dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s* r)
@@ -277,20 +337,24 @@ void Dartsboard_GUI_Thread(void*arg) {
 ***/
 void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s* r) {
 
+    /* thread safe */
+    d->mtx.lock();
+
+
     struct Dartboard_Sector_s board;
     
     switch (ThreadId) {
 
         case TOP_CAM:
-            board = Db_sec_top;
+            board = *d->db;
             break;
 
         case RIGHT_CAM:
-            board = Db_sec_top;
+            board = *d->db;
             break;
 
         case LEFT_CAM:
-            board = Db_sec_top;
+            board = *d->db;
             break;
 
         default:    r->str = "error";
@@ -351,7 +415,9 @@ void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct res
     //cout << sector << endl;
 
     /* sector to value */
-    dart_board_getSectorValue(sector, distance, board, r); 
+    dart_board_getSectorValue(sector, distance, board, r);
+
+    d->mtx.unlock();
 }
 
 
@@ -433,7 +499,8 @@ void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sect
 ***/
 void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* sec_board_right, struct result_s* sec_board_left, struct result_s* r) {
 
-
+    /* thread safe */
+    d->mtx.lock();
 #if 1 
 
     /* all three are equal */
@@ -485,130 +552,136 @@ void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* s
 
 #endif 
 
+    d->mtx.unlock();
+
 }
 
 
 
 void dart_board_create_scoreboard_gui(std::string name_win, int w, int h) {
 
+    /* thread safe */
+    d->mtx.lock();
 
     int ply_track = 0;
 
     /* increment payled games */
-    pg->count_games++;
+    d->dg->count_games++;
 
     /* create empty gui frame */
-    pg->gui = Mat::zeros(h, w, CV_8UC3);
-    pg->h = h;
-    pg->w = w;
+    d->dg->gui = Mat::zeros(h, w, CV_8UC3);
+    d->dg->h = h;
+    d->dg->w = w;
 
     /* settings */
-    pg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
-    pg->text_w = getTextSize(name_win, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, name_win, Point(pg->text_pos, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2); // titel
+    d->dg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
+    d->dg->text_w = getTextSize(name_win, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, name_win, Point(d->dg->text_pos, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2); // titel
 
 
     /*** 
      * create tabular 
     ***/
-    int end_vert_line = (pg->row_offset - 20) + 1 * 40 + ((g->p.size()) * 50);  // end vertical lines tabular
+    int end_vert_line = (d->dg->row_offset - 20) + 1 * 40 + ((d->g->p.size()) * 50);  // end vertical lines tabular
 
     /* vertical lines */
-    line(pg->gui, Point(pg->set_col + 2, pg->row_offset - 20), Point(pg->set_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between name and set
-    line(pg->gui, Point(pg->leg_col + 2, pg->row_offset - 20), Point(pg->leg_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between set and leg
-    line(pg->gui, Point(pg->score_col + 2, pg->row_offset - 20), Point(pg->score_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between leg and score
-    line(pg->gui, Point(pg->last_throw_col + 2, pg->row_offset - 20), Point(pg->last_throw_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between score and last throw
+    line(d->dg->gui, Point(d->dg->set_col + 2, d->dg->row_offset - 20), Point(d->dg->set_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between name and set
+    line(d->dg->gui, Point(d->dg->leg_col + 2, d->dg->row_offset - 20), Point(d->dg->leg_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between set and leg
+    line(d->dg->gui, Point(d->dg->score_col + 2, d->dg->row_offset - 20), Point(d->dg->score_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between leg and score
+    line(d->dg->gui, Point(d->dg->last_throw_col + 2, d->dg->row_offset - 20), Point(d->dg->last_throw_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between score and last throw
 
     /* create header */
-    putText(pg->gui, "player", Point(pg->name_col, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);  // player, left 
+    putText(d->dg->gui, "player", Point(d->dg->name_col, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);  // player, left 
      
-    pg->text_w = getTextSize("set", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->set_col + (int)((pg->set_width - pg->text_w) / 2);
-    putText(pg->gui, "set", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // set, center
+    d->dg->text_w = getTextSize("set", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->set_col + (int)((d->dg->set_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "set", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // set, center
 
-    pg->text_w = getTextSize("leg", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->leg_col + (int)((pg->leg_width - pg->text_w) / 2);
-    putText(pg->gui, "leg", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // leg, center
+    d->dg->text_w = getTextSize("leg", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->leg_col + (int)((d->dg->leg_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "leg", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // leg, center
 
-    pg->text_w = getTextSize("score", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->score_col + (int)((pg->score_width - pg->text_w) / 2);
-    putText(pg->gui, "score", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);    // score, center
+    d->dg->text_w = getTextSize("score", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->score_col + (int)((d->dg->score_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "score", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);    // score, center
 
-    pg->text_w = getTextSize("last throw", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->last_throw_col + (int)((pg->last_throw_width - pg->text_w) / 2);
-    putText(pg->gui, "last throw", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);   // last_throw, center
+    d->dg->text_w = getTextSize("last throw", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->last_throw_col + (int)((d->dg->last_throw_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "last throw", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);   // last_throw, center
 
     /* horizontal line */
-    pg->row_offset += 20;
-    line(pg->gui, Point(pg->name_col, pg->row_offset), Point(pg->last_throw_col+ pg->last_throw_width, pg->row_offset), Scalar(255, 255, 255), 2);
-    pg->row_offset += 30;
+    d->dg->row_offset += 20;
+    line(d->dg->gui, Point(d->dg->name_col, d->dg->row_offset), Point(d->dg->last_throw_col+ d->dg->last_throw_width, d->dg->row_offset), Scalar(255, 255, 255), 2);
+    d->dg->row_offset += 30;
 
     /* fill tabular */
-    for (auto& p : g->p) {
+    for (auto& p : d->g->p) {
 
         /* name */ 
-        putText(pg->gui, p.p_name, Point(pg->name_col, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        putText(d->dg->gui, p.p_name, Point(d->dg->name_col, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* set */
-        pg->text_w = getTextSize(to_string(p.set), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->set_col + (int)((pg->set_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.set), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.set), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->set_col + (int)((d->dg->set_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.set), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* leg */
-        pg->text_w = getTextSize(to_string(p.leg), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->leg_col + (int)((pg->leg_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.leg), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.leg), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->leg_col + (int)((d->dg->leg_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.leg), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* score */
         p.score = 501;
-        pg->text_w = getTextSize(to_string(p.score), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->score_col + (int)((pg->score_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.score), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.score), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->score_col + (int)((d->dg->score_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.score), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* last throw */
         p.last_throw = 0;
-        pg->text_w = getTextSize(to_string(p.last_throw), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->last_throw_col + (int)((pg->last_throw_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.last_throw), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.last_throw), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->last_throw_col + (int)((d->dg->last_throw_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.last_throw), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
 
         /* dot */  
-        if ((pg->count_games % g->num_p) == ply_track) {
-            pg->text_w = 10; // circle radius
-            pg->text_pos = pg->dot_col + (int)((pg->dot_width - pg->text_w) / 2);
-            cv::circle(pg->gui, Point(pg->text_pos, pg->row_offset - 7), 8, Scalar(0, 0, 255), -1);     // red dot, center
+        if ((d->dg->count_games % d->g->num_p) == ply_track) {
+            d->dg->text_w = 10; // circle radius
+            d->dg->text_pos = d->dg->dot_col + (int)((d->dg->dot_width - d->dg->text_w) / 2);
+            cv::circle(d->dg->gui, Point(d->dg->text_pos, d->dg->row_offset - 7), 8, Scalar(0, 0, 255), -1);     // red dot, center
         }
 
         ply_track++;
 
-        pg->row_offset += 50; // dist between players
+        d->dg->row_offset += 50; // dist between players
     }
 
 
     /* info */
     string out = "press [Enter] to start the game";
-    pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, out, Point(pg->text_pos, pg->gui.rows - 200), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
-    out = "Leg " + to_string(pg->count_games) + " and it's " + g->p[pg->count_games % g->num_p].p_name + " to throw first";
-    pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, out, Point(pg->text_pos, pg->gui.rows - 150), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+    d->dg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, out, Point(d->dg->text_pos, d->dg->gui.rows - 200), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+    out = "Leg " + to_string(d->dg->count_games) + " and it's " + d->g->p[d->dg->count_games % d->g->num_p].p_name + " to throw first";
+    d->dg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, out, Point(d->dg->text_pos, d->dg->gui.rows - 150), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
     out = "Game On!";
-    pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, out, Point(pg->text_pos, pg->gui.rows - 100), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+    d->dg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, out, Point(d->dg->text_pos, d->dg->gui.rows - 100), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
 
 
-    pg->name_win = name_win;
+    d->dg->name_win = name_win;
    
-    cv::imshow(pg->name_win, pg->gui);
+    cv::imshow(d->dg->name_win, d->dg->gui);
 
     /* reset row offset to first player position */
-    pg->row_offset = 150;
+    d->dg->row_offset = 150;
 
     
+    
+    d->mtx.unlock();
 
 }
 
@@ -616,92 +689,97 @@ void dart_board_create_scoreboard_gui(std::string name_win, int w, int h) {
 
 int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
+    /* thread safe */
+    d->mtx.lock();
+
     /* keep track which players turn it is */
-    static int count_player = 0 + pg->count_games;
+    static int count_player = 0 + d->dg->count_games;
     int ply_track = 0;
 
-    //pg->row_offset += count_player*50;
+    //d->dg->row_offset += count_player*50;
 
 
     /* update player */
-    g->p[count_player].score -= new_throw;
-    g->p[count_player].last_throw = new_throw;
+    d->g->p[count_player].score -= new_throw;
+    d->g->p[count_player].last_throw = new_throw;
 
     /* create empty gui frame */
-    pg->gui = Mat::zeros(pg->h, pg->w, CV_8UC3);
+    d->dg->gui = Mat::zeros(d->dg->h, d->dg->w, CV_8UC3);
 
     /* settings */
-    pg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
-    pg->text_w = getTextSize(pg->name_win, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, pg->name_win, Point(pg->text_pos, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2); // titel
+    d->dg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
+    d->dg->text_w = getTextSize(d->dg->name_win, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, d->dg->name_win, Point(d->dg->text_pos, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2); // titel
 
 
     /***
      * create tabular
     ***/
-    int end_vert_line = (pg->row_offset - 20) + 1 * 40 + ((g->p.size()) * 50);  // end vertical lines tabular
+    int end_vert_line = (d->dg->row_offset - 20) + 1 * 40 + ((d->g->p.size()) * 50);  // end vertical lines tabular
 
     /* vertical lines */
-    line(pg->gui, Point(pg->set_col + 2, pg->row_offset - 20), Point(pg->set_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between name and set
-    line(pg->gui, Point(pg->leg_col + 2, pg->row_offset - 20), Point(pg->leg_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between set and leg
-    line(pg->gui, Point(pg->score_col + 2, pg->row_offset - 20), Point(pg->score_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between leg and score
-    line(pg->gui, Point(pg->last_throw_col + 2, pg->row_offset - 20), Point(pg->last_throw_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between score and last throw
+    line(d->dg->gui, Point(d->dg->set_col + 2, d->dg->row_offset - 20), Point(d->dg->set_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between name and set
+    line(d->dg->gui, Point(d->dg->leg_col + 2, d->dg->row_offset - 20), Point(d->dg->leg_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between set and leg
+    line(d->dg->gui, Point(d->dg->score_col + 2, d->dg->row_offset - 20), Point(d->dg->score_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between leg and score
+    line(d->dg->gui, Point(d->dg->last_throw_col + 2, d->dg->row_offset - 20), Point(d->dg->last_throw_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between score and last throw
 
     /* create header */
-    putText(pg->gui, "player", Point(pg->name_col, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);  // player, left 
+    putText(d->dg->gui, "player", Point(d->dg->name_col, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);  // player, left 
 
-    pg->text_w = getTextSize("set", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->set_col + (int)((pg->set_width - pg->text_w) / 2);
-    putText(pg->gui, "set", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // set, center
+    d->dg->text_w = getTextSize("set", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->set_col + (int)((d->dg->set_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "set", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // set, center
 
-    pg->text_w = getTextSize("leg", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->leg_col + (int)((pg->leg_width - pg->text_w) / 2);
-    putText(pg->gui, "leg", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // leg, center
+    d->dg->text_w = getTextSize("leg", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->leg_col + (int)((d->dg->leg_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "leg", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // leg, center
 
-    pg->text_w = getTextSize("score", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->score_col + (int)((pg->score_width - pg->text_w) / 2);
-    putText(pg->gui, "score", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);    // score, center
+    d->dg->text_w = getTextSize("score", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->score_col + (int)((d->dg->score_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "score", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);    // score, center
 
-    pg->text_w = getTextSize("last throw", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->last_throw_col + (int)((pg->last_throw_width - pg->text_w) / 2);
-    putText(pg->gui, "last throw", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);   // last_throw, center
+    d->dg->text_w = getTextSize("last throw", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->last_throw_col + (int)((d->dg->last_throw_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "last throw", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);   // last_throw, center
 
     /* horizontal line */
-    pg->row_offset += 20;
-    line(pg->gui, Point(pg->name_col, pg->row_offset), Point(pg->last_throw_col + pg->last_throw_width, pg->row_offset), Scalar(255, 255, 255), 2);
-    pg->row_offset += 30;
+    d->dg->row_offset += 20;
+    line(d->dg->gui, Point(d->dg->name_col, d->dg->row_offset), Point(d->dg->last_throw_col + d->dg->last_throw_width, d->dg->row_offset), Scalar(255, 255, 255), 2);
+    d->dg->row_offset += 30;
 
 
 
 
     /* busted */
-    if (g->p[count_player].score < 0) {
-        cout << "busted! no score: " << g->p[count_player].score << endl;
-        g->p[count_player].score += new_throw;
+    if (d->g->p[count_player].score < 0) {
+        cout << "busted! no score: " << d->g->p[count_player].score << endl;
+        d->g->p[count_player].score += new_throw;
         /* no score mesage in lower area of frame */
-        pg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
-        pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-        putText(pg->gui, "no score", Point(pg->text_pos, (int)((pg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+        d->dg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
+        d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+        putText(d->dg->gui, "no score", Point(d->dg->text_pos, (int)((d->dg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
     }
 
     /* finished */
-    if (g->p[count_player].score == 0) {
+    if (d->g->p[count_player].score == 0) {
         /* check double checkout if defined */
         if (DOUBLE_CHECKOUT) {
             if (strncmp("Double", last_dart_str.c_str(), 6) == 0) {
+                d->mtx.unlock();
                 return (count_player + 1);
             }
             else {
-                cout << "no double checkout! no score: " << g->p[count_player].score << endl;
-                g->p[count_player].score += new_throw;
+                cout << "no double checkout! no score: " << d->g->p[count_player].score << endl;
+                d->g->p[count_player].score += new_throw;
                 /* no score message in lower area of frame */
-                pg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
-                pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-                putText(pg->gui, "no score", Point(pg->text_pos, (int)((pg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+                d->dg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
+                d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+                putText(d->dg->gui, "no score", Point(d->dg->text_pos, (int)((d->dg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
             }
         }
         else {
+            d->mtx.unlock();
             return (count_player + 1);
         }
 
@@ -710,58 +788,58 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
 
     /* fill tabular */
-    for (const auto& p : g->p) {
+    for (const auto& p : d->g->p) {
 
         /* name */
-        putText(pg->gui, p.p_name, Point(pg->name_col, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        putText(d->dg->gui, p.p_name, Point(d->dg->name_col, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* set */
-        pg->text_w = getTextSize(to_string(p.set), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->set_col + (int)((pg->set_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.set), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.set), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->set_col + (int)((d->dg->set_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.set), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* leg */
-        pg->text_w = getTextSize(to_string(p.leg), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->leg_col + (int)((pg->leg_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.leg), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.leg), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->leg_col + (int)((d->dg->leg_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.leg), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* score */
-        pg->text_w = getTextSize(to_string(p.score), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->score_col + (int)((pg->score_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.score), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.score), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->score_col + (int)((d->dg->score_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.score), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* last throw */
-        pg->text_w = getTextSize(to_string(p.last_throw), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->last_throw_col + (int)((pg->last_throw_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.last_throw), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.last_throw), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->last_throw_col + (int)((d->dg->last_throw_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.last_throw), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
 
         /* dot */
-        if ((ply_track % g->num_p) == ((count_player+1)%g->num_p)) {
-            pg->text_w = 10; // circle radius
-            pg->text_pos = pg->dot_col + (int)((pg->dot_width - pg->text_w) / 2);
-            cv::circle(pg->gui, Point(pg->text_pos, pg->row_offset - 7), 8, Scalar(0, 0, 255), -1);     // red dot, center
+        if ((ply_track % d->g->num_p) == ((count_player+1)%d->g->num_p)) {
+            d->dg->text_w = 10; // circle radius
+            d->dg->text_pos = d->dg->dot_col + (int)((d->dg->dot_width - d->dg->text_w) / 2);
+            cv::circle(d->dg->gui, Point(d->dg->text_pos, d->dg->row_offset - 7), 8, Scalar(0, 0, 255), -1);     // red dot, center
         }
 
         ply_track++;
 
-        pg->row_offset += 50; // dist between players
+        d->dg->row_offset += 50; // dist between players
     }
 
 
-    cv::imshow(pg->name_win, pg->gui);
+    cv::imshow(d->dg->name_win, d->dg->gui);
 
 
     /* calc next player */
     count_player++;
-    if (count_player == g->num_p) {
+    if (count_player == d->g->num_p) {
         count_player = 0;
     }
 
     /* reset row offset to first player position */
-    pg->row_offset = 150;
+    d->dg->row_offset = 150;
 
-    
+    d->mtx.unlock();
     
     return 0;
     
@@ -771,16 +849,18 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
 void dart_board_finish_scoreboard_gui(int player) {
 
+    /* thread safe */
+    d->mtx.lock();
 
     string out;
 
     /* increment leg */
-    g->p[player].leg++;
+    d->g->p[player].leg++;
     /* set win */
-    if (g->p[player].leg > 2) {
-        g->p[player].set++;
+    if (d->g->p[player].leg > 2) {
+        d->g->p[player].set++;
         /* reset legs */
-        for (auto& p : g->p) {
+        for (auto& p : d->g->p) {
             p.leg = 0;
         }
     }
@@ -790,41 +870,41 @@ void dart_board_finish_scoreboard_gui(int player) {
 
 
     /* create empty gui frame */
-    pg->gui = Mat::zeros(pg->h, pg->w, CV_8UC3);
+    d->dg->gui = Mat::zeros(d->dg->h, d->dg->w, CV_8UC3);
 
     /* settings */
-    pg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
+    d->dg->gui.setTo(Scalar(50, 50, 50));  // background color gray 
 
-    out = "Game Shot in the " + to_string(pg->count_games) + " Leg";
-    pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, out, Point(pg->text_pos, 100), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+    out = "Game Shot in the " + to_string(d->dg->count_games) + " Leg";
+    d->dg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, out, Point(d->dg->text_pos, 100), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
 
 
-    out = g->p[player].p_name + " wins!";
-    pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, out, Point(pg->text_pos, 250), FONT_HERSHEY_SIMPLEX, 2, Scalar(255, 255, 255), 3); 
+    out = d->g->p[player].p_name + " wins!";
+    d->dg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, out, Point(d->dg->text_pos, 250), FONT_HERSHEY_SIMPLEX, 2, Scalar(255, 255, 255), 3); 
 
 
     out = "press [Enter] to play the next";
-    pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, out, Point(pg->text_pos, 400), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+    d->dg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, out, Point(d->dg->text_pos, 400), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
 
     out = "press [q] to quit";
-    pg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, out, Point(pg->text_pos, 450), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+    d->dg->text_w = getTextSize(out, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, out, Point(d->dg->text_pos, 450), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
 
-    cv::imshow(pg->name_win, pg->gui);
+    cv::imshow(d->dg->name_win, d->dg->gui);
 
 
     /* reset row offset to first player position */
-    pg->row_offset = 150;
+    d->dg->row_offset = 150;
 
 
-
+    d->mtx.unlock();
 }
 
 
@@ -837,6 +917,9 @@ void dart_board_finish_scoreboard_gui(int player) {
 /* create a new game */
 void dart_board_set_new_game(char* names[], int num_p) {
 
+    /* thread safe */
+    d->mtx.lock();
+
    vector<player_s> players;
 
     /* fill in new names */
@@ -845,14 +928,14 @@ void dart_board_set_new_game(char* names[], int num_p) {
     }
 
     /* re-initialize game structure */
-    g->num_p = num_p;
-    g->p = players;
+    d->g->num_p = num_p;
+    d->g->p = players;
 
-    pg->count_games = -1;
+    d->dg->count_games = -1;
 
+    d->mtx.unlock();
 
     /* call create with new game */
-
     dart_board_create_scoreboard_gui();
 
 
@@ -861,11 +944,14 @@ void dart_board_set_new_game(char* names[], int num_p) {
 /* set score of explicit player */
 void dart_board_set_score(char* name, int score) {
 
+    /* thread safe */
+    d->mtx.lock();
+
     int ply_track = 0;
     int player = -1;
 
     /* find player;if there was no matching player just ignore */
-    for (auto& p : g->p) {
+    for (auto& p : d->g->p) {
         if (strcmp(p.p_name.c_str(), name) == 0) {
             int diff = 0;
             p.score = p.score + p.last_throw;
@@ -876,115 +962,117 @@ void dart_board_set_score(char* name, int score) {
     }
 
     /* create empty gui frame */
-    pg->gui = Mat::zeros(pg->h, pg->w, CV_8UC3);
+    d->dg->gui = Mat::zeros(d->dg->h, d->dg->w, CV_8UC3);
 
     /* settings */
-    pg->gui.setTo(Scalar(50, 50, 50));  // background color gray    
-    pg->text_w = getTextSize(pg->name_win, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
-    pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-    putText(pg->gui, pg->name_win, Point(pg->text_pos, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2); // titel
+    d->dg->gui.setTo(Scalar(50, 50, 50));  // background color gray    
+    d->dg->text_w = getTextSize(d->dg->name_win, FONT_HERSHEY_SIMPLEX, 1, 2, nullptr).width;
+    d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+    putText(d->dg->gui, d->dg->name_win, Point(d->dg->text_pos, 50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2); // titel
 
 
     /***
      * create tabular
     ***/
-    int end_vert_line = (pg->row_offset - 20) + 1 * 40 + ((g->p.size()) * 50);  // end vertical lines tabular
+    int end_vert_line = (d->dg->row_offset - 20) + 1 * 40 + ((d->g->p.size()) * 50);  // end vertical lines tabular
 
     /* vertical lines */
-    line(pg->gui, Point(pg->set_col + 2, pg->row_offset - 20), Point(pg->set_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between name and set
-    line(pg->gui, Point(pg->leg_col + 2, pg->row_offset - 20), Point(pg->leg_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between set and leg
-    line(pg->gui, Point(pg->score_col + 2, pg->row_offset - 20), Point(pg->score_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between leg and score
-    line(pg->gui, Point(pg->last_throw_col + 2, pg->row_offset - 20), Point(pg->last_throw_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between score and last throw
+    line(d->dg->gui, Point(d->dg->set_col + 2, d->dg->row_offset - 20), Point(d->dg->set_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between name and set
+    line(d->dg->gui, Point(d->dg->leg_col + 2, d->dg->row_offset - 20), Point(d->dg->leg_col + 2, end_vert_line), Scalar(255, 255, 255), 2);        // line between set and leg
+    line(d->dg->gui, Point(d->dg->score_col + 2, d->dg->row_offset - 20), Point(d->dg->score_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between leg and score
+    line(d->dg->gui, Point(d->dg->last_throw_col + 2, d->dg->row_offset - 20), Point(d->dg->last_throw_col + 2, end_vert_line), Scalar(255, 255, 255), 2);    // line between score and last throw
 
     /* create header */
-    putText(pg->gui, "player", Point(pg->name_col, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);  // player, left 
+    putText(d->dg->gui, "player", Point(d->dg->name_col, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);  // player, left 
 
-    pg->text_w = getTextSize("set", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->set_col + (int)((pg->set_width - pg->text_w) / 2);
-    putText(pg->gui, "set", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // set, center
+    d->dg->text_w = getTextSize("set", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->set_col + (int)((d->dg->set_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "set", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // set, center
 
-    pg->text_w = getTextSize("leg", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->leg_col + (int)((pg->leg_width - pg->text_w) / 2);
-    putText(pg->gui, "leg", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // leg, center
+    d->dg->text_w = getTextSize("leg", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->leg_col + (int)((d->dg->leg_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "leg", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);      // leg, center
 
-    pg->text_w = getTextSize("score", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->score_col + (int)((pg->score_width - pg->text_w) / 2);
-    putText(pg->gui, "score", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);    // score, center
+    d->dg->text_w = getTextSize("score", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->score_col + (int)((d->dg->score_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "score", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);    // score, center
 
-    pg->text_w = getTextSize("last throw", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-    pg->text_pos = pg->last_throw_col + (int)((pg->last_throw_width - pg->text_w) / 2);
-    putText(pg->gui, "last throw", Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);   // last_throw, center
+    d->dg->text_w = getTextSize("last throw", FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+    d->dg->text_pos = d->dg->last_throw_col + (int)((d->dg->last_throw_width - d->dg->text_w) / 2);
+    putText(d->dg->gui, "last throw", Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);   // last_throw, center
 
     /* horizontal line */
-    pg->row_offset += 20;
-    line(pg->gui, Point(pg->name_col, pg->row_offset), Point(pg->last_throw_col + pg->last_throw_width, pg->row_offset), Scalar(255, 255, 255), 2);
-    pg->row_offset += 30;
+    d->dg->row_offset += 20;
+    line(d->dg->gui, Point(d->dg->name_col, d->dg->row_offset), Point(d->dg->last_throw_col + d->dg->last_throw_width, d->dg->row_offset), Scalar(255, 255, 255), 2);
+    d->dg->row_offset += 30;
 
 
 
 
     /* busted; this means user set the score to <0, not supported at the moment */
-    if (g->p[player].score < 0) {
-        cout << "busted! no score: " << g->p[player].score << endl;
-        g->p[player].score += g->p[player].last_throw;
+    if (d->g->p[player].score < 0) {
+        cout << "busted! no score: " << d->g->p[player].score << endl;
+        d->g->p[player].score += d->g->p[player].last_throw;
         /* no score mesage in lower area of frame */
-        pg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
-        pg->text_pos = 0 + (int)((pg->gui.cols - pg->text_w) / 2);
-        putText(pg->gui, "no score", Point(pg->text_pos, (int)((pg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+        d->dg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
+        d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+        putText(d->dg->gui, "no score", Point(d->dg->text_pos, (int)((d->dg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
     }
 
     /* finished; this means user set the score to zero, not supported at the moment */
-    if (g->p[player].score == 0) {
+    if (d->g->p[player].score == 0) {
         //empty
     }
 
 
 
     /* fill tabular */
-    for (const auto& p : g->p) {
+    for (const auto& p : d->g->p) {
 
         /* name */
-        putText(pg->gui, p.p_name, Point(pg->name_col, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        putText(d->dg->gui, p.p_name, Point(d->dg->name_col, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* set */
-        pg->text_w = getTextSize(to_string(p.set), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->set_col + (int)((pg->set_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.set), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.set), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->set_col + (int)((d->dg->set_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.set), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* leg */
-        pg->text_w = getTextSize(to_string(p.leg), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->leg_col + (int)((pg->leg_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.leg), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.leg), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->leg_col + (int)((d->dg->leg_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.leg), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* score */
-        pg->text_w = getTextSize(to_string(p.score), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->score_col + (int)((pg->score_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.score), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.score), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->score_col + (int)((d->dg->score_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.score), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
         /* last throw */
-        pg->text_w = getTextSize(to_string(p.last_throw), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
-        pg->text_pos = pg->last_throw_col + (int)((pg->last_throw_width - pg->text_w) / 2);
-        putText(pg->gui, to_string(p.last_throw), Point(pg->text_pos, pg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
+        d->dg->text_w = getTextSize(to_string(p.last_throw), FONT_HERSHEY_SIMPLEX, 0.8, 1, nullptr).width;
+        d->dg->text_pos = d->dg->last_throw_col + (int)((d->dg->last_throw_width - d->dg->text_w) / 2);
+        putText(d->dg->gui, to_string(p.last_throw), Point(d->dg->text_pos, d->dg->row_offset), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 1);
 
 
         /* dot */
-        if ((ply_track % g->num_p) == ((player + 1) % g->num_p)) {
-            pg->text_w = 10; // circle radius
-            pg->text_pos = pg->dot_col + (int)((pg->dot_width - pg->text_w) / 2);
-            cv::circle(pg->gui, Point(pg->text_pos, pg->row_offset - 7), 8, Scalar(0, 0, 255), -1);     // red dot, center
+        if ((ply_track % d->g->num_p) == ((player + 1) % d->g->num_p)) {
+            d->dg->text_w = 10; // circle radius
+            d->dg->text_pos = d->dg->dot_col + (int)((d->dg->dot_width - d->dg->text_w) / 2);
+            cv::circle(d->dg->gui, Point(d->dg->text_pos, d->dg->row_offset - 7), 8, Scalar(0, 0, 255), -1);     // red dot, center
         }
 
         ply_track++;
 
-        pg->row_offset += 50; // dist between players
+        d->dg->row_offset += 50; // dist between players
     }
 
 
-    cv::imshow(pg->name_win, pg->gui);
+    cv::imshow(d->dg->name_win, d->dg->gui);
 
     /* reset row offset to first player position */
-    pg->row_offset = 150;
+    d->dg->row_offset = 150;
 
+
+    d->mtx.unlock();
 
 
     return;

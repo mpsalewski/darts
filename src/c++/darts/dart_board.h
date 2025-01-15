@@ -54,6 +54,7 @@ struct result_s {
 
 /************************** Function Declaration *****************************/
 extern void Dartsboard_GUI_Thread(void*arg);
+extern void dart_board_init(void);
 
 extern void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s*r);
 extern void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r);

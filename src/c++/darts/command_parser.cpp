@@ -99,7 +99,7 @@ using namespace std;
 
 
 /************************** local Structure ***********************************/
-// CommandParser-Instanz erstellen
+/* create commadn parser instance */
 static CommandParser parser;
 
 
@@ -126,7 +126,7 @@ void commandLineThread(void*arg) {
     /* welcome */
     cout << "Command Line is active" << endl;
     parser.processCommand("welcome", response);
-    cout << response << endl;
+    cout << response << endl << endl;
 
     /* flush command line  */
     cin.sync();
@@ -158,7 +158,7 @@ void commandLineThread(void*arg) {
             //cout << "error: invalid input" << std::endl;
         }
 
-        this_thread::sleep_for(chrono::milliseconds(500));
+        this_thread::sleep_for(chrono::milliseconds(50));
     }
 
     /* kill all threads */

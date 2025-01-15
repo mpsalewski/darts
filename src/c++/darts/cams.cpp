@@ -634,7 +634,7 @@ void SIMULATION_OF_camsThread(void*arg) {
     }
 
     /* thread finished */
-    std::cout << "Cams Thread Finished; press [Esc] to finish thread and proceed program\n!!! waitKey(0); !!!\n";
+    //std::cout << "Cams Thread Finished; press [Esc] to finish thread and proceed program\n";
 
     while (cv::waitKey(10) != 27 && running) {
         this_thread::sleep_for(chrono::milliseconds(250));
