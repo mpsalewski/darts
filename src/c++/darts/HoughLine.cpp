@@ -1,12 +1,54 @@
-/*****************************************************************************************************
+/******************************************************************************
+ *
+ * HoughLine.h
+ *
+ *
+ ******************************************************************************
+ *
+ * Original work by: Marc Hensel, http://www.haw-hamburg.de/marc-hensel
+ *
+ ******************************************************************************
  * Lecture sample code.
- *****************************************************************************************************
+ ******************************************************************************
  * Author: Marc Hensel, http://www.haw-hamburg.de/marc-hensel
  * Project: https://github.com/MarcOnTheMoon/imaging_learners/
  * Copyright: 2023, Marc Hensel
- * Version: 2023.09.27
+ * Version: 2023.09.08
  * License: CC BY-NC-SA 4.0, see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
- *****************************************************************************************************/
+ *
+ *
+ *
+ *
+ ******************************************************************************
+ *
+ *		! Modified:
+ *
+ ******************************************************************************
+ *
+ * Automated Dart Detection and Scoring System
+ *
+ *
+ * This project was developed as part of the Digital Image / Video Processing
+ * module at HAW Hamburg under Prof. Dr. Marc Hensel
+ *
+ *
+ *
+ * author(s):   	Mika Paul Salewski <mika.paul.salewski@gmail.com>,
+ *
+ * created on :     2025-01-06
+ * last revision :  None
+ *
+ *
+ *
+ * Copyright (c) 2025, Mika Paul Salewski
+ * Version: 2025.01.06
+ * License: CC BY-NC-SA 4.0,
+ *      see https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
+ *
+ *
+ * Further information about this source-file:
+ *      --> get polar coordinates of dart edges
+******************************************************************************/
 
  /* Compiler settings */
 #define _USE_MATH_DEFINES
@@ -158,51 +200,14 @@ namespace ip {
 		line(image, p0, p1, color, thickness);
 	}
 
-
-	void drawLine_light(cv::Mat& image, double r, double theta) {
-		// Check image type
-		if (image.type() == CV_8U)
-			cvtColor(image, image, COLOR_GRAY2BGR);
-		if (image.type() != CV_8UC3)
-			return;
-
-		// Pre-calculate values
-		int thickness = 2;
-		Vec3b color(0, 0, 50);
-		Point imgCenter(image.cols / 2, image.rows / 2);
-		Point p0, p1;
-		double cosine = cos(theta);
-		double sine = sin(theta);
-
-		// Line end points for "almost horizontal" lines
-		if ((theta > 1.0 / 4.0 * M_PI) && (theta < 3.0 / 4.0 * M_PI)) {
-			int x0 = 0;
-			int x1 = image.cols - 1;
-			int xc0 = x0 - image.cols / 2;
-			int xc1 = x1 - image.cols / 2;
-			int yc0 = (int)((r - xc0 * cosine) / sine);
-			int yc1 = (int)((r - xc1 * cosine) / sine);
-
-			p0 = Point(x0, yc0 + imgCenter.y);
-			p1 = Point(x1, yc1 + imgCenter.y);
-		}
-		// Line end points for "almost vertical" lines
-		else {
-			int y0 = 0;
-			int y1 = image.rows - 1;
-			int yc0 = y0 - image.rows / 2;
-			int yc1 = y1 - image.rows / 2;
-			int xc0 = (int)((r - yc0 * sine) / cosine);
-			int xc1 = (int)((r - yc1 * sine) / cosine);
-
-			p0 = Point(xc0 + imgCenter.x, y0);
-			p1 = Point(xc1 + imgCenter.x, y1);
-		}
-
-		// Draw line
-		line(image, p0, p1, color, thickness);
-	}
-
+	/*! Draw light line on an image and add up pixels.
+	*
+	* The line is specified by the shortest distance (radius and angle) from the image center to the line.
+	*
+	* \param image Image to draw line on
+	* \param r Shortest distance (radius) from the image center to the line. Can be negative, depending on angle.
+	* \param theta Angle of shortest distance from image center to the line [0, pi]
+	*/	
 	void drawLine_light_add(cv::Mat& image, double r, double theta) {
 		// Check image type
 		if (image.type() == CV_8U)

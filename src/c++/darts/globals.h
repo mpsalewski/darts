@@ -35,7 +35,7 @@
 /*************************** local Defines ***********************************/
 
 
-/************************** local Structure ***********************************/
+/************************** global Structure *********************************/
 struct thread_share_s {
     std::mutex mutex;                       // mutex --> thread safe
     int score = 0;                          // 3 darts score
@@ -44,19 +44,7 @@ struct thread_share_s {
 };
 
 
-#if 0
-/* score, exchange between threads */
-struct thread_exchange_s {
-
-    int score = 0;
-    int score_flag = 0;
-    std::string last_dart_str = "d";
-
-};
-#endif
-
 /************************* globals Variables *********************************/
-//extern struct thread_exchange_s t_e;
 /* control threads */
 extern std::atomic<bool> running;
 

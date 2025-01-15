@@ -72,12 +72,7 @@ using namespace std;
 
 /************************** local Structure ***********************************/
 /* score, exchange between threads */
-//struct thread_exchange_s t_e;   // GLOBAL!
 static struct thread_share_s t_s;      
-
-
-/* default init in main() via pointer */
-//static struct darts_s darts;
 
 
 /************************* local Variables ***********************************/
@@ -96,29 +91,6 @@ void static_test(void);
 
 /****************************** main function ********************************/
 int main() {
-
-    //dart_board_create_scoreboard_gui(&game);
-    
-#if 0    
-    /* create ptr p for strcuture handling */
-    struct darts_s* p = &darts;
-
-    /* default init struct */
-    p->flags.diff_flag_top = 0;
-    p->flags.diff_flag_right = 0;
-    p->flags.diff_flag_left = 0;
-    p->flags.diff_flag_raw = 0;
-
-
-    p->count_throws = 0;
-    
-    p->t_line.line_top.r = 0;
-    p->t_line.line_top.theta = 0;
-    p->t_line.line_right.r = 0;
-    p->t_line.line_right.theta = 0;
-    p->t_line.line_left.r = 0;
-    p->t_line.line_left.theta = 0;
-#endif 
 
 
     /* always register the command line */
