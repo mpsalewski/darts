@@ -318,8 +318,12 @@ void static_test(void) {
 }
 
 
+<<<<<<< HEAD
 
 void test2_func() {
+=======
+void main_feature_func() {
+>>>>>>> main
 
 
 }
