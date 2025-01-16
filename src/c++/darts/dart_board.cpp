@@ -94,27 +94,34 @@ struct darts_gui_s {
     int score_width = 150;              // score column width
     int last_throw_col = score_col + score_width;   // last throw column
     int last_throw_width = 150;                     // last throw column width 
-    int text_w, text_pos;
-    int h, w;
+    int text_w = 0;
+    int text_pos = 0;
+    int h = 0;
+    int w = 0;
     int dot_col = last_throw_col + last_throw_width;
     int dot_width = 100;
     int count_games = -1;
     int count_player = 0;
 
-    string name_win;
+    string name_win = "default";
 
 };
 
 /* dart board */
 struct Dartboard_Radius_s {
-    float radiusBullseye, radiusSingleBull, radiusTripleInner, radiusTripleOuter, radiusDoubleInner, radiusDoubleOuter;
+    int radiusBullseye = 0;
+    int radiusSingleBull = 0;
+    int radiusTripleInner = 0;
+    int radiusTripleOuter = 0;
+    int radiusDoubleInner = 0;
+    int radiusDoubleOuter = 0;
 
 };
 
 struct Dartboard_Sector_s {
-    cv::Point center;
-    struct Dartboard_Radius_s Db_r;
-    int sectorNumbers[DARTBOARD_SECTORS];
+    cv::Point center = cv::Point(0, 0);
+    struct Dartboard_Radius_s Db_r = {};
+    int sectorNumbers[DARTBOARD_SECTORS] = {};
 
 };
 
@@ -274,7 +281,7 @@ void dart_board_init(void) {
     };
     /* game */
     static struct game_s game = {
-        players.size(),     // number of players
+        (int)players.size(),     // number of players
         players,            // players
     };
     /* create ptr for access and compatibility */
