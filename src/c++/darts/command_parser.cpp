@@ -523,13 +523,16 @@ void command_parser_cmd_init(void){
         return;
     }
 
-    /* set scoreboard command */
-    if (!parser.registerCommand("set", "ssi", set_dart_board_params,
-        "set functions for the ScoreBoard. usage: set score $NAME$ $SCORE$; set leg $NAME$ $NUM$ not defined a.t.m."
+    /* set parametrrs; read everything as string to be more flexibel on the set command */
+    if (!parser.registerCommand("set", "sss", set_params,
+        "set parameters \
+        \n\tset parameters for the ScoreBoard:\n\t\t-> set score $NAME$ $SCORE$\n\t\t-> set leg $NAME$ $NUM$ not defined atm \
+        \n\tset parameters for image processing:\n\t\t-> set diff_min $intValue$ (set minimum difference value)\n\t\t-> set bin_thresh $intValue$ (set threshold value fir binarizing)"
         )) {
         std::cerr << "err: could not register command!" << std::endl;
         return;
     }
+
 
 
 }
@@ -591,7 +594,7 @@ void set_new_game_Cb(CommandParser::Argument* args, size_t argCount, char* respo
 
 
 /* set params on Darts Scoreboard */
-void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char* response) {
+void set_params(CommandParser::Argument* args, size_t argCount, char* response) {
 
     /* no params */
     if ((args[0].asString[0] == '\0') || (argCount == 0)) {
@@ -600,6 +603,7 @@ void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char*
     }
 
 
+    /* DarrtBoard Params */
     /* check whcih param should be set */
     if ( strcmp(args[0].asString, "score") == 0) {
         if (argCount < 3) {
@@ -607,8 +611,8 @@ void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char*
             return;
         }
         char* name = args[1].asString;
-        int score = args[2].asInt64;
-        string score_str = to_string(score); 
+        string score_str = args[2].asString;
+        int score = stoi(score_str); 
         /* set response */
         strncat_s(response, MAX_RESPONSE_SIZE, "set score ", MAX_RESPONSE_SIZE - strlen("set score ") - 1);
         strncat_s(response, MAX_RESPONSE_SIZE, name, MAX_RESPONSE_SIZE - strlen(name) - 1);
@@ -618,6 +622,51 @@ void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char*
         dart_board_set_score(name, score);
         return;
     }
+
+
+
+
+    /* Image Processing Params */
+    /* get param name */
+    char* param = args[0].asString;
+
+
+    /* check which param should be set */
+    if (strcmp(param, "bin_thresh") == 0) {
+        if (!(argCount == 2)) {
+            snprintf(response, MAX_RESPONSE_SIZE, "err: not enough or two many args for param %s. argCount: %d", param, (int)argCount);
+            return;
+        }
+        
+        string bin_thresh_str = args[1].asString;
+        int bin_thresh = stoi(bin_thresh_str);
+        
+        /* set response */
+        strncat_s(response, MAX_RESPONSE_SIZE, "set ", MAX_RESPONSE_SIZE - strlen("set ") - 1);
+        strncat_s(response, MAX_RESPONSE_SIZE, param, MAX_RESPONSE_SIZE - strlen(param) - 1);
+        strncat_s(response, MAX_RESPONSE_SIZE, " ", MAX_RESPONSE_SIZE - strlen(" ") - 1);
+        strncat_s(response, MAX_RESPONSE_SIZE, bin_thresh_str.c_str(), MAX_RESPONSE_SIZE - strlen(bin_thresh_str.c_str()) - 1);
+        /* call function */
+        img_proc_set_bin_thresh(bin_thresh);
+        return;
+    }
+    else if (strcmp(param, "diff_min") == 0) {
+        if (!(argCount == 2)) {
+            snprintf(response, MAX_RESPONSE_SIZE, "err: not enough or two many args for param %s. argCount: %d", param, (int)argCount);
+            return;
+        }
+        string diff_min_str = args[1].asString;
+        int diff_min = stoi(diff_min_str);
+        
+        /* set response */
+        strncat_s(response, MAX_RESPONSE_SIZE, "set ", MAX_RESPONSE_SIZE - strlen("set ") - 1);
+        strncat_s(response, MAX_RESPONSE_SIZE, param, MAX_RESPONSE_SIZE - strlen(param) - 1);
+        strncat_s(response, MAX_RESPONSE_SIZE, " ", MAX_RESPONSE_SIZE - strlen(" ") - 1);
+        strncat_s(response, MAX_RESPONSE_SIZE, diff_min_str.c_str(), MAX_RESPONSE_SIZE - strlen(diff_min_str.c_str()) - 1);
+        /* call function */
+        img_proc_set_diff_min_thresh(diff_min);
+        return;
+    }
     
     
     /* never reached on correct on command */
@@ -625,4 +674,5 @@ void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char*
 
 
 }
+
 

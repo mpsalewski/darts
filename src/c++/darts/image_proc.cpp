@@ -669,8 +669,21 @@ cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, 
         return p1;
     }
     /* return intersection between the two valid points */
-
-
+    else if (p1 == Point(-66666, -66666)) {
+        midpoint.x = (p2.x + p3.x) / 2;
+        midpoint.y = (p2.y + p3.y) / 2;
+        return midpoint;
+    }
+    else if (p2== Point(-66666, -66666)) {
+        midpoint.x = (p1.x + p3.x) / 2;
+        midpoint.y = (p1.y + p3.y) / 2;
+        return midpoint;
+    }
+    else if (p3 == Point(-66666, -66666)) {
+        midpoint.x = (p1.x + p2.x) / 2;
+        midpoint.y = (p1.y + p2.y) / 2;
+        return midpoint;
+    }
 }
 
 
@@ -722,7 +735,9 @@ int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_lin
 }
 
 
-
+/***
+ * Difference Functions 
+***/
 
 int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
 
@@ -858,7 +873,9 @@ int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* 
 
 
 
-
+/***
+ * Calibration of Parameters 
+***/
 
 void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_left, cv::Mat& dart_top, cv::Mat& dart_right, cv::Mat& dart_left) {
 
@@ -939,6 +956,9 @@ void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_lef
 
 }
 
+/***
+ * Calibration related trackbar callbacks
+***/
 
 void on_trackbar_bin_thresh(int thresh, void* arg) {
     
@@ -962,7 +982,9 @@ void on_trackbar_diff_min_thresh(int thresh, void* arg) {
 
 }
 
-
+/***
+ * Command Line Support Function
+***/
 
 void img_proc_set_bin_thresh(int thresh) {
 
@@ -977,6 +999,11 @@ void img_proc_set_diff_min_thresh(int thresh) {
     img_proc.bin_thresh = thresh;
 
 }
+
+
+/***
+ * Imange Processing Debug and tryout Function
+***/
 
 
 

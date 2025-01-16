@@ -86,7 +86,7 @@ constexpr size_t MAX_COMMAND_ARGS = 8;
 constexpr size_t MAX_COMMAND_NAME_LENGTH = 16;
 constexpr size_t MAX_COMMAND_ARG_SIZE = 32;
 constexpr size_t MAX_RESPONSE_SIZE = 64;
-constexpr size_t MAX_HELP_LENGTH = 200;
+constexpr size_t MAX_HELP_LENGTH = 400;
 
 
 /************************** local Structure ***********************************/
@@ -144,11 +144,14 @@ private:
 /************************** Function Declaration *****************************/
 extern void commandLineThread(void* arg);
 extern void command_parser_cmd_init(void);
+
 extern void help_Cb(CommandParser::Argument* args, size_t argCount, char* response);
 extern void helloCommandCallback(CommandParser::Argument* args, size_t argCount, char* response);
 extern void welcomeCb(CommandParser::Argument* args, size_t argCount, char* response);
+
 extern void set_new_game_Cb(CommandParser::Argument* args, size_t argCount, char* response);
-extern void set_dart_board_params(CommandParser::Argument* args, size_t argCount, char* response);
+extern void set_params(CommandParser::Argument* args, size_t argCount, char* response);
+
 
 
 
