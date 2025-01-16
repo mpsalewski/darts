@@ -237,7 +237,7 @@ git pull
 git merge new_feature_branch
 ```
 ## 6. Optional: Delete the Feature Branch
-- If the feature is fully implemented and you do not want to keep it, delete the feature branch.
+If the feature is fully implemented and you do not want to keep it, delete the feature branch.
 
 - Delete the branch locally
 ```bash
