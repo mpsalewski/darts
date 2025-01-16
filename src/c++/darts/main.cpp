@@ -317,3 +317,9 @@ void static_test(void) {
     cv::waitKey(0);
 }
 
+
+
+void test2_func() {
+
+
+}
