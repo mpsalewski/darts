@@ -27,7 +27,7 @@ src/c++/darts/darts/x64/Debug/*.log
 src/c++/darts/darts/x64/Debug/*.obj
 src/c++/darts/darts/x64/Debug/*.pdb
 src/c++/darts/darts/x64/Debug/*.tlog
-
+src/example
 
 # Ignoriere alle Dateien im darts.tlog-Ordner
 src/c++/darts/darts/x64/Release/darts.tlog/
