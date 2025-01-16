@@ -527,7 +527,7 @@ void command_parser_cmd_init(void){
     if (!parser.registerCommand("set", "sss", set_params,
         "set parameters \
         \n\tset parameters for the ScoreBoard:\n\t\t-> set score $NAME$ $SCORE$\n\t\t-> set leg $NAME$ $NUM$ not defined atm \
-        \n\tset parameters for image processing:\n\t\t-> set diff_min $intValue$ (set minimum difference value)\n\t\t-> set bin_thresh $intValue$ (set threshold value fir binarizing)"
+        \n\tset parameters for image processing:\n\t\t-> set diff_min $intValue$ (set minimum difference value)\n\t\t-> set bin_thresh $intValue$ (set threshold value for binarisation)"
         )) {
         std::cerr << "err: could not register command!" << std::endl;
         return;
@@ -634,7 +634,7 @@ void set_params(CommandParser::Argument* args, size_t argCount, char* response) 
     /* check which param should be set */
     if (strcmp(param, "bin_thresh") == 0) {
         if (!(argCount == 2)) {
-            snprintf(response, MAX_RESPONSE_SIZE, "err: not enough or two many args for param %s. argCount: %d", param, (int)argCount);
+            snprintf(response, MAX_RESPONSE_SIZE, "err: not enough or two many args for param %s, argCount: %d", param, (int)argCount);
             return;
         }
         
@@ -652,7 +652,7 @@ void set_params(CommandParser::Argument* args, size_t argCount, char* response) 
     }
     else if (strcmp(param, "diff_min") == 0) {
         if (!(argCount == 2)) {
-            snprintf(response, MAX_RESPONSE_SIZE, "err: not enough or two many args for param %s. argCount: %d", param, (int)argCount);
+            snprintf(response, MAX_RESPONSE_SIZE, "err: not enough or two many args for param %s, argCount: %d", param, (int)argCount);
             return;
         }
         string diff_min_str = args[1].asString;

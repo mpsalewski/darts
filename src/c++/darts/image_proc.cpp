@@ -174,7 +174,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
      * this drawn rectangle
     ***/
 
-    /* everything thats outcommented for performance, but are images for debug and analysis reasons */
+    /* everything thats outcommented is for performance reasons, but are images for debug and analysis */
 
     /* use the original, if contours does not work */
     Mat edge_bin_original = edge_bin.clone();
@@ -191,7 +191,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     cv::morphologyEx(edge_bin, edge_bin, cv::MORPH_CLOSE, cv::Mat::ones(2, 2, CV_8U));
     //GaussianBlur(edge_bin, edge_bin, Size(3, 3), 0.3, 0.3);
 
-    /* create this image ofr imshow(), whats in earlier versions has been just the edge_bin image */
+    /* create this image for imshow(), whats in earlier versions has been just the edge_bin image */
     Mat edge_bin_cont = edge_bin.clone();
     cvtColor(edge_bin_cont, edge_bin_cont, COLOR_GRAY2BGR);
 
@@ -251,7 +251,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 
 
 
-    /* calaculate just one rot rect which fits all other rect, ther might be more than bc of shaft and barrel might be divided through its haptic */
+    /* calaculate just one rot rect which fits all other rects, their might be more than bc of shaft and barrel might be divided through its haptic */
     if (!allPoints.empty()) {
         RotatedRect enclosingRect = minAreaRect(allPoints);
         Point2f points_enc[4];
@@ -641,7 +641,7 @@ bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& lin
 }
 
 
-/* center of mass of three cross points */
+/* center of three intersection points */
 cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, const cv::Point& p3){
     Point midpoint;
 
@@ -654,11 +654,12 @@ cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, 
 
 
     /* error handling */
+    /* all points are invalid */
     if ((p1 == Point(-66666, -66666)) && (p2 == Point(-66666, -66666)) && (p3 == Point(-66666, -66666))) {
         /* just return invalid point */
         return p1;
     }
-    /* return only valid point */
+    /* two points are invalid; return only valid point */
     else if ((p1 == Point(-66666, -66666)) && (p2 == Point(-66666, -66666))) {
         return p3;
     }
@@ -668,7 +669,7 @@ cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, 
     else if ((p2 == Point(-66666, -66666)) && (p3 == Point(-66666, -66666))) {
         return p1;
     }
-    /* return intersection between the two valid points */
+    /* one point is invalid; return intersection between the two valid points */
     else if (p1 == Point(-66666, -66666)) {
         midpoint.x = (p2.x + p3.x) / 2;
         midpoint.y = (p2.y + p3.y) / 2;
@@ -1089,9 +1090,9 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
 
 #if 1
     /*********************************************** under construction *****************************************************/
-        /* everything thats outcommented for performance, but are images for debug and analysis reasons */
+    /* everything thats outcommented is for performance reasons, but are images for debug and analysis */
 
-        /* use the original if contours does not work */
+    /* use the original if contours does not work */
     Mat edge_bin_original = edge_bin.clone();
 
     /* draw box, bc darts contours could be open if out of image */
@@ -1163,7 +1164,7 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
 
 
 
-    /* calaculate just one rot rect which fits all other rect, ther might be more than bc of shaft and barrel might be divided through its haptic */
+    /* calaculate just one rot rect which fits all other rects, their might be more than bc of shaft and barrel might be divided through its haptic */
     if (!allPoints.empty()) {
         RotatedRect enclosingRect = minAreaRect(allPoints);
         Point2f points_enc[4];

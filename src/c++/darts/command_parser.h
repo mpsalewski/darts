@@ -85,7 +85,7 @@ constexpr size_t MAX_COMMANDS = 32;
 constexpr size_t MAX_COMMAND_ARGS = 8;
 constexpr size_t MAX_COMMAND_NAME_LENGTH = 16;
 constexpr size_t MAX_COMMAND_ARG_SIZE = 32;
-constexpr size_t MAX_RESPONSE_SIZE = 64;
+constexpr size_t MAX_RESPONSE_SIZE = 200;
 constexpr size_t MAX_HELP_LENGTH = 400;
 
 
