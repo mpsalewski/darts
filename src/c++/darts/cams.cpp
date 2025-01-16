@@ -498,10 +498,21 @@ void SIMULATION_OF_camsThread(void*arg) {
     //top_cam >> last_frame_top;
     //right_cam >> last_frame_right;
     //left_cam >> last_frame_left;
+#if 0
     last_frame_top = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
     last_frame_right = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
     last_frame_left = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
-
+#endif
+#if 0
+    last_frame_top = imread(TOP_1DARTS, IMREAD_ANYCOLOR);
+    last_frame_right = imread(RIGHT_1DARTS, IMREAD_ANYCOLOR);
+    last_frame_left = imread(LEFT_1DARTS, IMREAD_ANYCOLOR);
+#endif
+#if 1
+    last_frame_top = imread(TOP_2DARTS, IMREAD_ANYCOLOR);
+    last_frame_right = imread(RIGHT_2DARTS, IMREAD_ANYCOLOR);
+    last_frame_left = imread(LEFT_2DARTS, IMREAD_ANYCOLOR);
+#endif
     if (last_frame_top.empty() || last_frame_right.empty() || last_frame_left.empty()) {
         std::cout << "Error: empty init frame\n" << endl;
         return;
@@ -528,10 +539,21 @@ void SIMULATION_OF_camsThread(void*arg) {
         //top_cam >> cur_frame_top;
         //right_cam >> cur_frame_right;
         //left_cam >> cur_frame_left;
+#if 0
         cur_frame_top = imread(TOP_1DARTS, IMREAD_ANYCOLOR);
         cur_frame_right = imread(RIGHT_1DARTS, IMREAD_ANYCOLOR);
         cur_frame_left = imread(LEFT_1DARTS, IMREAD_ANYCOLOR);
-
+#endif
+#if 0
+        cur_frame_top = imread(TOP_2DARTS, IMREAD_ANYCOLOR);
+        cur_frame_right = imread(RIGHT_2DARTS, IMREAD_ANYCOLOR);
+        cur_frame_left = imread(LEFT_2DARTS, IMREAD_ANYCOLOR);
+#endif
+#if 1
+        cur_frame_top = imread(TOP_3DARTS, IMREAD_ANYCOLOR);
+        cur_frame_right = imread(RIGHT_3DARTS, IMREAD_ANYCOLOR);
+        cur_frame_left = imread(LEFT_3DARTS, IMREAD_ANYCOLOR);
+#endif
         /* check if frames are not empty */
         if (!cur_frame_top.empty() && !cur_frame_right.empty() && !cur_frame_left.empty()) {
 

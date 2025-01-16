@@ -55,6 +55,7 @@
 
 #define GAUSSIAN_BLUR_SIGMA 0.75
 
+/* polar coordinates */
 struct line_s {
 
 	double r = 0;
@@ -68,14 +69,35 @@ struct tripple_line_s {
 	struct line_s line_left;
 };
 
+/* cartesian coordinates */
+struct line_cart_s {
+	cv::Point p0;
+	cv::Point p1;
+};
+
+struct tri_line_cart_s {
+	struct line_cart_s top;
+	struct line_cart_s right;
+	struct line_cart_s left;
+
+};
 
 /************************** Function Declaration *****************************/
-extern void img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage);
-extern void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& maxLocations);
-
 extern int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs = 0, std::string CamNameId = "Default");
+
+extern void img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage);
+
+
+extern void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& maxLocations);
 extern int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p);
+
+
+extern void img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_cart_s& cart);
+extern bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& line2, cv::Point& intersection);
+extern cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, const cv::Point& p3);
 extern int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p);
+
+
 extern int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId);
 extern int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* pixel_sum, bool show);
 

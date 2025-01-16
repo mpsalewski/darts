@@ -69,6 +69,9 @@ static struct img_proc_s {
     int diff_min_thresh = 1.5e+5;
 }img_proc;
 
+
+
+
 /************************* local Variables ***********************************/
 
 
@@ -78,41 +81,11 @@ static struct img_proc_s {
 
 
 /************************** Function Definitions *****************************/
-
-void img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage) {
-    /* define sharpening kernel */
-    /* Mat kernel = (Mat_<float>(3, 3) <<
-        0, -1, 0,
-        -1, 5, -1,
-        0, -1, 0);*/
-    Mat kernel = (Mat_<float>(3, 3) <<
-        0, -1, 0,
-        -1, 11, -1,
-        0, -1, 0);
-
-    /* sharpen */
-    filter2D(inputImage, outputImage, -1, kernel);
-}
-
-
-void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& maxLocations) {
-
-    Mat image_gray;
-    cvtColor(image, image_gray, COLOR_BGR2GRAY);
-
-    /* look up cross points */
-    for (int y = 0; y < image.rows; y++) {
-        uchar* row = image_gray.ptr<uchar>(y);
-        for (int x = 0; x < image_gray.cols; x++) {
-            if (image_gray.at<uchar>(y, x) > CROSS_POINT_INTENSITY_MIN) {
-                maxLocations.push_back(Point(x, y));
-            }
-        }
-    }
-
-}
-
-
+/******************************************************************************
+ * Image Processing Main Function
+ * --> processes current and last image and returns main line through the tip
+ * of the dart
+******************************************************************************/
 int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs, std::string CamNameId) {
 
 
@@ -156,7 +129,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     }
 
     /* noise reduction */
-    cv::GaussianBlur(cur,cur, Size(3,3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    cv::GaussianBlur(cur, cur, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
     cv::GaussianBlur(last, last, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
 
     /* calibrate images */
@@ -193,17 +166,24 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     cv::threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
 #if 1
-/*********************************************** under construction *****************************************************/
+    /*********************************************** under construction *****************************************************/
+    /* barrel detction (added at alter project stage) */
+    /***
+     * idea is to find barrel cotour and delete flight contour and then draw a 
+     * close fitting rectangle around the barrel and do edge detection with 
+     * this drawn rectangle
+    ***/
+
     /* everything thats outcommented for performance, but are images for debug and analysis reasons */
 
-    /* use the original if contours does not work */
+    /* use the original, if contours does not work */
     Mat edge_bin_original = edge_bin.clone();
 
     /* draw box, bc darts contours could be open if out of image */
-    cv::line(edge_bin, Point(0, 0), Point(0, edge_bin.rows-1), Scalar(255, 255, 255), 1);   
-    cv::line(edge_bin, Point(0, 0), Point(edge_bin.cols-1, 0), Scalar(255, 255, 255), 1);   
-    cv::line(edge_bin, Point(edge_bin.cols-1, 0), Point(edge_bin.cols - 1, edge_bin.rows - 1), Scalar(255, 255, 255), 2);
-    cv::line(edge_bin, Point(0, edge_bin.rows - 1), Point(edge_bin.cols - 1, edge_bin.rows-1), Scalar(255, 255, 255), 2);
+    cv::line(edge_bin, Point(0, 0), Point(0, edge_bin.rows - 1), Scalar(255, 255, 255), 1);
+    cv::line(edge_bin, Point(0, 0), Point(edge_bin.cols - 1, 0), Scalar(255, 255, 255), 1);
+    cv::line(edge_bin, Point(edge_bin.cols - 1, 0), Point(edge_bin.cols - 1, edge_bin.rows - 1), Scalar(255, 255, 255), 2);
+    cv::line(edge_bin, Point(0, edge_bin.rows - 1), Point(edge_bin.cols - 1, edge_bin.rows - 1), Scalar(255, 255, 255), 2);
 
 
 
@@ -211,31 +191,31 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     cv::morphologyEx(edge_bin, edge_bin, cv::MORPH_CLOSE, cv::Mat::ones(2, 2, CV_8U));
     //GaussianBlur(edge_bin, edge_bin, Size(3, 3), 0.3, 0.3);
 
-    
+    /* create this image ofr imshow(), whats in earlier versions has been just the edge_bin image */
     Mat edge_bin_cont = edge_bin.clone();
     cvtColor(edge_bin_cont, edge_bin_cont, COLOR_GRAY2BGR);
+
     /* find contour of dart */
     vector<vector<Point>> cont;
     vector<Vec4i> hier;
     findContours(edge_bin, cont, hier, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
     /* draw cont */
-    
     //Mat contoursImg = Mat::zeros(edge_bin.size(), CV_8UC3);
     for (size_t i = 0; i < cont.size(); i++) {
         drawContours(edge_bin_cont, cont, (int)i, Scalar(255, 255, 0), 1, LINE_8, hier, 0);
     }
 
-
-    
     //Mat result = Mat::zeros(edge_bin.size(), CV_8UC3);
     //Mat cont_rect = Mat::zeros(edge_bin.size(), CV_8UC3);
-    
-    /* fitted final contour --> just the barrel as rectangle */
-    Mat cont_rect_fitted = Mat::zeros(edge_bin.size(), CV_8UC3);
-    /* store all endpoints */
-    vector<Point> allPoints; 
 
+    /* image fitted final contour --> just the barrel as rectangle --> this will be used for Hough */
+    Mat cont_rect_fitted = Mat::zeros(edge_bin.size(), CV_8UC3);
+    
+    /* store all endpoints */
+    vector<Point> allPoints;
+
+    /* look throug the contours */
     for (size_t i = 0; i < cont.size(); i++) {
         /* rotating bounding box */
         RotatedRect rotatedRect = minAreaRect(cont[i]);
@@ -243,14 +223,17 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         /* calculate properties */
         float width = rotatedRect.size.width;
         float height = rotatedRect.size.height;
-
         float aspectRatio = (width < height) ? width / height : height / width;
-
         double area = contourArea(cont[i]);
 
-        
+
         /* criteria: narrow and elongated */
-        if ((aspectRatio < 0.2 ) && (aspectRatio > 0.01) && (area > 450 )) { 
+        /***
+         * aspect ratio defines form of rect around contour 
+         * area > x helps to ignore long small artefacts
+         * 
+        ***/
+        if ((aspectRatio < 0.2) && (aspectRatio > 0.01) && (area > 450)) {
             drawContours(edge_bin_cont, cont, (int)i, Scalar(0, 255, 255), 1);
             /* calculate corners of ratating rectangle */
             Point2f points[4];
@@ -265,21 +248,21 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 
         }
     }
-    
+
 
 
     /* calaculate just one rot rect which fits all other rect, ther might be more than bc of shaft and barrel might be divided through its haptic */
     if (!allPoints.empty()) {
-        RotatedRect enclosingRect = minAreaRect(allPoints); 
+        RotatedRect enclosingRect = minAreaRect(allPoints);
         Point2f points_enc[4];
         enclosingRect.points(points_enc);
 
         /* draw rect */
         for (int j = 0; j < 4; j++) {
             cv::line(edge_bin_cont, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 2);
-            cv::line(cont_rect_fitted, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 1);  
+            cv::line(cont_rect_fitted, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 1);
         }
-        /**/
+        /* */
         cvtColor(cont_rect_fitted, edge_bin, COLOR_BGR2GRAY);
         cv::threshold(edge_bin, edge_bin, 10, 255, THRESH_BINARY);
     }
@@ -288,7 +271,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         edge_bin = edge_bin_original;
     }
 
-
+    /* to be compatible with older versions go on with the img proc with 'edge_bin' */
 
     //imshow("narrow contours", result);
     //imshow("edges", edge_bin);
@@ -304,8 +287,6 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     ip::houghTransform(edge_bin, houghSpace);
 
     cv::GaussianBlur(houghSpace, houghSpace, Size(SMOOTHING_KERNEL_SIZE, SMOOTHING_KERNEL_SIZE), 0.0);
-
-
 
 
     /* find 2 gloabl maxima */
@@ -336,13 +317,13 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
                 int nx = houghMaxLocation.x + dx; // neighbor in x-dir
                 int ny = houghMaxLocation.y + dy; // neighbor in y-dir
 
-                
+
                 if (nx >= 0 && nx < houghSpaceClone.cols && ny >= 0 && ny < houghSpaceClone.rows) {
-                    houghSpaceClone.at<uchar>(ny, nx) = 0; 
+                    houghSpaceClone.at<uchar>(ny, nx) = 0;
                 }
             }
         }
-        
+
         /* shift the edges exactly on the edge to be more centered in averaging */
         int shift_val = 2;
         if (r > shift_val) {
@@ -360,10 +341,10 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         if ((i > 0) && (fabs(theta_avg - theta) > (CV_PI / 2))) {
             r_avg = r_avg + (-r);   // toggle sign
             if (theta > 0) {
-                theta_avg = theta_avg + (CV_PI-theta);
+                theta_avg = theta_avg + (CV_PI - theta);
             }
             else {
-                theta_avg = theta_avg + (-  CV_PI - theta);
+                theta_avg = theta_avg + (-CV_PI - theta);
             }
         }
         else {
@@ -373,7 +354,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     }
     r_avg = r_avg / global_max;
     theta_avg = theta_avg / global_max;
-   
+
 
 
     //cout << r_avg << "\t" << theta_avg << endl;
@@ -491,6 +472,51 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 
 
 
+/******************************************************************************
+ * Image Processing Help Functions
+ ******************************************************************************/
+
+
+void img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage) {
+    /* define sharpening kernel */
+    /* Mat kernel = (Mat_<float>(3, 3) <<
+        0, -1, 0,
+        -1, 5, -1,
+        0, -1, 0);*/
+    Mat kernel = (Mat_<float>(3, 3) <<
+        0, -1, 0,
+        -1, 11, -1,
+        0, -1, 0);
+
+    /* sharpen */
+    filter2D(inputImage, outputImage, -1, kernel);
+}
+
+
+/***
+ * find cross crosspoints with grafic method 
+***/
+
+
+void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& maxLocations) {
+
+    Mat image_gray;
+    cvtColor(image, image_gray, COLOR_BGR2GRAY);
+
+    /* look up cross points */
+    for (int y = 0; y < image.rows; y++) {
+        uchar* row = image_gray.ptr<uchar>(y);
+        for (int x = 0; x < image_gray.cols; x++) {
+            if (image_gray.at<uchar>(y, x) > CROSS_POINT_INTENSITY_MIN) {
+                maxLocations.push_back(Point(x, y));
+            }
+        }
+    }
+
+}
+
+
+
 int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p) {
 
     Mat frame = Mat::zeros(frameSize, CV_8UC3);
@@ -505,7 +531,7 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
     imshow("Z Cross Line", frame);
 
 
-    // Vektor, um alle Positionen der maximalen Pixel zu speichern
+    /* vector to store all cross points */
     vector<Point> maxLocations;
 
     /* find cross points */
@@ -513,8 +539,6 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
 
     int sumX = 0, sumY = 0;
 
-    // Ausgabe der maximalen Positionen
-    //cout << "Maximale Positionen:" << endl;
     for (const Point& pt : maxLocations) {
         sumX += pt.x;
         sumY += pt.y;
@@ -525,10 +549,11 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
         return EXIT_FAILURE;
     }
 
+    /* midpoints */
     Point centerOfMass(sumX / maxLocations.size(), sumY / maxLocations.size());
 
-    // Ausgabe des Mittelpunkts
-    //cout << "Mittelpunkt der maximalen Positionen: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
+    // Debug
+    //cout << "midpoint: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
 
     cross_p.x = centerOfMass.x;
     cross_p.y = centerOfMass.y;
@@ -537,20 +562,16 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
 
 }
 
-struct line_kart_s {
-    Point p0;
-    Point p1;
-};
 
-struct tri_line_kart_s {
-    struct line_kart_s top;
-    struct line_kart_s right;
-    struct line_kart_s left;
+/***
+ * find cross crosspoints with math method
+***/
 
-};
+/* transform Polar - Coordinates(r, theta) to Cartesian - Coordinates */
+void img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_cart_s& cart) {
+    
+    /* Transformation is copied from HoughLine.cpp */
 
-// Umrechnung von Polar-Koordinaten (r, theta) in kartesische Koordinaten
-void polarToCartesian(const cv::Mat& image, struct line_s l, struct line_kart_s& kart) {
     Point imgCenter(image.cols / 2, image.rows / 2);
     
     double cosine = cos(l.theta);
@@ -564,8 +585,8 @@ void polarToCartesian(const cv::Mat& image, struct line_s l, struct line_kart_s&
         int yc0 = (int)((l.r - xc0 * cosine) / sine);
         int yc1 = (int)((l.r - xc1 * cosine) / sine);
 
-        kart.p0 = Point(x0, yc0 + imgCenter.y);
-        kart.p1 = Point(x1, yc1 + imgCenter.y);
+        cart.p0 = Point(x0, yc0 + imgCenter.y);
+        cart.p1 = Point(x1, yc1 + imgCenter.y);
     }
     // Line end points for "almost vertical" lines
     else {
@@ -576,100 +597,126 @@ void polarToCartesian(const cv::Mat& image, struct line_s l, struct line_kart_s&
         int xc0 = (int)((l.r - yc0 * sine) / cosine);
         int xc1 = (int)((l.r - yc1 * sine) / cosine);
 
-        kart.p0 = Point(xc0 + imgCenter.x, y0);
-        kart.p1 = Point(xc1 + imgCenter.x, y1);
+        cart.p0 = Point(xc0 + imgCenter.x, y0);
+        cart.p1 = Point(xc1 + imgCenter.x, y1);
     }
     return;
 }
 
-// Berechnung des Schnittpunkts zweier Linien
-bool find_intersection(const line_kart_s& line1, const line_kart_s& line2, Point& intersection) {
-    // Koordinaten der ersten Linie
-    int x0_1 = line1.p0.x, y0_1 = line1.p0.y;
-    int x1_1 = line1.p1.x, y1_1 = line1.p1.y;
+/* get intersection of two lines (polar coordinates) */
+bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& line2, cv::Point& intersection) {
     
-    // Koordinaten der zweiten Linie
-    int x0_2 = line2.p0.x, y0_2 = line2.p0.y;
-    int x1_2 = line2.p1.x, y1_2 = line2.p1.y;
+    /* first line */
+    float x0_1 = line1.p0.x, y0_1 = line1.p0.y;
+    float x1_1 = line1.p1.x, y1_1 = line1.p1.y;
+    
+    /* second line */
+    float x0_2 = line2.p0.x, y0_2 = line2.p0.y;
+    float x1_2 = line2.p1.x, y1_2 = line2.p1.y;
 
-    // Berechnung der Parameter für die Gleichungen der beiden Linien
-    int A1 = y1_1 - y0_1;
-    int B1 = x0_1 - x1_1;
-    int C1 = x1_1 * y0_1 - x0_1 * y1_1;
+    /* calc params for equation */
+    float A1 = y1_1 - y0_1;
+    float B1 = x0_1 - x1_1;
+    float C1 = x1_1 * y0_1 - x0_1 * y1_1;
 
-    int A2 = y1_2 - y0_2;
-    int B2 = x0_2 - x1_2;
-    int C2 = x1_2 * y0_2 - x0_2 * y1_2;
+    float A2 = y1_2 - y0_2;
+    float B2 = x0_2 - x1_2;
+    float C2 = x1_2 * y0_2 - x0_2 * y1_2;
 
-    // Berechnung des Determinanten
-    int det = A1 * B2 - A2 * B1;
+    /* calc determinant */
+    float det = A1 * B2 - A2 * B1;
 
-    // Wenn der Determinant null ist, sind die Linien parallel und schneiden sich nicht
+    /* if determinant == 0 --> no cross point; set unrealistic point */
     if (det == 0) {
         intersection.x = -66666;
         intersection.y = -66666;
         return false;
     }
 
-    // Berechnung der Schnittpunkt-Koordinaten
-    intersection.x = (B1 * C2 - B2 * C1) / det;
-    intersection.y = (A2 * C1 - A1 * C2) / det;
+    /* intersectio coordinates */
+    intersection.x = (int)((B1 * C2 - B2 * C1) / det);
+    intersection.y = (int)((A2 * C1 - A1 * C2) / det);
 
     return true;
 }
 
 
-// Berechnung des Mittelpunkts der Schnittpunkte
-Point calculate_midpoint(const Point& p1, const Point& p2, const Point& p3) {
+/* center of mass of three cross points */
+cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, const cv::Point& p3){
     Point midpoint;
-    midpoint.x = (p1.x + p2.x + p3.x) / 3;
-    midpoint.y = (p1.y + p2.y + p3.y) / 3;
-    return midpoint;
+
+    /* all points are valid */
+    if (!(p1 == Point(-66666, -66666)) && !(p2 == Point(-66666, -66666)) && !(p3 == Point(-66666, -66666))) {
+        midpoint.x = (p1.x + p2.x + p3.x) / 3;
+        midpoint.y = (p1.y + p2.y + p3.y) / 3;
+        return midpoint;
+    }
+
+
+    /* error handling */
+    if ((p1 == Point(-66666, -66666)) && (p2 == Point(-66666, -66666)) && (p3 == Point(-66666, -66666))) {
+        /* just return invalid point */
+        return p1;
+    }
+    /* return only valid point */
+    else if ((p1 == Point(-66666, -66666)) && (p2 == Point(-66666, -66666))) {
+        return p3;
+    }
+    else if ((p1 == Point(-66666, -66666)) && (p3 == Point(-66666, -66666))) {
+        return p2;
+    }
+    else if ((p2 == Point(-66666, -66666)) && (p3 == Point(-66666, -66666))) {
+        return p1;
+    }
+    /* return intersection between the two valid points */
+
+
 }
+
+
+/* call this function wit polar coordinates and do math computation of intersections of three lines */
 int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p) {
 
+    /* cartesian tripple lines */
+    struct tri_line_cart_s tlk;
+    /* intersection points */
+    Point intersection1, intersection2, intersection3;
+
+    /* show intersection images */
     Mat frame = Mat::zeros(frameSize, CV_8UC3);
 
-
+    /* visualize; has nothig to do with intersection computation */
     ip::drawLine_light_add(frame, tri_line->line_top.r, tri_line->line_top.theta);
     ip::drawLine_light_add(frame, tri_line->line_right.r, tri_line->line_right.theta);
     ip::drawLine_light_add(frame, tri_line->line_left.r, tri_line->line_left.theta);
 
-    struct tri_line_kart_s tlk;
-    // Umwandlung der Polar-Koordinaten der Linien in kartesische Koordinaten
-    // Berechnung von Punkten für jede Linie auf dem Bild
-    polarToCartesian(frame, tri_line->line_top, tlk.top);
-    polarToCartesian(frame, tri_line->line_right, tlk.right);
-    polarToCartesian(frame, tri_line->line_left, tlk.left);
-
-    // Berechnung der Schnittpunkte der Linien
-    Point intersection1, intersection2, intersection3;
-    find_intersection(tlk.top, tlk.right, intersection1);
-    find_intersection(tlk.top, tlk.left, intersection2);
-    find_intersection(tlk.left, tlk.right, intersection3);
-
-    // Berechnung des Mittelpunkts der Schnittpunkte
-    Point midpoint = calculate_midpoint(intersection1, intersection2, intersection3);
-
-
     
+    /* transform coordinates */
+    img_proc_polar_to_cart(frame, tri_line->line_top, tlk.top);
+    img_proc_polar_to_cart(frame, tri_line->line_right, tlk.right);
+    img_proc_polar_to_cart(frame, tri_line->line_left, tlk.left);
 
-    // Zeichnen der Schnittpunkte und des Mittelpunkts
-    //circle(image, intersection1, 5, Scalar(0, 0, 255), 1); // Schnittpunkt Linie 1 und 2 in Rot
-    //circle(image, intersection2, 5, Scalar(0, 255, 0), 1); // Schnittpunkt Linie 2 und 3 in Grün
-    //circle(image, intersection3, 5, Scalar(255, 0, 0), 1); // Schnittpunkt Linie 3 und 1 in Blau
-    cv::circle(frame, midpoint, 8, Scalar(255, 255, 0), 1.5); // Mittelpunkt in Gelb
+    /* get intersections */
+    img_proc_find_intersection(tlk.top, tlk.right, intersection1);
+    img_proc_find_intersection(tlk.top, tlk.left, intersection2);
+    img_proc_find_intersection(tlk.left, tlk.right, intersection3);
 
-    // Ausgabe des Mittelpunkts
-    //cout << "Mittelpunkt der maximalen Positionen: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
+    /* get midpoint */
+    cross_p = img_proc_calculate_midpoint(intersection1, intersection2, intersection3);
 
-    cross_p.x = midpoint.x;
-    cross_p.y = midpoint.y;
+    /* draw interections */
+    //circle(image, intersection1, 5, Scalar(0, 0, 255), 1);
+    //circle(image, intersection2, 5, Scalar(0, 255, 0), 1);
+    //circle(image, intersection3, 5, Scalar(255, 0, 0), 1);
+    
+    /* draw midpoint*/
+    cv::circle(frame, cross_p, 8, Scalar(255, 255, 0), 1.5); 
 
+    // Debug 
+    //cout << "midpoint: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
 
     imshow("Z Cross Line", frame);
-    waitKey(0); // Warten, bis eine Taste gedrückt wird
-
+    
     return EXIT_SUCCESS;
 
 }

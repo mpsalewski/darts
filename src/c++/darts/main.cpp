@@ -81,7 +81,6 @@ atomic<bool> running(true);     // GLOBAL!
 
 
 /************************** Function Declaration *****************************/
-void camThread(int threadId);
 void static_test(void);
 
 
