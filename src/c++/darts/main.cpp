@@ -318,13 +318,3 @@ void static_test(void) {
 }
 
 
-
-void main_feature_func() {
-
-
-
-}
-
-void test2_func() {
-
-}
