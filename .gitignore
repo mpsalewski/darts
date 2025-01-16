@@ -2,7 +2,7 @@
 *.obj
 *.tlog
 
-src/c++/darts/*.vcxproj
+
 src/c++/darts/*.vcxproj.filters
 src/c++/darts/*.vcxproj.user
 
