@@ -10,7 +10,7 @@ This project was developed as part of the Digital Image / Video Processing modul
 - 2025-01-04
 
 ## Last Revision:
-- None
+- 2025-01-16
 
 ## Copyright (c) 2025:
 - Mika Paul Salewski, Lukas Grose
@@ -19,5 +19,30 @@ This project was developed as part of the Digital Image / Video Processing modul
 - CC BY-NC-SA 4.0
 - See: [https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)
 
-## Further Information:
-- None
+---
+
+## Further Information
+
+This project is divided into three main components (Threads):
+
+### 1. **Dart Scoreboard**
+The scoreboard is a simple frame that automatically updates after three darts are thrown. It can also be controlled via the command line. The number of players is configurable, and both legs and sets are tracked. Additionally, the logic for calculating the **precise double checkout** in darts is implemented.
+
+### 2. **Image Processing**
+The image processing component utilizes **differential images** and applies a series of steps to detect the barrel of the dart. A straight line is then drawn through the dart's tip. By using three camera perspectives, an optimal intersection point is identified. This point can then be converted into a sector on the dartboard through **angle and distance calculation**.
+
+### 3. **Command Line Interface (CLI)**
+The command line interface features a command parser that enables the registration of custom commands and links them to specific functions within the system. This allows for flexible control and interaction with the system, including manual updates and adjustments to gameplay or scoring.
+
+---
+
+### 4. **Technology Stack and Structure**
+This project is implemented in **C++** with the use of **OpenCV** for image processing. The code follows an object-oriented C-style approach, where each module (e.g., image processing) is realized using a **.c/.cpp** and **.h** file. The **.c/.cpp** file contains a **static structure** with the module's variables, while the functions act as **member functions** (similar to object-oriented methods).
+
+### 5. **Thread Safety**
+To ensure the project operates in a multi-threaded environment, **mutexes** are used to make the system **thread-safe**. This allows different threads to access shared resources without causing data races or inconsistencies.
+
+---
+
+The combination of these components provides an **automated dart detection and scoring system** that enhances the accuracy and ease of tracking gameplay.
+
