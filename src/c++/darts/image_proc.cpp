@@ -333,12 +333,12 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         int delete_size = 3;
         for (int dx = -delete_size; dx <= delete_size; ++dx) {
             for (int dy = -delete_size; dy <= delete_size; ++dy) {
-                int nx = houghMaxLocation.x + dx; // Nachbarpixel in x-Richtung
-                int ny = houghMaxLocation.y + dy; // Nachbarpixel in y-Richtung
+                int nx = houghMaxLocation.x + dx; // neighbor in x-dir
+                int ny = houghMaxLocation.y + dy; // neighbor in y-dir
 
-                // Überprüfen, ob der Nachbarpixel innerhalb der Bildgrenzen liegt
+                
                 if (nx >= 0 && nx < houghSpaceClone.cols && ny >= 0 && ny < houghSpaceClone.rows) {
-                    houghSpaceClone.at<uchar>(ny, nx) = 0; // Setze den Pixel auf Null (nur für Grauwertbilder, CV_8U)
+                    houghSpaceClone.at<uchar>(ny, nx) = 0; 
                 }
             }
         }
@@ -1014,77 +1014,112 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
     cv::threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
 #if 1
-/*********************************************** under construction *****************************************************/
-    //imshow("darts", edge_bin);
-    //waitKey(0);
-    //destroyWindow("darts");
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(edge_bin, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    /*********************************************** under construction *****************************************************/
+        /* everything thats outcommented for performance, but are images for debug and analysis reasons */
 
-    // Konturen auf einem neuen Bild zeichnen
-    cv::Mat contoursImg = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
-    for (size_t i = 0; i < contours.size(); i++) {
-        cv::drawContours(contoursImg, contours, (int)i, cv::Scalar(0, 255, 0), 1, cv::LINE_8, hierarchy, 0);
+        /* use the original if contours does not work */
+    Mat edge_bin_original = edge_bin.clone();
+
+    /* draw box, bc darts contours could be open if out of image */
+    cv::line(edge_bin, Point(0, 0), Point(0, edge_bin.rows - 1), Scalar(255, 255, 255), 1);
+    cv::line(edge_bin, Point(0, 0), Point(edge_bin.cols - 1, 0), Scalar(255, 255, 255), 1);
+    cv::line(edge_bin, Point(edge_bin.cols - 1, 0), Point(edge_bin.cols - 1, edge_bin.rows - 1), Scalar(255, 255, 255), 2);
+    cv::line(edge_bin, Point(0, edge_bin.rows - 1), Point(edge_bin.cols - 1, edge_bin.rows - 1), Scalar(255, 255, 255), 2);
+
+
+
+    /* close open contours */
+    cv::morphologyEx(edge_bin, edge_bin, cv::MORPH_CLOSE, cv::Mat::ones(2, 2, CV_8U));
+    //GaussianBlur(edge_bin, edge_bin, Size(3, 3), 0.3, 0.3);
+
+
+    Mat edge_bin_cont = edge_bin.clone();
+    cvtColor(edge_bin_cont, edge_bin_cont, COLOR_GRAY2BGR);
+    /* find contour of dart */
+    vector<vector<Point>> cont;
+    vector<Vec4i> hier;
+    findContours(edge_bin, cont, hier, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+    /* draw cont */
+
+    //Mat contoursImg = Mat::zeros(edge_bin.size(), CV_8UC3);
+    for (size_t i = 0; i < cont.size(); i++) {
+        drawContours(edge_bin_cont, cont, (int)i, Scalar(255, 255, 0), 1, LINE_8, hier, 0);
     }
-    // Neue Bildmaske für schmale Konturen
-    cv::Mat result = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
-    cv::Mat cont_rect = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
-    cv::Mat cont_rect_fitted = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
-    std::vector<cv::Point> allPoints; // Hier speichern wir alle Eckpunkte
 
-    for (size_t i = 0; i < contours.size(); i++) {
-        // Rotierende Begrenzungsbox
-        cv::RotatedRect rotatedRect = cv::minAreaRect(contours[i]);
 
-        // Eigenschaften berechnen
+
+    //Mat result = Mat::zeros(edge_bin.size(), CV_8UC3);
+    //Mat cont_rect = Mat::zeros(edge_bin.size(), CV_8UC3);
+
+    /* fitted final contour --> just the barrel as rectangle */
+    Mat cont_rect_fitted = Mat::zeros(edge_bin.size(), CV_8UC3);
+    /* store all endpoints */
+    vector<Point> allPoints;
+
+    for (size_t i = 0; i < cont.size(); i++) {
+        /* rotating bounding box */
+        RotatedRect rotatedRect = minAreaRect(cont[i]);
+
+        /* calculate properties */
         float width = rotatedRect.size.width;
         float height = rotatedRect.size.height;
-        float aspectRatio = (width < height) ? width / height : height / width; // Aspektverhältnis (immer <= 1)
-        double area = cv::contourArea(contours[i]);
 
-        // Filterkriterien: Schmal und länglich
-        if (aspectRatio < 0.2 && area > 40) { // Passen Sie die Werte für Ihre Bedürfnisse an
-            cv::drawContours(result, contours, (int)i, cv::Scalar(0, 255, 0), 1);
-            // Eckpunkte des rotierenden Rechtecks berechnen
-            cv::Point2f points[4];
+        float aspectRatio = (width < height) ? width / height : height / width;
+
+        double area = contourArea(cont[i]);
+
+
+        /* criteria: narrow and elongated */
+        if ((aspectRatio < 0.2) && (aspectRatio > 0.01) && (area > 450)) {
+            drawContours(edge_bin_cont, cont, (int)i, Scalar(0, 255, 255), 1);
+            /* calculate corners of ratating rectangle */
+            Point2f points[4];
             rotatedRect.points(points);
 
-            // Rotierendes Rechteck zeichnen
+            /* draw rot rect */
             for (int j = 0; j < 4; j++) {
                 allPoints.push_back(points[j]);
-                cv::line(cont_rect, points[j], points[(j + 1) % 4], cv::Scalar(255, 0, 0), 1);
-                cv::line(result, points[j], points[(j + 1) % 4], cv::Scalar(255, 0, 0), 1);
+                //cv::line(cont_rect_fitted, points[j], points[(j + 1) % 4], Scalar(0, 255, 255), 1);
+                //line(result, points[j], points[(j + 1) % 4], Scalar(255, 0, 0), 1);
             }
-           
+
         }
     }
-    // Berechne das größte rotierte Rechteck, das alle gesammelten Punkte umschließt
+
+
+
+    /* calaculate just one rot rect which fits all other rect, ther might be more than bc of shaft and barrel might be divided through its haptic */
     if (!allPoints.empty()) {
-        cv::RotatedRect enclosingRect = cv::minAreaRect(allPoints); // Berechne das RotatedRect für alle Eckpunkte
+        RotatedRect enclosingRect = minAreaRect(allPoints);
+        Point2f points_enc[4];
+        enclosingRect.points(points_enc);
 
-        // Berechne die Eckpunkte des großen rotierenden Rechtecks
-        cv::Point2f points[4];
-        enclosingRect.points(points);
-
-        // Zeichne das größte rotierte Rechteck
+        /* draw rect */
         for (int j = 0; j < 4; j++) {
-            //cv::line(result, points[j], points[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);  // Rotes Rechteck
-            cv::line(cont_rect_fitted, points[j], points[(j + 1) % 4], cv::Scalar(0, 0, 255), 1);  // Rotes Rechteck
+            cv::line(edge_bin_cont, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 2);
+            cv::line(cont_rect_fitted, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 1);
         }
-  
+        /**/
+        cvtColor(cont_rect_fitted, edge_bin, COLOR_BGR2GRAY);
+        cv::threshold(edge_bin, edge_bin, 10, 255, THRESH_BINARY);
+    }
+    /* if there were no conts, which fitted criteria do normal edge detection */
+    else {
+        edge_bin = edge_bin_original;
     }
 
 
 
-    cv::imshow("Schmale Konturen", result);
-    cv::imshow("Kanten", edge_bin);
-    cv::imshow("Konturen", contoursImg);
-    cv::imshow("Fitted all", cont_rect_fitted);
-    cvtColor(cont_rect_fitted, cont_rect_fitted, COLOR_BGR2GRAY);
-    cv::threshold(cont_rect_fitted, edge_bin, 10, 255, THRESH_BINARY);
-/*********************************************** under construction end **************************************************/
+    //imshow("narrow contours", result);
+    //imshow("edges", edge_bin);
+    //imshow("contoura", contoursImg);
+    //imshow("Fitted all", cont_rect_fitted);
+
+    /*********************************************** under construction end **************************************************/
 #endif 
+
+
     /* Calculate Hough transform */
     cur_line = cur.clone();
     ip::houghTransform(edge_bin, houghSpace);
@@ -1116,18 +1151,29 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
         //cout << "Debug x: " << houghMaxLocation.x << "\ty: " << houghMaxLocation.y << endl;
 
         // set max to zero
-        for (int dx = -4; dx <= 4; ++dx) {
-            for (int dy = -4; dy <= 4; ++dy) {
-                int nx = houghMaxLocation.x + dx; // Nachbarpixel in x-Richtung
-                int ny = houghMaxLocation.y + dy; // Nachbarpixel in y-Richtung
+        int delete_size = 3;
+        for (int dx = -delete_size; dx <= delete_size; ++dx) {
+            for (int dy = -delete_size; dy <= delete_size; ++dy) {
+                int nx = houghMaxLocation.x + dx; // neighbor in x-dir
+                int ny = houghMaxLocation.y + dy; // neighbor in y-dir
 
-                // Überprüfen, ob der Nachbarpixel innerhalb der Bildgrenzen liegt
+
                 if (nx >= 0 && nx < houghSpaceClone.cols && ny >= 0 && ny < houghSpaceClone.rows) {
-                    houghSpaceClone.at<uchar>(ny, nx) = 0; // Setze den Pixel auf Null (nur für Grauwertbilder, CV_8U)
+                    houghSpaceClone.at<uchar>(ny, nx) = 0;
                 }
             }
         }
-        ip::drawLine(edge_bin, r, theta);   // Debug
+
+        /* shift the edges exactly on the edge to be more centered in averaging */
+        int shift_val = 2;
+        if (r > shift_val) {
+            r = r + shift_val;
+        }
+        else if (r < -shift_val) {
+            r = r - shift_val;
+        }
+
+        ip::drawLine(edge_bin_cont, r, theta);   // Debug
         cv::circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
         //out << "Debug r: " << r << "\ttheta" << theta << endl;
@@ -1148,9 +1194,7 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
     }
     r_avg = r_avg / global_max;
     theta_avg = theta_avg / global_max;
-    /*if (fabs(r_avg) < 0.000001) {
-        r_avg = 1;
-    }*/
+
     //cout << r_avg << "\t" << theta_avg << endl;
     /* draw average line */
     ip::drawLine(cur_line, r_avg, theta_avg);
