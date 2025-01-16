@@ -181,55 +181,69 @@ git tag -a v1.0 -m "Release version 1.0"
 
 This guide walks you through creating a feature branch, developing a feature, handling updates in the `main` branch, merging changes, and cleaning up after the process.
 
+
+## 1. Create and Switch to a New Feature Branch
 ```bash
-# 1. Create and Switch to a New Feature Branch
 git checkout -b new_feature_branch
 git checkout new_feature_branch
-
-# 2. Add Your Feature
-# Make changes, then stage and commit them
+```
+## 2. Add Your Feature
+### Make changes, then stage and commit them
+```bash
 git add .
 git commit -m "Implement a new feature in new_feature_branch"
-
-# 3. Handle Possible Changes in the main Branch
-# Switch to the feature branch (ensure you're on it)
+```
+## 3. Handle Possible Changes in the main Branch
+### Switch to the feature branch (ensure you're on it)
+```bash
 git checkout new_feature_branch
-
-# Merge the latest changes from the main branch into the feature branch
+```
+### Merge the latest changes from the main branch into the feature branch
+```bash
 git merge main
+```
+## If there are conflicts, Git will output something like this:
+```bash
+Auto-merging src/example/example/conflict_file.cpp
+CONFLICT (content): Merge conflict in src/example/example/conflict_file.cpp
+Automatic merge failed; fix conflicts and then commit the result.
+```
 
-# If there are conflicts, Git will output something like this:
-# Auto-merging src/example/example/conflict_file.cpp
-# CONFLICT (content): Merge conflict in src/example/example/conflict_file.cpp
-# Automatic merge failed; fix conflicts and then commit the result.
-
-# Open conflicted files and resolve the conflicts manually.
-# Then, stage the resolved files:
+## Open conflicted files and resolve the conflicts manually.
+### Then, stage the resolved files:
+```bash
 git add src/example/example/conflict_file.cpp
-
-# Finalize the merge
+```
+### Finalize the merge
+```bash
 git commit
 < git add .; git commit -m "...">
-
-# 4. Push the Feature Branch to Remote
+```
+## 4. Push the Feature Branch to Remote
+```bash
 git push origin new_feature_branch
-
-# 5. Merge the Feature into the main Branch
-# Switch to the main branch
+```
+## 5. Merge the Feature into the main Branch
+### Switch to the main branch
+```bash
 git checkout main
-
-# Optional: Pull the latest updates from the remote repository
+```
+### Optional: Pull the latest updates from the remote repository
+```bash
 git pull
-
-# Merge the feature branch into the main branch
+```
+### Merge the feature branch into the main branch
+```bash
 git merge new_feature_branch
+```
+## 6. Optional: Delete the Feature Branch
+### If the feature is fully implemented and you do not want to keep it, delete the feature branch.
 
-# 6. Optional: Delete the Feature Branch
-# If the feature is fully implemented and you do not want to keep it, delete the feature branch.
-
-# Delete the branch locally
+### Delete the branch locally
+```bash
 git branch -d new_feature_branch
-
-# Delete the branch remotely
+```
+### Delete the branch remotely
+```bash
 git push origin --delete new_feature_branch
 ```
