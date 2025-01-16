@@ -1,6 +1,6 @@
-# GitHub Workflow for Beginners (Windows + Git Bash)
+# GitHub Workflow for Beginners (Git Bash)
 
-This guide explains step-by-step how to use Git and GitHub on a Windows system with Git Bash. It covers the basic workflow from cloning a repository to working with branches.
+This guide explains step-by-step how to use Git and GitHub with Git Bash. It covers the basic workflow from cloning a repository to working with branches.
 
 ## Prerequisites
 1. Install Git from [https://git-scm.com/](https://git-scm.com/).
