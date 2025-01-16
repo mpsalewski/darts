@@ -1,6 +1,6 @@
 # Automated Dart Detection and Scoring System
 
-This project was developed as part of the Digital Image / Video Processing module at HAW Hamburg under Prof. Dr. Marc Hensel.
+This project was developed as part of the Digital Image / Video Processing module at HAW Hamburg under Prof. Dr. Marc Hensel (https://github.com/MarcOnTheMoon,  http://www.haw-hamburg.de/marc-hensel).
 
 ## Authors:
 - Mika Paul Salewski (<mika.paul.salewski@gmail.com>)
