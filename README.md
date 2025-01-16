@@ -24,6 +24,9 @@ This project was developed as part of the Digital Image / Video Processing modul
 ## Further Information
 
 This project is divided into three main components (Threads):
+- **Dart Scoreboard**
+- **Image Processing**
+- **Command Line Interface (CLI)**
 
 ### 1. **Dart Scoreboard**
 The scoreboard is a simple frame that automatically updates after three darts are thrown. It can also be controlled via the command line. The number of players is configurable, and both legs and sets are tracked. Additionally, the logic for calculating the **precise double checkout** in darts is implemented.
