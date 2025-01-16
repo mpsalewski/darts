@@ -243,7 +243,7 @@ If the feature is fully implemented and you do not want to keep it, delete the f
 ```bash
 git branch -d new_feature_branch
 ```
-- Delete the branch remotely
+- Delete the branch in the remote repo
 ```bash
 git push origin --delete new_feature_branch
 ```
