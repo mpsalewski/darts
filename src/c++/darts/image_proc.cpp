@@ -156,8 +156,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     }
 
     /* noise reduction */
-    GaussianBlur(cur,cur, Size(3,3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
-    GaussianBlur(last, last, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    cv::GaussianBlur(cur,cur, Size(3,3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    cv::GaussianBlur(last, last, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
 
     /* calibrate images */
     calibration_get_img(cur, cur, ThreadId);
@@ -190,14 +190,28 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     //int thresh_top = 55;
     ip::sobelFilter(sharp_after_diff_gray, edge);
     //threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
-    threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
+    cv::threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
 #if 1
 /*********************************************** under construction *****************************************************/
     /* everything thats outcommented for performance, but are images for debug and analysis reasons */
 
-    cv::morphologyEx(edge_bin, edge_bin, cv::MORPH_CLOSE, cv::Mat::ones(1, 1, CV_8U));
+    /* use the original if contours does not work */
+    Mat edge_bin_original = edge_bin.clone();
 
+    /* draw box, bc darts contours could be open if out of image */
+    cv::line(edge_bin, Point(0, 0), Point(0, edge_bin.rows-1), Scalar(255, 255, 255), 1);   
+    cv::line(edge_bin, Point(0, 0), Point(edge_bin.cols-1, 0), Scalar(255, 255, 255), 1);   
+    cv::line(edge_bin, Point(edge_bin.cols-1, 0), Point(edge_bin.cols - 1, edge_bin.rows - 1), Scalar(255, 255, 255), 2);
+    cv::line(edge_bin, Point(0, edge_bin.rows - 1), Point(edge_bin.cols - 1, edge_bin.rows-1), Scalar(255, 255, 255), 2);
+
+
+
+    /* close open contours */
+    cv::morphologyEx(edge_bin, edge_bin, cv::MORPH_CLOSE, cv::Mat::ones(2, 2, CV_8U));
+    //GaussianBlur(edge_bin, edge_bin, Size(3, 3), 0.3, 0.3);
+
+    
     Mat edge_bin_cont = edge_bin.clone();
     cvtColor(edge_bin_cont, edge_bin_cont, COLOR_GRAY2BGR);
     /* find contour of dart */
@@ -209,7 +223,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     
     //Mat contoursImg = Mat::zeros(edge_bin.size(), CV_8UC3);
     for (size_t i = 0; i < cont.size(); i++) {
-        drawContours(edge_bin_cont, cont, (int)i, Scalar(0, 255, 0), 1, LINE_8, hier, 0);
+        drawContours(edge_bin_cont, cont, (int)i, Scalar(255, 255, 0), 1, LINE_8, hier, 0);
     }
 
 
@@ -229,12 +243,15 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         /* calculate properties */
         float width = rotatedRect.size.width;
         float height = rotatedRect.size.height;
-        float aspectRatio = (width < height) ? width / height : height / width; 
+
+        float aspectRatio = (width < height) ? width / height : height / width;
+
         double area = contourArea(cont[i]);
 
+        
         /* criteria: narrow and elongated */
-        if ((aspectRatio < 0.2 )&& (area > 50 )) { // Passen Sie die Werte für Ihre Bedürfnisse an
-            drawContours(edge_bin_cont, cont, (int)i, Scalar(255, 0, 0), 1);
+        if ((aspectRatio < 0.2 ) && (aspectRatio > 0.01) && (area > 450 )) { 
+            drawContours(edge_bin_cont, cont, (int)i, Scalar(0, 255, 255), 1);
             /* calculate corners of ratating rectangle */
             Point2f points[4];
             rotatedRect.points(points);
@@ -242,12 +259,15 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
             /* draw rot rect */
             for (int j = 0; j < 4; j++) {
                 allPoints.push_back(points[j]);
-                //line(cont_rect, points[j], points[(j + 1) % 4], Scalar(255, 0, 0), 1);
+                //cv::line(cont_rect_fitted, points[j], points[(j + 1) % 4], Scalar(0, 255, 255), 1);
                 //line(result, points[j], points[(j + 1) % 4], Scalar(255, 0, 0), 1);
             }
 
         }
     }
+    
+
+
     /* calaculate just one rot rect which fits all other rect, ther might be more than bc of shaft and barrel might be divided through its haptic */
     if (!allPoints.empty()) {
         RotatedRect enclosingRect = minAreaRect(allPoints); 
@@ -256,10 +276,16 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 
         /* draw rect */
         for (int j = 0; j < 4; j++) {
-            cv::line(edge_bin_cont, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 1);
+            cv::line(edge_bin_cont, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 2);
             cv::line(cont_rect_fitted, points_enc[j], points_enc[(j + 1) % 4], Scalar(255, 0, 0), 1);  
         }
-
+        /**/
+        cvtColor(cont_rect_fitted, edge_bin, COLOR_BGR2GRAY);
+        cv::threshold(edge_bin, edge_bin, 10, 255, THRESH_BINARY);
+    }
+    /* if there were no conts, which fitted criteria do normal edge detection */
+    else {
+        edge_bin = edge_bin_original;
     }
 
 
@@ -268,9 +294,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     //imshow("edges", edge_bin);
     //imshow("contoura", contoursImg);
     //imshow("Fitted all", cont_rect_fitted);
-    /**/
-    cvtColor(cont_rect_fitted, edge_bin, COLOR_BGR2GRAY);
-    threshold(edge_bin, edge_bin, 10, 255, THRESH_BINARY);
+
     /*********************************************** under construction end **************************************************/
 #endif 
 
@@ -279,7 +303,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     cur_line = cur.clone();
     ip::houghTransform(edge_bin, houghSpace);
 
-    GaussianBlur(houghSpace, houghSpace, Size(SMOOTHING_KERNEL_SIZE, SMOOTHING_KERNEL_SIZE), 0.0);
+    cv::GaussianBlur(houghSpace, houghSpace, Size(SMOOTHING_KERNEL_SIZE, SMOOTHING_KERNEL_SIZE), 0.0);
 
 
 
@@ -306,8 +330,9 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         //cout << "Debug x: " << houghMaxLocation.x << "\ty: " << houghMaxLocation.y << endl;
 
         // set max to zero
-        for (int dx = -3; dx <= 3; ++dx) {
-            for (int dy = -3; dy <= 3; ++dy) {
+        int delete_size = 3;
+        for (int dx = -delete_size; dx <= delete_size; ++dx) {
+            for (int dy = -delete_size; dy <= delete_size; ++dy) {
                 int nx = houghMaxLocation.x + dx; // Nachbarpixel in x-Richtung
                 int ny = houghMaxLocation.y + dy; // Nachbarpixel in y-Richtung
 
@@ -317,8 +342,18 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
                 }
             }
         }
+        
+        /* shift the edges exactly on the edge to be more centered in averaging */
+        int shift_val = 2;
+        if (r > shift_val) {
+            r = r + shift_val;
+        }
+        else if (r < -shift_val) {
+            r = r - shift_val;
+        }
+
         ip::drawLine(edge_bin_cont, r, theta);   // Debug
-        circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
+        cv::circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
         //out << "Debug r: " << r << "\ttheta" << theta << endl;
         /* !watch out when delta_theta > 90° */
@@ -338,9 +373,9 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     }
     r_avg = r_avg / global_max;
     theta_avg = theta_avg / global_max;
-    /*if (fabs(r_avg) < 0.000001) {
-        r_avg = 1;
-    }*/
+   
+
+
     //cout << r_avg << "\t" << theta_avg << endl;
     /* draw average line */
     ip::drawLine(cur_line, r_avg, theta_avg);
@@ -623,7 +658,7 @@ int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_lin
     //circle(image, intersection1, 5, Scalar(0, 0, 255), 1); // Schnittpunkt Linie 1 und 2 in Rot
     //circle(image, intersection2, 5, Scalar(0, 255, 0), 1); // Schnittpunkt Linie 2 und 3 in Grün
     //circle(image, intersection3, 5, Scalar(255, 0, 0), 1); // Schnittpunkt Linie 3 und 1 in Blau
-    circle(frame, midpoint, 8, Scalar(255, 255, 0), 1.5); // Mittelpunkt in Gelb
+    cv::circle(frame, midpoint, 8, Scalar(255, 255, 0), 1.5); // Mittelpunkt in Gelb
 
     // Ausgabe des Mittelpunkts
     //cout << "Mittelpunkt der maximalen Positionen: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
@@ -667,8 +702,8 @@ int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
     }
 
     /* noise reduction */
-    GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
-    GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
+    cv::GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
+    cv::GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
 
     /* calibrate images */
     calibration_get_img(cur, cur, ThreadId);
@@ -688,7 +723,7 @@ int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
     /* edge image */
     ip::sobelFilter(diff, diff);
     //threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
-    threshold(diff, diff, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
+    cv::threshold(diff, diff, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
     imshow(DIFF_IMG, diff);
     
@@ -732,8 +767,8 @@ int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* 
     }
 
     /* noise reduction */
-    GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
-    GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
+    cv::GaussianBlur(cur, cur, Size(9, 9), 1.25, 1.25);
+    cv::GaussianBlur(last, last, Size(9, 9), 1.25, 1.25);
 
     /* calibrate images */
     calibration_get_img(cur, cur, ThreadId);
@@ -753,7 +788,7 @@ int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* 
     /* edge image */
     ip::sobelFilter(diff, diff);
     //threshold(diff, diff, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
-    threshold(diff, diff, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
+    cv::threshold(diff, diff, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
     imshow(DIFF_IMG, diff);
 
@@ -942,8 +977,8 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
     }
 
     /* noise reduction */
-    GaussianBlur(cur, cur, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
-    GaussianBlur(last, last, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    cv::GaussianBlur(cur, cur, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    cv::GaussianBlur(last, last, Size(3, 3), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
 
     /* calibrate images */
     calibration_get_img(cur, cur, ThreadId);
@@ -976,7 +1011,7 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
     //int thresh_top = 55;
     ip::sobelFilter(sharp_after_diff_gray, edge);
     //threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
-    threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
+    cv::threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
 #if 1
 /*********************************************** under construction *****************************************************/
@@ -1047,14 +1082,14 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
     cv::imshow("Konturen", contoursImg);
     cv::imshow("Fitted all", cont_rect_fitted);
     cvtColor(cont_rect_fitted, cont_rect_fitted, COLOR_BGR2GRAY);
-    threshold(cont_rect_fitted, edge_bin, 10, 255, THRESH_BINARY);
+    cv::threshold(cont_rect_fitted, edge_bin, 10, 255, THRESH_BINARY);
 /*********************************************** under construction end **************************************************/
 #endif 
     /* Calculate Hough transform */
     cur_line = cur.clone();
     ip::houghTransform(edge_bin, houghSpace);
 
-    GaussianBlur(houghSpace, houghSpace, Size(SMOOTHING_KERNEL_SIZE, SMOOTHING_KERNEL_SIZE), 0.0);
+    cv::GaussianBlur(houghSpace, houghSpace, Size(SMOOTHING_KERNEL_SIZE, SMOOTHING_KERNEL_SIZE), 0.0);
 
 
 
@@ -1093,7 +1128,7 @@ int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId,
             }
         }
         ip::drawLine(edge_bin, r, theta);   // Debug
-        circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
+        cv::circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
         //out << "Debug r: " << r << "\ttheta" << theta << endl;
         /* !watch out when delta_theta > 90° */
