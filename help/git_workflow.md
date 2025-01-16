@@ -188,17 +188,17 @@ git checkout -b new_feature_branch
 git checkout new_feature_branch
 ```
 ## 2. Add Your Feature
-### Make changes, then stage and commit them
+- Make changes, then stage and commit them
 ```bash
 git add .
 git commit -m "Implement a new feature in new_feature_branch"
 ```
 ## 3. Handle Possible Changes in the main Branch
-### Switch to the feature branch (ensure you're on it)
+- Switch to the feature branch (ensure you're on it)
 ```bash
 git checkout new_feature_branch
 ```
-### Merge the latest changes from the main branch into the feature branch
+- Merge the latest changes from the main branch into the feature branch
 ```bash
 git merge main
 ```
@@ -210,40 +210,40 @@ Automatic merge failed; fix conflicts and then commit the result.
 ```
 
 ## Open conflicted files and resolve the conflicts manually.
-### Then, stage the resolved files:
+- Then, stage the resolved files:
 ```bash
 git add src/example/example/conflict_file.cpp
 ```
-### Finalize the merge
+- Finalize the merge
 ```bash
 git commit
-< git add .; git commit -m "...">
 ```
+you might want to be sure with 'git add .' and git commit -m " "
 ## 4. Push the Feature Branch to Remote
 ```bash
 git push origin new_feature_branch
 ```
 ## 5. Merge the Feature into the main Branch
-### Switch to the main branch
+- Switch to the main branch
 ```bash
 git checkout main
 ```
-### Optional: Pull the latest updates from the remote repository
+- Optional: Pull the latest updates from the remote repository
 ```bash
 git pull
 ```
-### Merge the feature branch into the main branch
+- Merge the feature branch into the main branch
 ```bash
 git merge new_feature_branch
 ```
 ## 6. Optional: Delete the Feature Branch
-### If the feature is fully implemented and you do not want to keep it, delete the feature branch.
+- If the feature is fully implemented and you do not want to keep it, delete the feature branch.
 
-### Delete the branch locally
+- Delete the branch locally
 ```bash
 git branch -d new_feature_branch
 ```
-### Delete the branch remotely
+- Delete the branch remotely
 ```bash
 git push origin --delete new_feature_branch
 ```
