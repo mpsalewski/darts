@@ -34,13 +34,17 @@ The image processing component utilizes **differential images** and applies a se
 ### 3. **Command Line Interface (CLI)**
 The command line interface features a command parser that enables the registration of custom commands and links them to specific functions within the system. This allows for flexible control and interaction with the system, including manual updates and adjustments to gameplay or scoring.
 
----
-
 ### 4. **Technology Stack and Structure**
 This project is implemented in **C++** with the use of **OpenCV** for image processing. The code follows an object-oriented C-style approach, where each module (e.g., image processing) is realized using a **.c/.cpp** and **.h** file. The **.c/.cpp** file contains a **static structure** with the module's variables, while the functions act as **member functions** (similar to object-oriented methods).
 
 ### 5. **Thread Safety**
 To ensure the project operates in a multi-threaded environment, **mutexes** are used to make the system **thread-safe**. This allows different threads to access shared resources without causing data races or inconsistencies.
+
+### 6. **Challenges and Limitations**
+
+It is important to note that due to numerous variables such as **light conditions**, **dart position on the board**, **camera distance**, **camera fisheye distortion**, **obstruction by other darts**, **black darts on a black background**, and **dart patterns**, ... the problem is **non-trivial** and hence prone to errors. However, a dart that is positioned centrally in a single sector is very likely to be detected correctly. Despite these challenges, the system is also able to accurately detect **triple and double sectors**, as well as **close calls**.
+
+Currently, the system is not yet robust due to the **differential image** approach, which can cause issues when the previous dart's position is altered by the subsequent throw. This leads to inconsistencies in the detection when darts are thrown in quick succession.
 
 ---
 
