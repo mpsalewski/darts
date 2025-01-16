@@ -2,7 +2,7 @@
 
 This project was developed as part of the Digital Image / Video Processing module at HAW Hamburg under Prof. Dr. Marc Hensel.
 
-## Author(s):
+## Authors:
 - Mika Paul Salewski (<mika.paul.salewski@gmail.com>)
 - Lukas Grose (<lukas@grose.de>)
 
