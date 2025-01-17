@@ -38,7 +38,7 @@ The image processing component utilizes **differential images** and applies a se
 The command line interface features a command parser that enables the registration of custom commands and links them to specific functions within the system. This allows for flexible control and interaction with the system, including manual updates and adjustments to gameplay or scoring.
 
 ### 4. **Technology Stack and Structure**
-This project is implemented in **C++** with the use of **OpenCV** for image processing. The code follows an object-oriented C-style approach, where each module (e.g., image processing) is realized using a **`*.c/*.cpp`** and **`.h`** file. The **`*.c/*.cpp`** file contains a **static structure** with the module's variables, while the functions act as **member functions** (similar to object-oriented methods).
+This project is implemented in **C++** (with Visual Studio 2022) with the use of **OpenCV** for image processing. The code follows an object-oriented C-style approach, where each module (e.g., image processing) is realized using a **`*.c/*.cpp`** and **`.h`** file. The **`*.c/*.cpp`** file contains a **static structure** with the module's variables, while the functions act as **member functions** (similar to object-oriented methods).
 
 ### 5. **Thread Safety**
 To ensure the project operates in a multi-threaded environment, **mutexes** are used to make the system **thread-safe**. This allows different threads to access shared resources without causing data races or inconsistencies.
