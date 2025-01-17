@@ -333,7 +333,7 @@ bool CommandParser::processCommand(const char* command, char* response) {
             switch (argTypes[i]) {
 
                 /* double argument */
-                case 'd': { 
+                case 'f': { 
                     char* after;
                     commandArgs[i].asDouble = strtod(command, &after);
                     if (after == command || (*after != ' ' && *after != '\0')) {
@@ -343,60 +343,60 @@ bool CommandParser::processCommand(const char* command, char* response) {
                     command = after;
                     break;
                 }
-                /* uint64_t argument */
+                /* unsigned int argument */
                 case 'u': {
                     try {
                         size_t pos;
-                        uint64_t value = std::stoull(command, &pos, 0); // Basis 0 erlaubt die Erkennung von Dezimal-, Hexadezimal- oder Oktalzahlen.
+                        unsigned int value = std::stoull(command, &pos, 0); // Basis 0 erlaubt die Erkennung von Dezimal-, Hexadezimal- oder Oktalzahlen.
 
-                        if (value > std::numeric_limits<uint64_t>::max()) {
-                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for uint64_t for arg %d", (int)(i + 1));
+                        if (value > std::numeric_limits<unsigned int>::max()) {
+                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for unsigned int for arg %d", (int)(i + 1));
                             return false;
                         }
 
                         if (command[pos] != ' ' && command[pos] != '\0') {
-                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid uint64_t for arg %d", (int)(i + 1));
+                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid unsigned int for arg %d", (int)(i + 1));
                             return false;
                         }
 
-                        commandArgs[i].asUInt64 = value;
+                        commandArgs[i].asUInt = value;
                         command += pos;
                         }
                     catch (const std::invalid_argument&) {
-                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid uint64_t for arg %d", (int)(i + 1));
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid unsigned int for arg %d", (int)(i + 1));
                         return false;
                     }
                     catch (const std::out_of_range&) {
-                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for uint64_t for arg %d", (int)(i + 1));
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for unsigned int for arg %d", (int)(i + 1));
                         return false;
                     }
                     break;
                 }
-                /* int64_t argument */
-                case 'i': { 
+                /* int argument */
+                case 'd': { 
                     try {
                         size_t pos;
-                        int64_t value = std::stoll(command, &pos, 0); // Basis 0 erlaubt Erkennung von Dezimal-, Hexadezimal- und Oktalzahlen.
+                        int value = std::stoll(command, &pos, 0); // Basis 0 erlaubt Erkennung von Dezimal-, Hexadezimal- und Oktalzahlen.
 
-                        if (value < std::numeric_limits<int64_t>::min() || value > std::numeric_limits<int64_t>::max()) {
-                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for int64_t for arg %d",(int)(i + 1));
+                        if (value < std::numeric_limits<int>::min() || value > std::numeric_limits<int>::max()) {
+                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for int for arg %d",(int)(i + 1));
                             return false;
                         }
 
                         if (command[pos] != ' ' && command[pos] != '\0') {
-                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid int64_t for arg %d",(int)(i + 1));
+                            snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid int for arg %d",(int)(i + 1));
                             return false;
                         }
 
-                        commandArgs[i].asInt64 = value;
+                        commandArgs[i].asInt = value;
                         command += pos;
                     }
                     catch (const std::invalid_argument&) {
-                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid int64_t for arg %d",(int)(i + 1));
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: invalid int for arg %d",(int)(i + 1));
                         return false;
                     }
                     catch (const std::out_of_range&) {
-                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for int64_t for arg %d",(int)(i + 1));
+                        snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for int for arg %d",(int)(i + 1));
                         return false;
                     }
                     break;
@@ -489,6 +489,10 @@ void command_parser_cmd_init(void){
 
     /***
      * REGISTER YOUR COMMANDS
+     * s := string
+     * f := double
+     * u := unsigned int
+     * d := int
     ***/
 
     /* help command */

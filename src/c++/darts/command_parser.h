@@ -100,8 +100,8 @@ public:
     /* argument structure */
     union Argument {
         double asDouble;
-        uint64_t asUInt64;
-        int64_t asInt64;
+        unsigned int asUInt;
+        int asInt;
         char asString[MAX_COMMAND_ARG_SIZE + 1];
     };
 
