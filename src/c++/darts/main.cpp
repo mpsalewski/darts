@@ -85,30 +85,9 @@ void static_test(void);
 
 
 
-
-
-
 /****************************** main function ********************************/
 int main() {
 
-    /*
-    cv::Mat edge_bin = cv::imread("images/bin_edge_w_flight/edge_bin_w_flight_01.jpg", cv::IMREAD_GRAYSCALE);
-
-    // Konturen finden
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(edge_bin, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-
-    // Konturen auf einem neuen Bild zeichnen
-    cv::Mat contoursImg = cv::Mat::zeros(edge_bin.size(), CV_8UC3);
-    for (size_t i = 0; i < contours.size(); i++) {
-        cv::drawContours(contoursImg, contours, (int)i, cv::Scalar(0, 255, 0), 2, cv::LINE_8, hierarchy, 0);
-    }
-    cv::imshow("Kanten", edge_bin);
-    cv::imshow("Konturen", contoursImg);
-    cv::waitKey(0);
-    return 0;
-    */
 
     /* always register the command line */
     thread command_line(commandLineThread, &t_s);

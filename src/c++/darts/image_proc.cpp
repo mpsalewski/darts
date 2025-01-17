@@ -323,16 +323,26 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
                 }
             }
         }
-
+        cout << r << "\t" << theta << endl;
         /* shift the edges exactly on the edge to be more centered in averaging */
         int shift_val = 2;
         if (r > shift_val) {
-            r = r + shift_val;
+            if (theta < CV_PI / 2) {
+                r = r + shift_val;
+            }
+            else {
+                r = r - shift_val;
+            }
         }
         else if (r < -shift_val) {
-            r = r - shift_val;
+            if (theta < CV_PI / 2){
+                r = r - shift_val;
+            }
+            else {
+                r = r + shift_val;
+            }
         }
-
+        cout << r << endl;
         ip::drawLine(edge_bin_cont, r, theta);   // Debug
         cv::circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
