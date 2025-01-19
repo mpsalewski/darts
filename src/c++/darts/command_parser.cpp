@@ -577,7 +577,7 @@ void welcomeCb(CommandParser::Argument* args, size_t argCount, char* response) {
 /* create a new game */
 void set_new_game_Cb(CommandParser::Argument* args, size_t argCount, char* response) {
 
-    char *names[2];
+    char *names[5];
 
     /* no players */
     if ((args[0].asString[0] == '\0') || (argCount == 0)) {

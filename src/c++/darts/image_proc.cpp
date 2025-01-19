@@ -435,6 +435,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         /* Hough transform (line images) */
         string image_orig = string("1 Image Orig with line (").append(CamNameId).append(" Cam)");
         cv::imshow(image_orig, cur_line);
+        //string wimg_write = image_orig.append(".jpg");
+        //cv::imwrite(image_orig, cur_line);
         /* edge image */
         //string image_edge = string("2 Edge Image (").append(CamNameId).append(" Cam)");
         //cv::imshow(image_edge, edge);
@@ -455,6 +457,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         /* Hough transform (line images) */
         string image_orig = string("Image Orig with line (").append(CamNameId).append(" Cam)");
         cv::imshow(image_orig, cur_line);
+        //cv::imwrite(image_orig, cur_line);
     }
     if (show_imgs == SHOW_EDGE_IMG) {
         /* edge image */
