@@ -323,7 +323,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
                 }
             }
         }
-        cout << r << "\t" << theta << endl;
+        //cout << r << "\t" << theta << endl;
         /* shift the edges exactly on the edge to be more centered in averaging */
         int shift_val = 2;
         if (r > shift_val) {
@@ -342,7 +342,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
                 r = r + shift_val;
             }
         }
-        cout << r << endl;
+        //cout << r << endl;
         ip::drawLine(edge_bin_cont, r, theta);   // Debug
         cv::circle(houghSpace, houghMaxLocation, 5, Scalar(0, 0, 255), 2);		// Global maximum
         /* averaging */
@@ -444,6 +444,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         string image_edge_bin = string("3 Image Edge Bin (").append(CamNameId).append(" Cam)");
         //cv::imshow(image_edge_bin, edge_bin);
         cv::imshow(image_edge_bin, edge_bin_cont);
+        // string img_write = image_edge_bin.append(".jpg");
+        //cv::imwrite(img_write, edge_bin_cont);
         /* sharpened images after diff */
         //string image_sharp_diff = string("Image Sharpened After Diff (").append(CamNameId).append(" Cam)");
         //string image_sharp_diff_gray = string("4 Image Sharpened After Diff Gray (").append(CamNameId).append(" Cam)");
@@ -742,7 +744,8 @@ int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_lin
     // Debug 
     //cout << "midpoint: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
 
-    imshow("Z Cross Line", frame);
+    imshow("Z Line Intersection", frame);
+    //cv::imwrite("lines_intersection_math.jpg", frame);
     
     return EXIT_SUCCESS;
 
