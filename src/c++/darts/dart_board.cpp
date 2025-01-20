@@ -181,7 +181,7 @@ static struct dart_board_s* d = &dart_board;
  *
  * Dartsboard_GUI_Thread(void)
  *
- * About this function ...
+ * Hanles the Scorebboard GUI like updates, finished, new games etc.
  *
  *
  * @param:	void* arg --> called with thread_exchange_s struct for 

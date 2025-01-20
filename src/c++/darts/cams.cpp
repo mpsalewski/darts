@@ -117,11 +117,14 @@ static struct darts_s darts;
  * 
  * camsThread(void* arg) 
  *
- * About this function ...
+ * This Thread opens up the cameras and calls image processing as well as 
+ * the Darts-Score computation. Also counts the throws and checks if Darts are
+ * removed from Dartboard after 3 throws.
+ * 
  *
  * 
- * @param:	void* arg
- *          No parameters are required for this function
+ * @param:	void* arg --> called with thread_exchange_s struct for 
+ *          Datatransfer
  *
  * 
  * @return: void
@@ -322,34 +325,19 @@ void camsThread(void* arg) {
                 t_s->mutex.unlock();
 
                 top_cam >> cur_frame_top;
-                last_frame_top = cur_frame_top.clone();
+                
                 /* wait till darts board is back to raw and empty */
                 xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
-                //xp->flags.diff_flag_raw = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
 
+                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27)) {
 
-                while (xp->flags.diff_flag_raw && (running == 1) && !(cv::waitKey(10) == 27) && running) {
-                //while (!xp->flags.diff_flag_raw && !(cv::waitKey(10) == 27) && running) {
-#if 0
-                    /* get current frames from cams */
-                    top_cam >> cur_frame_top;
-
-                    xp->flags.diff_flag_raw = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
-                    if (xp->flags.diff_flag_raw) {
-                        break;
-                    }
-                    last_frame_top = cur_frame_top.clone();
-                    this_thread::sleep_for(chrono::milliseconds(500));
-#else 
                     /* get current frames from cams */
                     top_cam >> cur_frame_top;
                     xp->flags.diff_flag_raw = img_proc_diff_check(raw_empty_init_frame, cur_frame_top, TOP_CAM);
                     if (xp->flags.diff_flag_raw == IMG_NO_DIFFERENCE) {
                         break;
                     }
-                    this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));
-#endif 
-                    
+                    this_thread::sleep_for(chrono::milliseconds(WAIT_TIME_MS));                    
                     
                 }
 
@@ -404,11 +392,20 @@ void camsThread(void* arg) {
  *
  * SIMULATION_OF_camsThread(void* arg)
  *
- * About this function ...
+ * Instead of opening the cameras this Thread simulate this by running the loop 
+ * once with images from local disc. The purpose is to develop software without
+ * the Setup.
+ * Note: This Thread is also used as tryout and debug option.
+ * 
+ * From real Thread:
+ * This Thread opens up the cameras and calls image processing as well as
+ * the Darts-Score computation. Also counts the throws and checks if Darts are
+ * removed from Dartboard after 3 throws.
  *
  *
- * @param:	void* arg
- *          No parameters are required for this function
+ *
+ * @param:	void* arg --> called with thread_exchange_s struct for
+ *          Datatransfer
  *
  *
  * @return: void
