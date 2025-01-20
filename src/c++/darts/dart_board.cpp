@@ -26,7 +26,15 @@
  *
  * Further information about this source-file:
  *      --> Darts Scoreboard ("GUI")
- *      --> Handle Darts Game (Logic) 
+ *      --> Handle Darts Game (Logic)
+ *          --> supported features:
+ *              --> different number of players and names
+ *              --> Tracking Score, Sets, Legs, Last 3-Dart-Throw and
+ *                  who's next turn it is
+ *              --> required double checkout and busted score check
+ * 
+ * 
+ *      --> Connect discrete Pixel with Dartsscore (get Value from Pixel)
 ******************************************************************************/
 
 
@@ -62,7 +70,7 @@ using namespace std;
 
 
 /************************** local Structure ***********************************/
-/* game */
+/* player */
 struct player_s {
     std::string p_name = "user";
     int score = 501;
@@ -71,6 +79,7 @@ struct player_s {
     int set = 0;
 };
 
+/* game */
 struct game_s {
     int num_p;
     std::vector<player_s> p;
@@ -83,23 +92,23 @@ struct darts_gui_s {
     /* creat empty gui frame */
     Mat gui;
 
-    int row_offset = 150;               // dist to top
-    int name_col = 50;                  // name column
-    int name_width = 150;               // name column width
-    int set_col = name_col + name_width;  // set column
-    int set_width = 100;                // set column width
-    int leg_col = set_col + set_width;  // leg column
-    int leg_width = 100;                // leg column width
-    int score_col = leg_col + leg_width;  // score column
-    int score_width = 150;              // score column width
+    int row_offset = 150;                       // dist to top
+    int name_col = 50;                          // name column
+    int name_width = 150;                       // name column width
+    int set_col = name_col + name_width;        // set column
+    int set_width = 100;                        // set column width
+    int leg_col = set_col + set_width;          // leg column
+    int leg_width = 100;                        // leg column width
+    int score_col = leg_col + leg_width;        // score column
+    int score_width = 150;                      // score column width
     int last_throw_col = score_col + score_width;   // last throw column
     int last_throw_width = 150;                     // last throw column width 
     int text_w = 0;
     int text_pos = 0;
     int h = 0;
     int w = 0;
-    int dot_col = last_throw_col + last_throw_width;
-    int dot_width = 100;
+    int dot_col = last_throw_col + last_throw_width;    // red dot column
+    int dot_width = 100;                                // red dot column width
     int count_games = -1;
     int count_player = 0;
 
@@ -175,8 +184,8 @@ static struct dart_board_s* d = &dart_board;
  * About this function ...
  *
  *
- * @param:	void
- *          No parameters are required for this function
+ * @param:	void* arg --> called with thread_exchange_s struct for 
+ *          Datatransfer
  *
  *
  * @return: void
@@ -266,6 +275,25 @@ void Dartsboard_GUI_Thread(void*arg) {
 
 
 /************************** Function Definitions *****************************/
+/***
+ *
+ * dart_board_init(void)
+ *
+ * Initialize Dartboard GUI and Hardware-Setup (Radius)
+ *
+ *
+ * @param:	void
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void dart_board_init(void) {
 
     d->mtx.lock();
@@ -322,6 +350,12 @@ void dart_board_init(void) {
 
 }
 
+
+
+
+/******************************************************************************
+ * Sector and Score calculations
+******************************************************************************/
 /***
  *
  * dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s* r)
@@ -329,10 +363,11 @@ void dart_board_init(void) {
  * Compute the Darts result by given Pixel
  *
  *
- * @param:	void
- *          No parameters are required for this function
- *
- *
+ * @param:	const cv::Point& pixel --> Pixel
+ * @param:  int ThreadId --> camera perspective
+ * @param:  struct result_s* r --> Dartsscore
+ * 
+ * 
  * @return: void
  *
  *
@@ -436,8 +471,11 @@ void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct res
  * Compute correct result by given sector and distance
  *
  *
- * @param:	void
- *          No parameters are required for this function
+ * @param:	int sector --> Sector
+ * @param:  float distance --> Distance to Center (Bullseye Center)
+ * @param:  struct Dartboard_Sector_s& board --> given Dartboard Params
+ *          (NOTE: at the moment there is only one board)
+ * @param:  struct result_s* r --> Dartsscore
  *
  *
  * @return: void
@@ -450,7 +488,8 @@ void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct res
  *
 ***/
 void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r) {
-    // Bestimme den Wert je nach Entfernung (Single, Double, Triple)
+    
+    /* define value */
     if (distance <= board.Db_r.radiusBullseye) {
         r->val = 50;
         r->str = "Bullseye";
@@ -489,10 +528,13 @@ void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sect
  * dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* sec_board_right, struct result_s* sec_board_left, struct result_s* r)
  *
  * Do the final sector decision based on multiple raw board sector results
+ * NOT SUPPORTED at the moment 
  *
  *
- * @param:	void
- *          No parameters are required for this function
+ * @param:	struct result_s* sec_board_top      --> Top Board
+ * @param:  struct result_s* sec_board_right    --> Right Board 
+ * @param:  struct result_s* sec_board_left     --> Left Board
+ * @param:  struct result_s* r                  --> final result 
  *
  *
  * @return: void
@@ -565,6 +607,34 @@ void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* s
 
 
 
+
+/******************************************************************************
+ * Create GUI Frames
+******************************************************************************/
+/***
+ *
+ * dart_board_create_scoreboard_gui(std::string name_win, int w, int h)
+ *
+ * Create an empty Scoreboard based on pre-defined game struct and gui struct
+ * 
+ *
+ *
+ * @param:	std::string name_win --> Window Name
+ *              --> default: "Darts Scoreboard"
+ * @param:	int w --> Window Width (actually should not really be changed)
+ *              --> default: "SCOREBOARD_GUI_WIDTH
+ * @param:	int h --> Window Heiht (actually should not really be changed)
+ *              --> default: "SCOREBOARD_GUI_HEIGHT
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void dart_board_create_scoreboard_gui(std::string name_win, int w, int h) {
 
     /* thread safe */
@@ -694,6 +764,31 @@ void dart_board_create_scoreboard_gui(std::string name_win, int w, int h) {
 
 
 
+/***
+ *
+ * dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str)
+ *
+ * Update Scoreboard: Check Busted / double Checkout and might reset / won't
+ * set your score if against Darts rules. 
+ * Also keeps rack which player is next (red dot) and tracks set and legs 
+ *
+ *
+ *
+ * @param:	int new_throw --> new 3-Dart-Score
+ * @param:  std::string last_dart_str --> Last 1-Dart-Score as String
+ *              --> This is indispensable for double Checkout validation
+ *
+ * @return: int --> Status if any player won the leg
+ *              --> 0:= no winner yet
+ *              --> [1..Num_of_Players]:= indicates which Player won
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
     /* thread safe */
@@ -854,6 +949,27 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 }
 
 
+/***
+ *
+ * dart_board_finish_scoreboard_gui(int player)
+ *
+ * Create Finished Leg GUI Frame
+ * Increment Leg / Set of Winner 
+ * 
+ *
+ *
+ * @param:	int player --> indicate which player won [0..-Num_of_player-1]
+ *
+ * 
+ * @return: void 
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void dart_board_finish_scoreboard_gui(int player) {
 
     /* thread safe */
@@ -918,11 +1034,31 @@ void dart_board_finish_scoreboard_gui(int player) {
 
 
 
-/***
+/******************************************************************************
  * Dartsboard manipulation 
+******************************************************************************/
+/***
+ *
+ * dart_board_set_new_game(char* names[], int num_p)
+ *
+ * Create a new game
+ * Called via Command Line 
+ * Support for max. 4 Players at the moment
+ *
+ *
+ * @param:	char* names[]   --> Names of the Players
+ * @param:  int num_p       --> Number of Players
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
 ***/
-
-/* create a new game */
 void dart_board_set_new_game(char* names[], int num_p) {
 
     /* thread safe */
@@ -950,7 +1086,30 @@ void dart_board_set_new_game(char* names[], int num_p) {
 
 }
 
-/* set score of explicit player */
+
+/***
+ *
+ * dart_board_set_score(char* name, int score)
+ *
+ * set score of explicit player 
+ * Called via Command Line
+ * NOTE: there is no range check at the moment and no handling for setting 
+ * the score to zero
+ *
+ *
+ * @param:	char* name  --> Name of the Player
+ * @param:  int score   --> Score to be left   
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void dart_board_set_score(char* name, int score) {
 
     /* thread safe */

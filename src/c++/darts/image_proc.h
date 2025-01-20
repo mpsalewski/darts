@@ -25,7 +25,9 @@
  *
  *
  * Further information about this source-file:
- *      TBD
+ *      This module is used for image processing of a dartboard to detect the
+ *      position of the dart tip. Key elements include difference images,
+ *      binary edge images, as well as contour and intersection calculations.
 ******************************************************************************/
 
 

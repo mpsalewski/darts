@@ -548,9 +548,9 @@ void img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage) {
 }
 
 
-/***
+/******************************************************************************
  * find cross crosspoints with grafic method 
-***/
+******************************************************************************/
 /***
   *
   * img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& maxLocations)
@@ -665,9 +665,9 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
 
 
 
-/***
+/******************************************************************************
  * find cross crosspoints with math method
-***/
+******************************************************************************/
 /***
   *
   * img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_cart_s& cart)
@@ -730,7 +730,7 @@ void img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_c
   *
   * img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& line2, cv::Point& intersection)
   *
-  * get math intersection of two lines (polar coordinates)
+  * get math intersection of two lines (cartesian coordinates)
   *
   *
   * @param: const line_cart_s& line1 --> input line 01
@@ -786,7 +786,28 @@ bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& lin
 }
 
 
-/* center of three intersection points */
+
+/***
+  *
+  * img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, const cv::Point& p3)
+  *
+  * get math center of three intersection points
+  *
+  *
+  * @param: const cv::Point& p1 --> intersection point
+  * @param: const cv::Point& p2 --> intersection point
+  * @param: const cv::Point& p3 --> intersection point
+  *
+  *
+  * @return: cv::Point --> midpoint of 3 intersection
+  *
+  *
+  * @note:	None
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, const cv::Point& p3){
     Point midpoint;
 
@@ -833,7 +854,29 @@ cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, 
 }
 
 
-/* call this function wit polar coordinates and do math computation of intersections of three lines */
+/***
+  *
+  * img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, const cv::Point& p3)
+  *
+  * 
+  * Call this function with Polar Coordinates and do math computation of
+  * intersections of three lines.
+  *
+  *
+  * @param: cv::Size frameSize --> refered image size
+  * @param: struct tripple_line_s* --> 3 lines in Polar Coordinates
+  * @param: cv::Point& cross_p --> final intersection point 
+  *
+  *
+  * @return: int status
+  *
+  *
+  * @note:  Displays Intersection Image as "Z Line Intersection"
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p) {
 
     /* cartesian tripple lines */
@@ -882,10 +925,31 @@ int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_lin
 }
 
 
-/***
+/******************************************************************************
  * Difference Functions 
-***/
-
+******************************************************************************/
+/***
+  *
+  * img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId)
+  *
+  *
+  * Return status if there is a significant difference between two images
+  *
+  *
+  * @param: cv::Mat& last_f --> last Image
+  * @param: cv::Mat& cur_f --> current Image
+  * @param: int ThreadId --> define camera perspective
+  *
+  *
+  * @return: int status
+  *
+  *
+  * @note:  Displays Intersection Image as "Z Line Intersection"
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
 
     /* bin img threshold */
@@ -951,6 +1015,32 @@ int img_proc_diff_check(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId) {
 }
 
 
+/******************************************************************************
+ * Calibration of Parameters
+******************************************************************************/
+/***
+  *
+  * img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* pixel_sum, bool show)
+  *
+  *
+  * Calibrate Difference Image Parameters
+  *
+  *
+  * @param: cv::Mat& last_f --> last Image
+  * @param: cv::Mat& cur_f --> current Image
+  * @param: int ThreadId --> define camera perspective
+  * @param: bool show --> debug ouput
+  *
+  *
+  * @return: int status
+  *
+  *
+  * @note:  
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* pixel_sum, bool show) {
 
     /* bin img threshold */
@@ -1019,11 +1109,31 @@ int img_proc_diff_check_cal(cv::Mat& last_f, cv::Mat& cur_f, int ThreadId, int* 
 }
 
 
-
 /***
- * Calibration of Parameters 
-***/
-
+  *
+  * img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_left, cv::Mat& dart_top, cv::Mat& dart_right, cv::Mat& dart_left)
+  *
+  *
+  * Calibrate Difference Image Parameters
+  *
+  *
+  * @param: cv::Mat& raw_top --> raw Dart Board Image (Top)
+  * @param: cv::Mat& raw_right --> raw Dart Board Image (Right)
+  * @param: cv::Mat& raw_left --> raw Dart Board Image (Left)
+  * @param: cv::Mat& dart_top --> Dart Board Image with Dart for Cal (Top)
+  * @param: cv::Mat& dart_top --> Dart Board Image with Dart for Cal (Right)
+  * @param: cv::Mat& dart_top --> Dart Board Image with Dart for Cal (Left)
+  *
+  *
+  * @return: void 
+  *
+  *
+  * @note:
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_left, cv::Mat& dart_top, cv::Mat& dart_right, cv::Mat& dart_left) {
 
     Mat frame;
@@ -1103,10 +1213,10 @@ void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_lef
 
 }
 
-/***
+/******************************************************************************
  * Calibration related trackbar callbacks
-***/
-
+/*****************************************************************************/
+/* set Binary Threshold via Trackbar */
 void on_trackbar_bin_thresh(int thresh, void* arg) {
     
     struct img_proc_s* iproc = (struct img_proc_s*)(arg);  
@@ -1117,8 +1227,7 @@ void on_trackbar_bin_thresh(int thresh, void* arg) {
 
 }
 
-
-
+/* set Minimum Difference Threshold via Trackbar */
 void on_trackbar_diff_min_thresh(int thresh, void* arg) {
 
     struct img_proc_s* iproc = (struct img_proc_s*)(arg);
@@ -1129,10 +1238,12 @@ void on_trackbar_diff_min_thresh(int thresh, void* arg) {
 
 }
 
-/***
- * Command Line Support Function
-***/
 
+
+/******************************************************************************
+ * Command Line Support Function
+/*****************************************************************************/
+/* set Binary Threshold via Command Line */
 void img_proc_set_bin_thresh(int thresh) {
 
     /* update value */
@@ -1140,6 +1251,8 @@ void img_proc_set_bin_thresh(int thresh) {
 
 }
 
+
+/* set Minimum Difference Threshold via Command Line */
 void img_proc_set_diff_min_thresh(int thresh) {
 
     /* update value */
@@ -1148,13 +1261,15 @@ void img_proc_set_diff_min_thresh(int thresh) {
 }
 
 
-/***
+
+/******************************************************************************
  * Imange Processing Debug and tryout Function
+/*****************************************************************************/
+/***
+ * Large Debug Copy for tryouts and various image display,
+ * that's why this def is at the bottom. 
+ * For Documentation see img_proc_get_line() at the top of the module 
 ***/
-
-
-
-/* Large Debug Copy, that's why this def is at the bottom */
 int img_proc_get_line_debug(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs, std::string CamNameId) {
 
 

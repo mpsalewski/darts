@@ -27,6 +27,14 @@
  * Further information about this source-file:
  *      --> Darts Scoreboard ("GUI")
  *      --> Handle Darts Game (Logic)
+ *          --> supported features:
+ *              --> different number of players and names
+ *              --> Tracking Score, Sets, Legs, Last 3-Dart-Throw and
+ *                  who's next turn it is
+ *              --> required double checkout and busted score check
+ *
+ *
+ *      --> Connect discrete Pixel with Dartsscore (get Value from Pixel)
 ******************************************************************************/
 
 
