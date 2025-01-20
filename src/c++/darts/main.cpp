@@ -25,7 +25,14 @@
  *
  * 
  * Further information about this source-file:
- *      None
+ *      This project is divided into three main components (Threads):
+ *          --> Dart Scoreboard
+ *          --> Image Processing
+ *          --> Command Line Interface (CLI)
+ * 
+ * for detailed information read submodules description 
+ * or see README.md in github:
+ *      --> https://github.com/mpsalewski/
 ******************************************************************************/
 
 
@@ -205,7 +212,10 @@ int main() {
 /************************** Function Definitions *****************************/
 
 
-
+/***
+ * This is a test debug and tryout and function which can be called in the 
+ * main and allows a quick first view on the beheavior of new features
+***/
 void static_test(void) {
 
 
