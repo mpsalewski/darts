@@ -99,7 +99,7 @@ using namespace std;
 
 
 /************************** local Structure ***********************************/
-/* create commadn parser instance */
+/* create command parser instance */
 static CommandParser parser;
 
 
@@ -110,14 +110,40 @@ static CommandParser parser;
 
 
 /**************************** Command Line Thread ****************************/
-/* Command Line thread */
+/***
+ *
+ * commandLineThread(void*arg)
+ * 
+ * 
+ * Command Line Thread.
+ * This Thread reads new line iput from the command line and calls command 
+ * parser to process the command and displays the answer. Also it checks for 
+ * the exit() command which shutdown all Threads by global atomic var 
+ * "running = 0", itself included.
+ * 
+ *
+ *
+ * @param:	void* arg --> called with thread_exchange_s struct for
+ *          Datatransfer
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void commandLineThread(void*arg) {
 
     string input;
     int cmd_return = 0;
     char response[MAX_RESPONSE_SIZE];
 
-    /* assign void pointer */
+    /* assign void pointer, thread safe exchange; unused at the moment */
+    struct thread_share_s* t_s = (struct thread_share_s*)(arg);
 
 
     /* init registers all commands */
@@ -151,6 +177,7 @@ void commandLineThread(void*arg) {
         /* process command */
         cmd_return = parser.processCommand(input.c_str(), response);
         cout << response << endl;
+        /* handling not supported at the moment */
         if (cmd_return) {
             //cout << "ans" << response << endl;
         }
@@ -168,9 +195,34 @@ void commandLineThread(void*arg) {
 
 
 /********************* command parser class func def *************************/
+/***
+ *
+ * class CommandParser{}
+ *
+ * This class build the entire command line. It stores all commands, with it's 
+ * callback, help strings, argument types and max args. It also defines the 
+ * processing and registering of a command as well as parsing a string and 
+ * processing the special case of help commmand
+ *
+ *
+ * @param:	void* arg --> called with thread_exchange_s struct for
+ *          Datatransfer (unused at the moment)
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 
 
-/* constructor */
+/****************************************************************************** 
+ * constructor
+******************************************************************************/
 CommandParser::CommandParser() : numCommands(0) {
     
     /* init args */
@@ -192,53 +244,15 @@ CommandParser::CommandParser() : numCommands(0) {
 
 }
 
-/* string parsing function */
-size_t CommandParser::parseString(const char* buf, char* output) {
-    size_t readCount = 0;
-    bool isQuoted = buf[0] == '"';
-    if (isQuoted) readCount++;
 
-    size_t i = 0;
-    for (; i < MAX_COMMAND_ARG_SIZE && buf[readCount] != '\0'; i++) {
-        if (isQuoted ? buf[readCount] == '"' : buf[readCount] == ' ') break;
-        if (buf[readCount] == '\\') {
-            readCount++;
-            switch (buf[readCount]) {
-            case 'n': output[i] = '\n'; readCount++; break;
-            case 'r': output[i] = '\r'; readCount++; break;
-            case 't': output[i] = '\t'; readCount++; break;
-            case '"': output[i] = '"'; readCount++; break;
-            case '\\': output[i] = '\\'; readCount++; break;
-            case 'x': {
-                readCount++;
-                output[i] = 0;
-                for (size_t j = 0; j < 2; j++, readCount++) {
-                    if ('0' <= buf[readCount] && buf[readCount] <= '9') output[i] = output[i] * 16 + (buf[readCount] - '0');
-                    else if ('a' <= buf[readCount] && buf[readCount] <= 'f') output[i] = output[i] * 16 + (buf[readCount] - 'a') + 10;
-                    else if ('A' <= buf[readCount] && buf[readCount] <= 'F') output[i] = output[i] * 16 + (buf[readCount] - 'A') + 10;
-                    else return 0;
-                }
-                break;
-            }
-            default: return 0;
-            }
-        }
-        else {
-            output[i] = buf[readCount];
-            readCount++;
-        }
-    }
-    if (isQuoted) {
-        if (buf[readCount] != '"') return 0;
-        readCount++;
-    }
 
-    output[i] = '\0';
-    return readCount;
-}
-
-/* register commands */
+/******************************************************************************
+ * register commands 
+ * 
+ * registers commands and beloging params in class
+******************************************************************************/
 bool CommandParser::registerCommand(const char* name, const char* argTypes, void (*callback)(Argument* args, size_t argCount,char* response), const char* help) {
+
     /* check if your allowed to register more commands */
     if (numCommands >= MAX_COMMANDS) {
         return false;
@@ -271,8 +285,13 @@ bool CommandParser::registerCommand(const char* name, const char* argTypes, void
     return true;
 }
 
-/* process commands */
+/******************************************************************************
+ * process commands
+ * 
+ * processes whole input, does validation checks and links correct callback
+******************************************************************************/
 bool CommandParser::processCommand(const char* command, char* response) {
+
     char name[MAX_COMMAND_NAME_LENGTH + 1];
     size_t i = 0;
 
@@ -347,7 +366,7 @@ bool CommandParser::processCommand(const char* command, char* response) {
                 case 'u': {
                     try {
                         size_t pos;
-                        unsigned int value = std::stoull(command, &pos, 0); // Basis 0 erlaubt die Erkennung von Dezimal-, Hexadezimal- oder Oktalzahlen.
+                        unsigned int value = std::stoull(command, &pos, 0); 
 
                         if (value > std::numeric_limits<unsigned int>::max()) {
                             snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for unsigned int for arg %d", (int)(i + 1));
@@ -376,7 +395,7 @@ bool CommandParser::processCommand(const char* command, char* response) {
                 case 'd': { 
                     try {
                         size_t pos;
-                        int value = std::stoll(command, &pos, 0); // Basis 0 erlaubt Erkennung von Dezimal-, Hexadezimal- und Oktalzahlen.
+                        int value = std::stoll(command, &pos, 0); 
 
                         if (value < std::numeric_limits<int>::min() || value > std::numeric_limits<int>::max()) {
                             snprintf(response, MAX_RESPONSE_SIZE, "parse error: value out of range for int for arg %d",(int)(i + 1));
@@ -417,16 +436,16 @@ bool CommandParser::processCommand(const char* command, char* response) {
             }
         }
     }
-    // skip whitespace
+    /* skip whitespace */
     while (*command == ' ') { command++; }
 
-    // ensure that we're at the end of the command
+    /* ensure that we're at the end of the command */
     if (*command != '\0') {
         snprintf(response, MAX_RESPONSE_SIZE, "parse error: too many args (expected %d)", (int)strlen(argTypes));
         return false;
     }
 
-    // set response to empty string
+    /* set response to empty string */
     response[0] = '\0';
 
     /* execute callbacks */
@@ -438,7 +457,13 @@ bool CommandParser::processCommand(const char* command, char* response) {
 }
 
 
-/* process help command */
+
+/******************************************************************************
+ * process chelp commands
+ * 
+ * special callback, which allows to read interal help strins connected to 
+ * the commands
+******************************************************************************/
 void CommandParser::process_help_Command(Argument* args, size_t argCount, char* response){
 
 
@@ -483,8 +508,103 @@ void CommandParser::process_help_Command(Argument* args, size_t argCount, char* 
 }
 
 
+/******************************************************************************
+ * string parsing function
+ *
+ * read string from buffer and write processed string in output
+ * check for special characters and escape sequence
+******************************************************************************/
+size_t CommandParser::parseString(const char* buf, char* output) {
+    /* track how many chars have been read from buffer */
+    size_t readCount = 0;
+
+    /* check if is quoted */
+    bool isQuoted = buf[0] == '"';
+    if (isQuoted) readCount++;
+
+    /* loop to input end or until max out size is reached */
+    size_t i = 0;
+    for (; i < MAX_COMMAND_ARG_SIZE && buf[readCount] != '\0'; i++) {
+        /* handle special chars */
+        if (isQuoted ? buf[readCount] == '"' : buf[readCount] == ' ') break;
+        if (buf[readCount] == '\\') {
+            readCount++;
+            switch (buf[readCount]) {
+            case 'n': output[i] = '\n'; readCount++; break;
+            case 'r': output[i] = '\r'; readCount++; break;
+            case 't': output[i] = '\t'; readCount++; break;
+            case '"': output[i] = '"'; readCount++; break;
+            case '\\': output[i] = '\\'; readCount++; break;
+            case 'x': {
+                readCount++;
+                output[i] = 0;
+                for (size_t j = 0; j < 2; j++, readCount++) {
+                    if ('0' <= buf[readCount] && buf[readCount] <= '9') output[i] = output[i] * 16 + (buf[readCount] - '0');
+                    else if ('a' <= buf[readCount] && buf[readCount] <= 'f') output[i] = output[i] * 16 + (buf[readCount] - 'a') + 10;
+                    else if ('A' <= buf[readCount] && buf[readCount] <= 'F') output[i] = output[i] * 16 + (buf[readCount] - 'A') + 10;
+                    else return 0;
+                }
+                break;
+            }
+            default: return 0;
+            }
+        }
+        else {
+            output[i] = buf[readCount];
+            readCount++;
+        }
+    }
+    if (isQuoted) {
+        if (buf[readCount] != '"') return 0;
+        readCount++;
+    }
+
+    /* Null-terminate the output string */
+    output[i] = '\0';
+
+    /* return the number of characters read from the input */
+    return readCount;
+}
+
+
+
 
 /************************** Function Definitions *****************************/
+/***
+ *
+ * command_parser_cmd_init(void)
+ *
+ * Initialize / Regsiter all commands 
+ *
+ *
+ * @param:	void
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage:   
+ * General:                   
+ *                  if(!parser.registerCommand("$CMD_NAME$", "$ARGTYPES$", $CALLBACK$, 
+ *                      "$HELP_STRING$"
+ *                  )){
+ *                      std::cerr << "err: could not register command!" << std::endl;
+ *                      return;
+ *                  }
+ * 
+ * 
+ * 
+ *                  if(!parser.registerCommand("mycommand", "uifs", my_cmd_cb,
+ *                      "helps with usage of mycommadn"
+ *                  )){
+ *                      std::cerr << "err: could not register command!" << std::endl;
+ *                      return;
+ *                  }
+ *
+***/
 void command_parser_cmd_init(void){
 
     /***
@@ -542,13 +662,17 @@ void command_parser_cmd_init(void){
 }
 
 
+/******************************************************************************
+ * Command Callbacks
+******************************************************************************/
+
+
 /* help command */
 void help_Cb(CommandParser::Argument* args, size_t argCount, char* response) {
 
     parser.process_help_Command(args, argCount, response);
 
 }
-
 
 
 /* hello world command */

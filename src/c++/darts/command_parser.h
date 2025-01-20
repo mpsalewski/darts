@@ -120,10 +120,10 @@ public:
 private:
     /* command structure */
     struct Command {
-        char name[MAX_COMMAND_NAME_LENGTH + 1];
-        char argTypes[MAX_COMMAND_ARGS + 1];
-        void (*callback)(Argument* args, size_t argCount, char* response);
-        char help[MAX_HELP_LENGTH + 1];
+        char name[MAX_COMMAND_NAME_LENGTH + 1];                             // command name
+        char argTypes[MAX_COMMAND_ARGS + 1];                                // argument types
+        void (*callback)(Argument* args, size_t argCount, char* response);  // callback func 
+        char help[MAX_HELP_LENGTH + 1];                                     // help string
     };
 
     /* attributes */
