@@ -62,17 +62,27 @@ using namespace std;
 
 
 /************************** Function Definitions *****************************/
+/***
+ *
+ * calibration_get_img(void)
+ *
+ * Use test images to warp perspective of three different camera
+ * angles
+ *
+ * @param:	void 
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
+void calibration_get_img(void){
 
-
-
-
-
-/* Main function */
-void calibration_get_img()
-
-
-
-{
     /*using test images while not accessing the cameras*/
 
 
@@ -134,6 +144,30 @@ void calibration_get_img()
 
 }
 
+
+
+/***
+ *
+ * calibration_get_img(cv::Mat& src, cv::Mat& dst, int ThreadId)
+ * 
+ * !Overloaded Function!
+ *
+ * Return calibrated / warped imaged based on given ThreadId
+ *
+ * @param:	cv::Mat& src --> raw image
+ * @param:  cv::Mat& dst --> warped image 
+ * @param   int ThreadId --> define camera perspective
+ *
+ *
+ * @return: void
+ *
+ *
+ * @note:	None
+ *
+ *
+ * Example usage: None
+ *
+***/
 void calibration_get_img(cv::Mat& src, cv::Mat& dst, int ThreadId) {
 
     /*source points for top cam*/

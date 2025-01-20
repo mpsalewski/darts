@@ -25,7 +25,7 @@
  *
  *
  * Further information about this source-file:
- *      TBD
+ *      --> Global vars and struct for Thread exchange (Datatransfer)
 ******************************************************************************/
 
 
