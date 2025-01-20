@@ -65,8 +65,8 @@ using namespace std;
 
 /************************** local Structure ***********************************/
 static struct img_proc_s {
-    int bin_thresh = 41;
-    int diff_min_thresh = 1.5e+5;
+    int bin_thresh = 41;                // parameter BIN_THRESH 
+    int diff_min_thresh = 1.5e+5;       // parameter DIFF_MIN_THRESH
 }img_proc;
 
 
@@ -81,11 +81,37 @@ static struct img_proc_s {
 
 
 /************************** Function Definitions *****************************/
-/******************************************************************************
+/***
+ *
+ * img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs, std::string CamNameId)
+ *
  * Image Processing Main Function
  * --> processes current and last image and returns main line through the tip
  * of the dart
-******************************************************************************/
+ *
+ *
+ * @param:	cv::Mat& lastImg --> last Image 
+ * @param:	cv::Mat& currentImg --> current Image
+ * @param:  int ThreadId --> defines camera perspective
+ * @param:  struct line_s* line --> return single line in Polar Coordinates
+ * @param:  int show_imgs --> defines Image to be displayed
+ * @param   std::string CamNameId --> Name displayed Windows
+ *
+ *
+ * @return: int status 
+ *
+ *
+ * @note:   This function is the kernel compoment of the Darts detection 
+ *          System. This function works based on difference images and
+ *          Image processing steps to isolated the Dart and detect the barrel
+ *          position and draw a line through the barrel and the tip of the 
+ *          Dart. After this function a intersection function is called 
+ *          to get the intersection of the three camera perspectives
+ *
+ *
+ * Example usage: None
+ *
+***/
 int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struct line_s* line, int show_imgs, std::string CamNameId) {
 
 
@@ -165,9 +191,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     //threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
     cv::threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
-#if 1
-    /*********************************************** under construction *****************************************************/
-    /* barrel detction (added at alter project stage) */
+
+    /* barrel detction (added at later project stage) */
     /***
      * idea is to find barrel cotour and delete flight contour and then draw a 
      * close fitting rectangle around the barrel and do edge detection with 
@@ -277,10 +302,6 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     //imshow("edges", edge_bin);
     //imshow("contoura", contoursImg);
     //imshow("Fitted all", cont_rect_fitted);
-
-    /*********************************************** under construction end **************************************************/
-#endif 
-
 
     /* Calculate Hough transform */
     cur_line = cur.clone();
@@ -490,8 +511,27 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 /******************************************************************************
  * Image Processing Help Functions
  ******************************************************************************/
-
-
+ /***
+  *
+  * img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage)
+  *
+  * Image Sharpening
+  *
+  *
+  * @param: const cv::Mat& inputImage --> Image to be sharpened
+  * @param: cv::Mat& outputImage --> sharpened Image 
+  *          
+  *
+  *
+  * @return: void
+  *
+  *
+  * @note:	None
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 void img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage) {
     /* define sharpening kernel */
     /* Mat kernel = (Mat_<float>(3, 3) <<
@@ -511,8 +551,29 @@ void img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage) {
 /***
  * find cross crosspoints with grafic method 
 ***/
-
-
+/***
+  *
+  * img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& maxLocations)
+  *
+  * Grafic Method o find all intersection points in an image. Based  on adding
+  * up pixels. Every Pixel value above pre-defined Thresh is an Intersection
+  * 
+  *
+  *
+  * @param: const cv::Mat& image --> Image with intersection
+  * @param: std::vector<cv::Point>& maxLocations --> Intersections
+  *
+  *
+  *
+  * @return: void
+  *
+  *
+  * @note:	None
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& maxLocations) {
 
     Mat image_gray;
@@ -532,6 +593,31 @@ void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& max
 
 
 
+/***
+  *
+  * img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p) 
+  *
+  * Grafic Method to find the midpoint of multiple intersections of three lines.
+  *
+  *
+  *
+  * @param: cv::Size frameSize --> Size of calibrated Images
+  * @param: struct tripple_line_s* tri_line --> Input three lines in Polar 
+  *         Coordinates
+  * @param: cv::Point& cross_p --> return midpoint f intersections --> final 
+  *         detection poont 
+  *
+  *
+  *
+  * @return: int status
+  *
+  *
+  * @note:	None
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p) {
 
     Mat frame = Mat::zeros(frameSize, CV_8UC3);
@@ -578,11 +664,32 @@ int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv
 }
 
 
+
 /***
  * find cross crosspoints with math method
 ***/
-
-/* transform Polar - Coordinates(r, theta) to Cartesian - Coordinates */
+/***
+  *
+  * img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_cart_s& cart)
+  *
+  * transform Polar - Coordinates(r, theta) to Cartesian - Coordinates 
+  *
+  *
+  * @param: const cv::Mat& image --> refered image
+  * @param: struct line_s l --> Input line in Polar Coordinates
+  * @param: struct line_cart_s& cart --> return line Cartesian Coordinates
+  *
+  *
+  *
+  * @return: void
+  *
+  *
+  * @note:	None
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 void img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_cart_s& cart) {
     
     /* Transformation is copied from HoughLine.cpp */
@@ -618,7 +725,30 @@ void img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_c
     return;
 }
 
-/* get intersection of two lines (polar coordinates) */
+
+/***
+  *
+  * img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& line2, cv::Point& intersection)
+  *
+  * get math intersection of two lines (polar coordinates)
+  *
+  *
+  * @param: const line_cart_s& line1 --> input line 01
+  * @param: const line_cart_s& line2 --> input line 02
+  * @param: cv::Point& intersection --> calculated intersection; set to 
+  *         (-66666,-66666) on error  
+  *
+  *
+  *
+  * @return: bool status
+  *
+  *
+  * @note:	None
+  *
+  *
+  * Example usage: None
+  *
+ ***/
 bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& line2, cv::Point& intersection) {
     
     /* first line */
