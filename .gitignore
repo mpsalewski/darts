@@ -2,6 +2,8 @@
 *.obj
 *.tlog
 
+videos/
+
 
 src/c++/darts/*.vcxproj.filters
 src/c++/darts/*.vcxproj.user

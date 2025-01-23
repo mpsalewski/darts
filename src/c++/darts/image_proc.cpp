@@ -67,8 +67,12 @@ using namespace std;
 
 /************************** local Structure ***********************************/
 static struct img_proc_s {
-    int bin_thresh = 41;                // parameter BIN_THRESH 
+    int bin_thresh = 31;                // parameter BIN_THRESH 
     int diff_min_thresh = 1.5e+5;       // parameter DIFF_MIN_THRESH
+    float aspect_ratio_max = 0.42;
+    float aspect_ratio_min = 0.01;
+    float area_min = 350;
+    float short_edge_max = 22;
 }img_proc;
 
 
@@ -242,6 +246,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     /* store all endpoints */
     vector<Point> allPoints;
 
+    
     /* look throug the contours */
     for (size_t i = 0; i < cont.size(); i++) {
         /* rotating bounding box */
@@ -253,6 +258,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         float aspectRatio = (width < height) ? width / height : height / width;
         double area = contourArea(cont[i]);
 
+        float short_edge = (width < height) ? width : height;
 
         /* criteria: narrow and elongated */
         /***
@@ -260,17 +266,25 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
          * area > x helps to ignore long small artefacts
          * 
         ***/
-        if ((aspectRatio < 0.2) && (aspectRatio > 0.01) && (area > 450)) {
-            drawContours(edge_bin_cont, cont, (int)i, Scalar(0, 255, 255), 1);
-            /* calculate corners of ratating rectangle */
-            Point2f points[4];
-            rotatedRect.points(points);
-
-            /* draw rot rect */
-            for (int j = 0; j < 4; j++) {
-                allPoints.push_back(points[j]);
-                //cv::line(cont_rect_fitted, points[j], points[(j + 1) % 4], Scalar(0, 255, 255), 1);
-                //line(result, points[j], points[(j + 1) % 4], Scalar(255, 0, 0), 1);
+        float ar_last = 1;
+        //if ((aspectRatio < 0.2) && (aspectRatio > 0.01) && (area > 450) && (short_edge < 20 )) {
+        //cout << short_edge;
+        if ((aspectRatio < img_proc.aspect_ratio_max) && (aspectRatio > img_proc.aspect_ratio_min) && (area > img_proc.area_min) && (short_edge < img_proc.short_edge_max)) {
+            if ((aspectRatio < ar_last)) {
+                ar_last = aspectRatio;
+                allPoints.clear();
+                drawContours(edge_bin_cont, cont, (int)i, Scalar(0, 255, 255), 1);
+                /* calculate corners of ratating rectangle */
+                Point2f points[4];
+                rotatedRect.points(points);
+                
+                /* draw rot rect */
+                for (int j = 0; j < 4; j++) {
+                    
+                    allPoints.push_back(points[j]);
+                    //cv::line(cont_rect_fitted, points[j], points[(j + 1) % 4], Scalar(0, 255, 255), 1);
+                    //line(result, points[j], points[(j + 1) % 4], Scalar(255, 0, 0), 1);
+                }
             }
 
         }
@@ -280,6 +294,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 
     /* calaculate just one rot rect which fits all other rects, their might be more than bc of shaft and barrel might be divided through its haptic */
     if (!allPoints.empty()) {
+
+
         RotatedRect enclosingRect = minAreaRect(allPoints);
         Point2f points_enc[4];
         enclosingRect.points(points_enc);
@@ -1151,9 +1167,18 @@ void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_lef
 
     createTrackbar(TRACKBAR_NAME_BIN_THRESH, WINDOW_NAME_THRESHOLD, NULL, 255, on_trackbar_bin_thresh, &img_proc);
     createTrackbar(TRACKBAR_NAME_DIFF_MIN_THRESH, WINDOW_NAME_THRESHOLD, NULL, 200 , on_trackbar_diff_min_thresh, &img_proc);
+    createTrackbar("AR_MAX", WINDOW_NAME_THRESHOLD, NULL, 255, on_trackbar_aspect_ratio_max, &img_proc);
+    createTrackbar("AR_MIN", WINDOW_NAME_THRESHOLD, NULL, 255, on_trackbar_aspect_ratio_min, &img_proc);
+    createTrackbar("AREA_MIN", WINDOW_NAME_THRESHOLD, NULL, 255, on_trackbar_area_min, &img_proc);
+    createTrackbar("W_MAX", WINDOW_NAME_THRESHOLD, NULL, 200, on_trackbar_short_edge_max, &img_proc);
+
 
     setTrackbarPos(TRACKBAR_NAME_BIN_THRESH, WINDOW_NAME_THRESHOLD, BIN_THRESH);
     setTrackbarPos(TRACKBAR_NAME_DIFF_MIN_THRESH, WINDOW_NAME_THRESHOLD, (int)(DIFF_MIN_THRESH/1e+4));
+    setTrackbarPos("AR_MAX", WINDOW_NAME_THRESHOLD, 42);
+    setTrackbarPos("AR_MIN", WINDOW_NAME_THRESHOLD, 1);
+    setTrackbarPos("AREA_MIN", WINDOW_NAME_THRESHOLD, 35);
+    setTrackbarPos("W_MAX", WINDOW_NAME_THRESHOLD,22);
 
     
     cout << "go through cams with enter; adjust bin thresh with trackbar; leave with [Esc]" << endl;
@@ -1241,6 +1266,57 @@ void on_trackbar_diff_min_thresh(int thresh, void* arg) {
 }
 
 
+/* set  */
+void on_trackbar_aspect_ratio_max(int aspect_ratio_max, void* arg) {
+
+    struct img_proc_s* iproc = (struct img_proc_s*)(arg);
+
+    /* update value */
+    iproc->aspect_ratio_max = (float)(aspect_ratio_max)/100.0f;
+    cout << iproc->aspect_ratio_max << endl;
+
+}
+
+
+
+/* set  */
+void on_trackbar_aspect_ratio_min(int aspect_ratio_min, void* arg) {
+
+    struct img_proc_s* iproc = (struct img_proc_s*)(arg);
+
+    /* update value */
+    iproc->aspect_ratio_min = (float)(aspect_ratio_min)/100.0f;
+    cout << iproc->aspect_ratio_min << endl;
+
+}
+
+/* set  */
+void on_trackbar_area_min(int area_min, void* arg) {
+
+    struct img_proc_s* iproc = (struct img_proc_s*)(arg);
+
+    /* update value */
+    iproc->area_min = (float)(area_min)*10;
+    cout << iproc->area_min << endl;
+
+}
+
+/* set  */
+void on_trackbar_short_edge_max(int short_edge_max, void* arg) {
+
+    struct img_proc_s* iproc = (struct img_proc_s*)(arg);
+
+    /* update value */
+    iproc->short_edge_max = (float)(short_edge_max);
+    cout << iproc->short_edge_max << endl;
+
+}
+
+
+
+
+
+
 
 /******************************************************************************
  * Command Line Support Function
@@ -1261,6 +1337,40 @@ void img_proc_set_diff_min_thresh(int thresh) {
     img_proc.bin_thresh = thresh;
 
 }
+
+
+/* set */
+void img_proc_set_aspect_ratio_max(int aspect_ratio_max) {
+
+    /* update value */
+    img_proc.bin_thresh = aspect_ratio_max;
+
+}
+
+/* set */
+void img_proc_set_aspect_ratio_min(int aspect_ratio_min) {
+
+    /* update value */
+    img_proc.aspect_ratio_min = aspect_ratio_min;
+
+}
+
+/* set */
+void img_proc_set_area_min(int area_min) {
+
+    /* update value */
+    img_proc.area_min = area_min;
+
+}
+
+/* set */
+void img_proc_set_short_edge_max(int short_edge_max) {
+
+    /* update value */
+    img_proc.short_edge_max = short_edge_max;
+
+}
+
 
 
 

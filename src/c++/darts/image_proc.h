@@ -52,8 +52,8 @@
 #define IMG_DIFFERENCE 1
 #define IMG_NO_DIFFERENCE 0 
 
-#define BIN_THRESH 32
-#define DIFF_MIN_THRESH 1.75e+5  //1e+6; this worked wo gaussian
+#define BIN_THRESH 31
+#define DIFF_MIN_THRESH 1.6e+5  //1e+6; this worked wo gaussian
 
 #define GAUSSIAN_BLUR_SIGMA 0.75
 
@@ -109,9 +109,18 @@ extern void img_proc_auto_calibration();
 
 extern void on_trackbar_bin_thresh(int thresh, void* arg);
 extern void on_trackbar_diff_min_thresh(int thresh, void* arg);
+extern void on_trackbar_aspect_ratio_max(int thresh, void* arg);
+extern void on_trackbar_aspect_ratio_min(int thresh, void* arg);
+extern void on_trackbar_area_min(int thresh, void* arg);
+extern void on_trackbar_short_edge_max(int thresh, void* arg);
 
 extern void img_proc_set_bin_thresh(int thresh);
 extern void img_proc_set_diff_min_thresh(int thresh);
+extern void img_proc_set_aspect_ratio_max(int aspect_ratio_max);
+extern void img_proc_set_aspect_ratio_min(int aspect_ratio_min);
+extern void img_proc_set_area_min(int area_min);
+extern void img_proc_set_short_edge_max(int short_edge_min);
+
 
 
 
