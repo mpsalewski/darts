@@ -55,7 +55,7 @@ using namespace std;
 
 /*************************** local Defines ***********************************/
 /* do threshold calibration at program start */
-#define CALIBRATION 1       // 1 = on; 0 = off
+#define CALIBRATION 0       // 1 = on; 0 = off
 
 /* Timing */
 #define FPS 15                      // defines Samplingrate in Cams Thread
@@ -310,6 +310,13 @@ void camsThread(void* arg) {
                 /* accumulate 3-dart score */
                 t_s->score += xp->r_final.val;
                 t_s->last_dart_str = xp->r_final.str;
+
+                /* check early busted or finish, you are already busted when there is just 1 left (--> <2) */
+                if ((dart_board_get_cur_player_score() - t_s->score) < 2) {
+                    /* set count throws to 3 so no more darts are allowed */
+                    xp->count_throws = 3;
+                }
+
                 /* thread safe */
                 t_s->mutex.unlock();
 

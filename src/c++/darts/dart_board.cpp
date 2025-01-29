@@ -1249,3 +1249,18 @@ void dart_board_set_score(char* name, int score) {
 
 
 }
+
+
+int dart_board_get_cur_player_score(void) {
+
+
+    /* thread safe */
+    d->mtx.lock();
+
+    /* return score of current player */
+    return d->g->p[d->dg->count_player].score;
+
+    d->mtx.unlock();
+
+
+}

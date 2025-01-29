@@ -270,8 +270,10 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         //if ((aspectRatio < 0.2) && (aspectRatio > 0.01) && (area > 450) && (short_edge < 20 )) {
         //cout << short_edge;
         if ((aspectRatio < img_proc.aspect_ratio_max) && (aspectRatio > img_proc.aspect_ratio_min) && (area > img_proc.area_min) && (short_edge < img_proc.short_edge_max)) {
+            /* only take the smallest aspect ratio */
             if ((aspectRatio < ar_last)) {
                 ar_last = aspectRatio;
+                /* reset contour */
                 allPoints.clear();
                 drawContours(edge_bin_cont, cont, (int)i, Scalar(0, 255, 255), 1);
                 /* calculate corners of ratating rectangle */

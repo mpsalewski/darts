@@ -75,4 +75,7 @@ extern int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart
 extern void dart_board_finish_scoreboard_gui(int player);
 extern void dart_board_set_new_game(char* names[], int num_p);
 extern void dart_board_set_score(char* name, int score);
+
+extern int dart_board_get_cur_player_score(void);
+
 #endif 
