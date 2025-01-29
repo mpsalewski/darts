@@ -1,4 +1,4 @@
-# Technology Stack and Structure
+# Design Pattern and Structure
 The code / templates follow an object-oriented C-style approach, where each module is realized using a **`*.c/*.cpp`** and **`*.h`** file. The **`*.c/*.cpp`** file contains a **static structure** with the module's variables, while the functions act as **member functions** (similar to object-oriented methods).
 <p>
 
