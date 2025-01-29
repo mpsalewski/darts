@@ -853,15 +853,6 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
 
 
 
-    /* busted */
-    if (d->g->p[d->dg->count_player].score < 0) {
-        cout << "busted! no score: " << d->g->p[d->dg->count_player].score << endl;
-        d->g->p[d->dg->count_player].score += new_throw;
-        /* no score mesage in lower area of frame */
-        d->dg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
-        d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
-        putText(d->dg->gui, "no score", Point(d->dg->text_pos, (int)((d->dg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
-    }
 
     /* finished */
     if (d->g->p[d->dg->count_player].score == 0) {
@@ -885,6 +876,17 @@ int dart_board_update_scoreboard_gui(int new_throw, std::string last_dart_str) {
             return (d->dg->count_player + 1);
         }
 
+    }
+
+
+    /* busted */
+    if (d->g->p[d->dg->count_player].score < 2) {
+        cout << "busted! no score: " << d->g->p[d->dg->count_player].score << endl;
+        d->g->p[d->dg->count_player].score += new_throw;
+        /* no score mesage in lower area of frame */
+        d->dg->text_w = getTextSize("no score", FONT_HERSHEY_SIMPLEX, 2, 3, nullptr).width;
+        d->dg->text_pos = 0 + (int)((d->dg->gui.cols - d->dg->text_w) / 2);
+        putText(d->dg->gui, "no score", Point(d->dg->text_pos, (int)((d->dg->gui.rows - 20))), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
     }
 
 
@@ -1257,10 +1259,12 @@ int dart_board_get_cur_player_score(void) {
     /* thread safe */
     d->mtx.lock();
 
-    /* return score of current player */
-    return d->g->p[d->dg->count_player].score;
+    int score = d->g->p[d->dg->count_player].score;
 
     d->mtx.unlock();
 
+
+    /* return score of current player */
+    return score;
 
 }

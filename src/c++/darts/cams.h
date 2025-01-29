@@ -41,9 +41,9 @@
 
 
 /* camera identities */
-#define TOP_CAM     2
-#define LEFT_CAM    0
-#define RIGHT_CAM   3
+#define TOP_CAM     3
+#define LEFT_CAM    1
+#define RIGHT_CAM   0//3
 #define DIFF_THRESH 1e+6
 
 

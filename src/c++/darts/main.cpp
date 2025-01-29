@@ -67,7 +67,7 @@ using namespace std;
 /*************************** local Defines ***********************************/
 /* main program */
 #define THREADING 1                 // use Camera Threads
-#define SIMULATION 1                // use Simluation Cams Thread instead of 
+#define SIMULATION 0                // use Simluation Cams Thread instead of 
                                     // real cams Thread
 #define LOAD_STATIC_TEST_IMAGES 0   // use this macro for debugging and test
 

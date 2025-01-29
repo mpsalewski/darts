@@ -55,7 +55,7 @@ using namespace std;
 
 /*************************** local Defines ***********************************/
 /* do threshold calibration at program start */
-#define CALIBRATION 0       // 1 = on; 0 = off
+#define CALIBRATION 1       // 1 = on; 0 = off
 
 /* Timing */
 #define FPS 15                      // defines Samplingrate in Cams Thread

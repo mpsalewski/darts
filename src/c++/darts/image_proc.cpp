@@ -73,7 +73,7 @@ using namespace std;
 static struct img_proc_s {
     int bin_thresh = 31;                // parameter BIN_THRESH 
     int diff_min_thresh = 1.5e+5;       // parameter DIFF_MIN_THRESH
-    float aspect_ratio_max = 0.42;
+    float aspect_ratio_max = 0.34;
     float aspect_ratio_min = 0.01;
     float area_min = 350;
     float short_edge_max = 22;
@@ -760,7 +760,7 @@ void img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_c
   * @param: const line_cart_s& line1 --> input line 01
   * @param: const line_cart_s& line2 --> input line 02
   * @param: cv::Point& intersection --> calculated intersection; set to 
-  *         (-66666,-66666) on error  
+  *         (-66666,-66666) on error    
   *
   *
   *
@@ -807,7 +807,7 @@ bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& lin
         intersection.y = -66666;
         return false;
     }
-    if ((intersection.y < 0) || (intersection.x > RAW_CAL_IMG_HEIGHT)) {
+    if ((intersection.y < 0) || (intersection.y > RAW_CAL_IMG_HEIGHT)) {
         intersection.x = -66666;
         intersection.y = -66666;
         return false;
@@ -1211,7 +1211,7 @@ void img_proc_calibration(cv::Mat& raw_top, cv::Mat& raw_right, cv::Mat& raw_lef
 
     setTrackbarPos(TRACKBAR_NAME_BIN_THRESH, WINDOW_NAME_THRESHOLD, BIN_THRESH);
     setTrackbarPos(TRACKBAR_NAME_DIFF_MIN_THRESH, WINDOW_NAME_THRESHOLD, (int)(DIFF_MIN_THRESH/1e+4));
-    setTrackbarPos("AR_MAX", WINDOW_NAME_THRESHOLD, 42);
+    setTrackbarPos("AR_MAX", WINDOW_NAME_THRESHOLD, 34);
     setTrackbarPos("AR_MIN", WINDOW_NAME_THRESHOLD, 1);
     setTrackbarPos("AREA_MIN", WINDOW_NAME_THRESHOLD, 35);
     setTrackbarPos("W_MAX", WINDOW_NAME_THRESHOLD,22);
