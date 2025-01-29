@@ -64,6 +64,10 @@ using namespace std;
 #define TRACKBAR_NAME_BIN_THRESH "Bin"
 #define TRACKBAR_NAME_DIFF_MIN_THRESH "Diff Min"
 
+/* size for cross_point calc */
+#define RAW_CAL_IMG_WIDTH 640       
+#define RAW_CAL_IMG_HEIGHT 480
+
 
 /************************** local Structure ***********************************/
 static struct img_proc_s {
@@ -797,6 +801,17 @@ bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& lin
         intersection.y = -66666;
         return false;
     }
+    /* Note: usage of this macro at this point makes it easy but not generic anymore for other frame sizes */
+    if ((intersection.x < 0) || (intersection.x > RAW_CAL_IMG_WIDTH)) {
+        intersection.x = -66666;
+        intersection.y = -66666;
+        return false;
+    }
+    if ((intersection.y < 0) || (intersection.x > RAW_CAL_IMG_HEIGHT)) {
+        intersection.x = -66666;
+        intersection.y = -66666;
+        return false;
+    }
 
     /* intersectio coordinates */
     intersection.x = (int)((B1 * C2 - B2 * C1) / det);
@@ -828,8 +843,27 @@ bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& lin
   * Example usage: None
   *
  ***/
-cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, const cv::Point& p3){
+cv::Point img_proc_calculate_midpoint(cv::Point& p1, cv::Point& p2, cv::Point& p3){
     Point midpoint;
+
+    /***
+     * calculate distance between each point; 
+     * if there were almost parallel lines due to unlucky cam angle, one point might be far away
+     * two avoid other errors this is done max. ones (if, else if,...)
+    ***/
+    double eps = 120.0;
+    if ((norm(p1 - p2) > eps) && (norm(p1 - p3) > eps)) {
+        p1.x = -66666;
+        p1.y = -66666;
+    }
+    else if ((norm(p2 - p1) > eps) && (norm(p2 - p3) > eps)) {
+        p2.x = -66666;
+        p2.y = -66666;
+    }
+    else if ((norm(p3 - p1) > eps) && (norm(p3 - p2) > eps)) {
+        p3.x = -66666;
+        p3.y = -66666;
+    }
 
     /* all points are valid */
     if (!(p1 == Point(-66666, -66666)) && !(p2 == Point(-66666, -66666)) && !(p3 == Point(-66666, -66666))) {

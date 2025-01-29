@@ -96,7 +96,7 @@ extern int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_l
 
 extern void img_proc_polar_to_cart(const cv::Mat& image, struct line_s l, struct line_cart_s& cart);
 extern bool img_proc_find_intersection(const line_cart_s& line1, const line_cart_s& line2, cv::Point& intersection);
-extern cv::Point img_proc_calculate_midpoint(const cv::Point& p1, const cv::Point& p2, const cv::Point& p3);
+extern cv::Point img_proc_calculate_midpoint(cv::Point& p1, cv::Point& p2, cv::Point& p3);
 extern int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p);
 
 
