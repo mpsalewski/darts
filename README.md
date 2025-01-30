@@ -10,7 +10,7 @@ This project was developed as part of the Digital Image / Video Processing modul
 - 2025-01-04
 
 ## Last Revision:
-- 2025-01-16
+- 2025-01-30
 
 ## Copyright (c) 2025:
 - Mika Paul Salewski, Lukas Grose
