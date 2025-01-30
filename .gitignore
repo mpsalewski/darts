@@ -2,7 +2,8 @@
 *.obj
 *.tlog
 
-videos/
+videos/*.mkv
+videos/*.mp4
 
 
 src/c++/darts/*.vcxproj.filters
