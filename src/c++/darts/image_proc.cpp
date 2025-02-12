@@ -68,6 +68,8 @@ using namespace std;
 #define RAW_CAL_IMG_WIDTH 640       
 #define RAW_CAL_IMG_HEIGHT 480
 
+/* decide beetwen cluster analysis [1] and classic obeject detection [0] */
+#define DO_PCA  1
 
 /************************** local Structure ***********************************/
 static struct img_proc_s {
@@ -87,9 +89,6 @@ static struct img_proc_s {
 
 
 /************************** Function Declaration *****************************/
-
-
-
 /************************** Function Definitions *****************************/
 /***
  *
@@ -201,6 +200,199 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     //threshold(edge, edge_bin, BIN_THRESH, 255, THRESH_BINARY);    // fixed macro
     cv::threshold(edge, edge_bin, img_proc.bin_thresh, 255, THRESH_BINARY);      // set by trackbar
 
+
+
+/********************** under construction ***********************************/
+
+
+#if DO_PCA
+
+    /***
+     * recursive cluster analysis
+     * 1. find main roi (Dart) in Image and find main axis through cluster 
+     * 2. define a new roi tight around the main axis and find a new main axis in this roi
+    ***/
+
+    /*** 
+     * create this image for imshow(), whats in earlier versions has been just the edge_bin image
+     * the name edge_bin_cont is "historical" result for compatibility, dont worry about it :)
+    ***/
+    Mat edge_bin_cont = edge_bin.clone();
+
+   
+    Mat cluster_img = edge_bin.clone();
+    /* heavy noise reduction, dont care if dart gets blurry */
+    GaussianBlur(cluster_img, cluster_img, Size(29, 29), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    threshold(cluster_img, cluster_img, 190, 255, THRESH_BINARY);
+    /* close open contours --> the goal is to get an even more symmetric cluster */
+    morphologyEx(cluster_img, cluster_img, MORPH_CLOSE, Mat::ones(5, 5, CV_8U));
+    
+    /* define roi size in the first run */
+    int imgWidth = cluster_img.cols;
+    int imgHeight = cluster_img.rows;
+    int roiWidth = (2 * imgWidth) / 3;
+    int roiHeight = (2 * imgHeight) / 3;
+
+    /* create niew overlapping rois */
+    std::vector<Rect> rois;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            int x = (i * imgWidth) / 3;
+            int y = (j * imgHeight) / 3;
+            rois.push_back(Rect(x, y, roiWidth, roiHeight) & Rect(0, 0, imgWidth, imgHeight));
+        }
+    }
+
+    /* get the roi with the most withe pixels --> find dart */
+    Rect bestRoi;
+    int maxWhitePixels = 0;
+
+    for (const auto& roi : rois) {
+        Mat roiImage = cluster_img(roi);
+        int whitePixels = countNonZero(roiImage);
+
+        if (whitePixels > maxWhitePixels) {
+            maxWhitePixels = whitePixels;
+            bestRoi = roi;
+        }
+    }
+
+    if (maxWhitePixels == 0) {
+        cout << "err: black screen" << endl;
+        return -1;
+    }
+
+    /* extract pxiels from best roi */
+    vector<Point> points_roi;
+    for (int y = bestRoi.y; y < bestRoi.y + bestRoi.height; y++) {
+        for (int x = bestRoi.x; x < bestRoi.x + bestRoi.width; x++) {
+            if (cluster_img.at<uchar>(y, x) == 255) {
+                points_roi.push_back(Point(x, y));
+            }
+        }
+    }
+
+
+    /* pca */
+    Mat data_roi(points_roi.size(), 2, CV_32F);
+    for (size_t i = 0; i < points_roi.size(); i++) {
+        data_roi.at<float>(i, 0) = points_roi[i].x;
+        data_roi.at<float>(i, 1) = points_roi[i].y;
+    }
+    PCA pca_roi(data_roi, Mat(), PCA::DATA_AS_ROW);
+
+    /* main axis of dart */
+    Vec2f mainAxis_roi(pca_roi.eigenvectors.row(0));
+
+    /* calc centroid of cluster */
+    Point2f centroid_roi(pca_roi.mean.at<float>(0, 0), pca_roi.mean.at<float>(0, 1));
+
+
+    /* creat image */
+    edge_bin_cont = cluster_img.clone();
+    
+    cvtColor(edge_bin_cont, edge_bin_cont, COLOR_GRAY2BGR);
+    
+    /* draw best roi */
+    rectangle(edge_bin_cont, bestRoi, Scalar(0, 255, 0), 2);
+
+    /* draw cluster main axis */
+    drawLine(edge_bin_cont, centroid_roi, mainAxis_roi, Scalar(0, 255, 0));
+
+    /* draw cluster centroid */
+    circle(edge_bin_cont, centroid_roi, 5, Scalar(0, 255, 0), -1);
+
+
+
+    /*** 
+     * do second cluster analysis with optimized roi 
+    ***/
+    cluster_img = edge_bin.clone();
+    /* heavy noise reduction, dont care if dart gets blurry */
+    GaussianBlur(cluster_img, cluster_img, Size(29, 29), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    threshold(cluster_img, cluster_img, 190, 255, THRESH_BINARY);
+    /* close open contours --> the goal is to get an even more symmetric cluster */
+    morphologyEx(cluster_img, cluster_img, MORPH_CLOSE, Mat::ones(5, 5, CV_8U));
+
+    /* size of rotated rect */
+    float roiWidth2 = 30;       // ±15 pixel around axis, should fit barrel and flight 
+    /* length of new roi is length of diagonal of old roi */
+    float roiHeight2 = std::sqrt(bestRoi.width * bestRoi.width + bestRoi.height * bestRoi.height); 
+
+    /* roatetd rect with old main axis as angle */
+    RotatedRect rotatedROI(centroid_roi, Size2f(roiHeight2, roiWidth2), atan2(mainAxis_roi[1], mainAxis_roi[0]) * 180.0 / CV_PI);
+
+    /* mask for roatetd rect */
+    Mat mask = Mat::zeros(cluster_img.size(), CV_8UC1);
+    Point2f vertices[4];
+    rotatedROI.points(vertices);
+    std::vector<Point> roiContour = { vertices[0], vertices[1], vertices[2], vertices[3] };
+    fillConvexPoly(mask, roiContour, Scalar(255));
+
+    /* extract pixels from new roi */
+    std::vector<Point> roiPoints;
+    for (int y = 0; y < cluster_img.rows; y++) {
+        for (int x = 0; x < cluster_img.cols; x++) {
+            if (mask.at<uchar>(y, x) == 255 && cluster_img.at<uchar>(y, x) == 255) {
+                roiPoints.push_back(Point(x, y));
+            }
+        }
+    }
+
+    /* second pca in rotated roi */
+    Mat roiData(roiPoints.size(), 2, CV_32F);
+    for (size_t i = 0; i < roiPoints.size(); i++) {
+        roiData.at<float>(i, 0) = roiPoints[i].x;
+        roiData.at<float>(i, 1) = roiPoints[i].y;
+    }
+    PCA pca2(roiData, Mat(), PCA::DATA_AS_ROW);
+    Point2f centroid2(pca2.mean.at<float>(0, 0), pca2.mean.at<float>(0, 1));
+    Vec2f mainAxis2(pca2.eigenvectors.row(0));
+
+
+    /* draw rotated roi */
+    drawRotatedRect(edge_bin_cont, rotatedROI, Scalar(255, 0, 255));
+
+    /* draw ne main axis and new centroid */
+    drawLine(edge_bin_cont, centroid2, mainAxis2, Scalar(255, 0, 255));
+    circle(edge_bin_cont, centroid2, 5, Scalar(255, 0, 255), -1);
+
+
+    /*** 
+     * get polar coordinates from final main axis 
+    ***/
+    float theta = 0;
+    float r = 0;
+
+    calculatePolarCoordinates(centroid2, mainAxis2, edge_bin, r, theta);
+
+
+
+    //Mat pca_img = Mat::zeros(edge_bin.size(), CV_8UC3);
+    
+    //drawLine(pca_img, centroid2, mainAxis2, Scalar(255, 255, 255));
+    //pca_img = Mat::zeros(edge_bin.size(), CV_8UC3);
+    
+    //drawLine(pca_img, centroid2, mainAxis2, Scalar(255, 0, 255));
+    //circle(pca_img, centroid2, 5, Scalar(0, 255, 255), -1);
+    //Mat edge_bin_cont = pca_img.clone();
+    //ip::drawLine(edge_bin_cont, r, theta);   // Debug
+    
+
+    cur_line = cur.clone();
+    ip::drawLine(cur_line, r, theta);
+    ip::drawLine(edge_bin_cont, r, theta);
+
+    /* return line values */
+    line->r = r;
+    line->theta = theta;
+
+/*****************************************************************************/
+
+
+
+
+#else
 
     /* barrel detction (added at later project stage) */
     /***
@@ -421,6 +613,9 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     line->theta = theta_avg;
     //cout << "Debug r_avg: " << r_avg << "\ttheta_avg" << theta_avg << endl;
 
+#endif
+
+
     /* create windows */
     if (show_imgs == SHOW_NO_IMAGES) {
         return EXIT_SUCCESS;
@@ -571,6 +766,66 @@ void img_proc_sharpen_img(const cv::Mat& inputImage, cv::Mat& outputImage) {
     filter2D(inputImage, outputImage, -1, kernel);
 }
 
+
+
+/* draw main axis */
+void drawLine(cv::Mat& img, cv::Point p, cv::Vec2f dir, cv::Scalar color, int length) {
+    cv::Point p1 = p + cv::Point(dir[0] * length, dir[1] * length);
+    cv::Point p2 = p - cv::Point(dir[0] * length, dir[1] * length);
+    cv::line(img, p1, p2, color, 2);
+}
+
+/* get polar coordinates (r, theta) from main axis (line) */
+void calculatePolarCoordinates(cv::Point p, cv::Vec2f dir, cv::Mat& img, float& r, float& theta) {
+
+    /* image center */
+    cv::Point center(img.cols / 2, img.rows / 2);
+
+    /* normal vector of line */
+    cv::Vec2f normal(-dir[1], dir[0]);
+
+    /* get angle theta from normal vector[-pi / 2 und pi / 2] */
+    theta = std::atan2(normal[1], normal[0]);
+
+    /* get distance r of line to image center */
+    r = (p.x - center.x) * normal[0] + (p.y - center.y) * normal[1];
+
+    /* shift angle [0, pi] */
+    if (theta < 0) {
+        theta += CV_PI;
+        r = -r;
+    }
+
+}
+
+/* extract roatetd rect from center and main axis */
+cv::Mat getRotatedROI(const cv::Mat& img, cv::Point2f center, cv::Vec2f axis, int width, int height) {
+    /* calc rot matrix */
+    double angle = atan2(axis[1], axis[0]) * 180.0 / CV_PI;
+    cv::Mat rotationMatrix = cv::getRotationMatrix2D(center, angle, 1.0);
+
+    /* rotate original image */
+    cv::Mat rotatedImg;
+    cv::warpAffine(img, rotatedImg, rotationMatrix, img.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0));
+
+    /* define new roi window */
+    cv::Rect roiRect(center.x - width / 2, center.y - height / 2, width, height);
+
+    /* boundaries */
+    roiRect &= cv::Rect(0, 0, img.cols, img.rows);
+
+    return rotatedImg(roiRect);
+}
+
+
+/* drar rotated rect */
+void drawRotatedRect(cv::Mat& img, cv::RotatedRect rRect, cv::Scalar color) {
+    cv::Point2f vertices[4];
+    rRect.points(vertices);
+    for (int i = 0; i < 4; i++) {
+        cv::line(img, vertices[i], vertices[(i + 1) % 4], color, 2);
+    }
+}
 
 /******************************************************************************
  * find cross crosspoints with grafic method 
