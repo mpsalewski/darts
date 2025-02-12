@@ -78,6 +78,7 @@ struct flags_s {
     int diff_flag_right = 0;
     int diff_flag_left = 0;
     int diff_flag_raw = 0;
+    int pause = 0;
 };
 
 
@@ -262,13 +263,17 @@ void camsThread(void* arg) {
             imshow(right_cam_win, cur_frame_right);
             imshow(left_cam_win, cur_frame_left);
 
+            dart_board_draw_sectors(cur_frame_top, TOP_CAM);
+            dart_board_draw_sectors(cur_frame_right, RIGHT_CAM);
+            dart_board_draw_sectors(cur_frame_left, LEFT_CAM);
+
             /* check íf there are any differences */
             xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
             xp->flags.diff_flag_right = img_proc_diff_check(last_frame_right, cur_frame_right, RIGHT_CAM);
             xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, cur_frame_left, LEFT_CAM);
 
             /* check detected difference && expecting throws (count_throws < 3) */
-            if ((xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left) && (xp->count_throws < 3)) {
+            if ((xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left) && (xp->count_throws < 3) && !xp->flags.pause) {
                 /* clear flags */
                 xp->flags.diff_flag_top = 0;
                 xp->flags.diff_flag_top = 0;
@@ -322,7 +327,7 @@ void camsThread(void* arg) {
 
             }
             /* 3 throws detected --> wait for Darts removed from Board */
-            else if (xp->count_throws == 3) {
+            else if ((xp->count_throws == 3) && !xp->flags.pause){
 
                 /* thread safe */
                 t_s->mutex.lock();
@@ -503,11 +508,11 @@ void SIMULATION_OF_camsThread(void*arg) {
     //right_cam >> last_frame_right;
     //left_cam >> last_frame_left;
     Mat img = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
-    drawDartboardSectors(img, TOP_CAM);
+    dart_board_draw_sectors(img, TOP_CAM);
     img = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
-    drawDartboardSectors(img, RIGHT_CAM);
+    dart_board_draw_sectors(img, RIGHT_CAM);
     img = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
-    drawDartboardSectors(img, LEFT_CAM);
+    dart_board_draw_sectors(img, LEFT_CAM);
 
 
 #if 0
@@ -580,7 +585,7 @@ void SIMULATION_OF_camsThread(void*arg) {
             xp->flags.diff_flag_left = img_proc_diff_check(last_frame_left, cur_frame_left, LEFT_CAM);
 
             /* check detected difference */
-            if (xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left) {
+            if ((xp->flags.diff_flag_top || xp->flags.diff_flag_right || xp->flags.diff_flag_left) && !xp->flags.pause){
                 /* clear flags */
                 xp->flags.diff_flag_top = 0;
                 xp->flags.diff_flag_top = 0;
@@ -627,7 +632,7 @@ void SIMULATION_OF_camsThread(void*arg) {
                 t_s->mutex.unlock();
             }
             /* 3 throws detected --> wait for Darts removed from Board */
-            else if (xp->count_throws == 3) {
+            else if ((xp->count_throws == 3) && !xp->flags.pause) {
 
                 /* thread safe */
                 t_s->mutex.lock();
@@ -685,3 +690,18 @@ void SIMULATION_OF_camsThread(void*arg) {
 
 
 /************************** Function Definitions *****************************/
+
+/* not thread safe atm */
+/* external bust */
+void cams_external_bust(void) {
+
+    darts.count_throws = 3;
+
+}
+
+/* pause detection; [0:= running, 1:= paused] */
+void cams_pause_detection(int mode) {
+
+    darts.flags.pause = mode;
+
+}

@@ -152,6 +152,8 @@ extern void welcomeCb(CommandParser::Argument* args, size_t argCount, char* resp
 extern void set_new_game_Cb(CommandParser::Argument* args, size_t argCount, char* response);
 extern void set_params(CommandParser::Argument* args, size_t argCount, char* response);
 
+extern void pause(CommandParser::Argument* args, size_t argCount, char* response);
+
 
 
 

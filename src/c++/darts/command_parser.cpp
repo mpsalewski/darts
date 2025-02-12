@@ -80,6 +80,7 @@
 #include "Sobel.h"
 #include "HoughLine.h"
 #include "dart_board.h"
+#include "cams.h"
 #include "globals.h"
 #include "command_parser.h"
 #include <cstring>
@@ -657,6 +658,13 @@ void command_parser_cmd_init(void){
         return;
     }
 
+    /* new game command, max 4 players */
+    if (!parser.registerCommand("pause", "u", pause,
+        "pause darts detection with 1; resume darts detection with 0"
+    )) {
+        std::cerr << "err: could not register command!" << std::endl;
+        return;
+    }
 
 
 }
@@ -804,3 +812,32 @@ void set_params(CommandParser::Argument* args, size_t argCount, char* response) 
 }
 
 
+/* pause / run detection */
+void pause(CommandParser::Argument* args, size_t argCount, char* response) {
+
+    /* no params */
+    if (argCount == 0) {
+        snprintf(response, MAX_RESPONSE_SIZE, "err: not enough args");
+        return;
+    }
+
+
+    if ((args[0].asUInt > 1) || (args[0].asUInt < 0 )) {
+        snprintf(response, MAX_RESPONSE_SIZE, "err: not an argument");
+        return;
+    }
+   
+
+    cams_pause_detection(args[0].asUInt);
+
+    if (args[0].asUInt == 0) {
+        snprintf(response, MAX_RESPONSE_SIZE, "darts dectection resumed");
+        return;
+    }
+
+    snprintf(response, MAX_RESPONSE_SIZE, "darts dectection paused");
+
+    return;
+
+
+}
