@@ -67,7 +67,7 @@ extern void dart_board_init(void);
 extern void dart_board_determineSector(const cv::Point& pixel, int ThreadId, struct result_s*r);
 extern void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sector_s& board, struct result_s* r);
 extern void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* sec_board_right, struct result_s* sec_board_left, struct result_s* r);
-
+extern void drawDartboardSectors(cv::Mat& image, int ThreadId);
 
 
 extern void dart_board_create_scoreboard_gui(std::string name_win = "Darts Scoreboard", int w = SCOREBOARD_GUI_WIDTH, int h = SCOREBOARD_GUI_HEIGHT);

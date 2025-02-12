@@ -502,6 +502,14 @@ void SIMULATION_OF_camsThread(void*arg) {
     //top_cam >> last_frame_top;
     //right_cam >> last_frame_right;
     //left_cam >> last_frame_left;
+    Mat img = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    drawDartboardSectors(img, TOP_CAM);
+    img = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    drawDartboardSectors(img, RIGHT_CAM);
+    img = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    drawDartboardSectors(img, LEFT_CAM);
+
+
 #if 0
     last_frame_top = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
     last_frame_right = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);

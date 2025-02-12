@@ -606,6 +606,84 @@ void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* s
 }
 
 
+// Funktion zum Zeichnen der Dartboard-Sektoren
+void drawDartboardSectors(cv::Mat& image, int ThreadId) {
+
+    string CamNameId = "TOP";
+    struct Dartboard_Sector_s board;
+    Mat cur = image.clone();
+    /* calibrate images */
+    calibration_get_img(cur, cur, ThreadId);
+
+    switch (ThreadId) {
+
+        case TOP_CAM:
+            CamNameId = "TOP";
+            board = *d->db;
+            break;
+
+        case RIGHT_CAM:
+            CamNameId = "RIGHT";
+            board = *d->db;
+            break;
+
+        case LEFT_CAM:
+            CamNameId = "LEFT";
+            board = *d->db;
+            break;
+
+        default:    
+            return;
+            break;
+    }
+
+    // Mittelpunkt des Dartboards
+    cv::Point center = board.center;
+    int radius = board.Db_r.radiusDoubleOuter;  // Äußerer Radius des Dartboards
+
+    // Farben definieren
+    cv::Scalar lineColor(255, 255, 255);  // Grün für die Linien
+    cv::Scalar textColor(255, 255, 255);  // Weiß für die Zahlen
+
+    // Sektorwinkel berechnen
+    float angleStep = 360.0 / 20;  // 20 Sektoren, also 18° pro Sektor
+    int k = 0;
+    for (int i = 0; i < 20; i++, k +=2) {
+        float angle1 = -((i * angleStep)) * CV_PI / 180.0;
+        float angle2 = -(((i + 1) * angleStep)) * CV_PI / 180.0;
+        angle1 -= 279.0 * CV_PI / 180.0;
+        angle2 -= 279.0 * CV_PI / 180.0;
+        // Endpunkte der Linien berechnen
+        cv::Point p1(center.x + radius * cos(angle1), center.y - radius * sin(angle1));
+        cv::Point p2(center.x + radius * cos(angle2), center.y - radius * sin(angle2));
+
+        // Linie zeichnen
+        cv::line(cur, center, p1, lineColor, 1);
+        cv::line(cur, center, p2, lineColor, 1);
+
+        // Mittelpunkt für die Sektornummer bestimmen
+        float midAngle = (angle1 + angle2) / 2;
+        cv::Point textPos(center.x + (radius * 0.75) * cos(midAngle),
+            center.y - (radius * 0.75) * sin(midAngle));
+
+        // Nummer des Sektors ins Bild schreiben
+        cv::putText(cur, std::to_string(board.sectorNumbers[k+1]), textPos,
+            cv::FONT_HERSHEY_SIMPLEX, 0.5, textColor, 1);
+    }
+
+    // Kreise für die Bullseye-Bereiche zeichnen
+    cv::circle(cur, center, board.Db_r.radiusBullseye, cv::Scalar(255, 255, 255), 1);  // Bullseye
+    cv::circle(cur, center, board.Db_r.radiusSingleBull, cv::Scalar(255, 255, 255), 1);  // Single Bull
+    cv::circle(cur, center, board.Db_r.radiusTripleInner, cv::Scalar(255, 255, 255), 1);  // Triple Ring
+    cv::circle(cur, center, board.Db_r.radiusTripleOuter, cv::Scalar(255, 255, 255), 1);  // Triple Außen
+    cv::circle(cur, center, board.Db_r.radiusDoubleInner, cv::Scalar(255, 255, 255), 1);  // Double Innen
+    cv::circle(cur, center, board.Db_r.radiusDoubleOuter, cv::Scalar(255, 255, 255), 1);  // Double Außen
+
+    string img_name = string("Raw Image with Sector (").append(CamNameId).append(" Cam)");
+    cv::imshow(img_name, cur);
+
+
+}
 
 
 /******************************************************************************
