@@ -1225,7 +1225,7 @@ int img_proc_cross_point_math(cv::Size frameSize, struct tripple_line_s* tri_lin
 
     // Debug 
     //cout << "midpoint: x: " << centerOfMass.x << ", y: " << centerOfMass.y << endl;
-
+    dart_board_draw_sectors(frame, TOP_CAM, 0, 0);
     imshow("Z Line Intersection", frame);
     //cv::imwrite("lines_intersection_math.jpg", frame);
     

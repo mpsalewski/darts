@@ -607,13 +607,15 @@ void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* s
 
 
 // Funktion zum Zeichnen der Dartboard-Sektoren
-void dart_board_draw_sectors(cv::Mat& image, int ThreadId) {
+void dart_board_draw_sectors(cv::Mat& image, int ThreadId, int image_show, int cal) {
 
     string CamNameId = "TOP";
     struct Dartboard_Sector_s board;
     Mat cur = image.clone();
     /* calibrate images */
-    calibration_get_img(cur, cur, ThreadId);
+    if (cal) {
+        calibration_get_img(cur, cur, ThreadId);
+    }
 
     switch (ThreadId) {
 
@@ -679,8 +681,13 @@ void dart_board_draw_sectors(cv::Mat& image, int ThreadId) {
     circle(cur, center, board.Db_r.radiusDoubleInner, circleColor, 1);    // double in
     circle(cur, center, board.Db_r.radiusDoubleOuter, circleColor, 1);    // double out
 
-    string img_name = string("Raw Image with Sector (").append(CamNameId).append(" Cam)");
-    imshow(img_name, cur);
+    if (image_show) {
+        string img_name = string("Raw Image with Sector (").append(CamNameId).append(" Cam)");
+        imshow(img_name, cur);
+    }
+    else {
+        image = cur.clone();
+    }
 
 
 }
