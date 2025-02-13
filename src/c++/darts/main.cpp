@@ -44,6 +44,10 @@
 #include <cstdlib>
 #include <string>
 #include <opencv2/opencv.hpp>
+#include <opencv2/features2d.hpp>
+#include <opencv2/calib3d.hpp>
+//#include <opencv2/xfeatures2d.hpp>
+#include <vector>
 #include "image_proc.h"
 #include <thread>
 #include <atomic>
@@ -91,10 +95,17 @@ atomic<bool> running(true);     // GLOBAL!
 void static_test(void);
 
 
-
 /****************************** main function ********************************/
 int main() {
 
+
+    
+    // call these lines to store new reference images 
+    /*
+    dart_board_init();
+    calibration_ref_create();
+    return 0;
+    */
 
     /* always register the command line */
     thread command_line(commandLineThread, &t_s);
@@ -131,6 +142,7 @@ int main() {
     
     /* create darts gui thread */
     thread guiThread(Dartsboard_GUI_Thread, &t_s);
+
 
     this_thread::sleep_for(chrono::milliseconds(2000));
 
@@ -220,22 +232,22 @@ void static_test(void) {
 
 
     /* load image from file */
-    Mat top_image = cv::imread(TOP_1DARTS, cv::IMREAD_ANYCOLOR);
-    Mat top_raw = cv::imread(TOP_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
-    Mat top_image2 = cv::imread(TOP_2DARTS, cv::IMREAD_ANYCOLOR);
-    Mat top_image3 = cv::imread(TOP_3DARTS, cv::IMREAD_ANYCOLOR);
+    Mat top_image = imread(TOP_1DARTS, IMREAD_ANYCOLOR);
+    Mat top_raw = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    Mat top_image2 = imread(TOP_2DARTS, IMREAD_ANYCOLOR);
+    Mat top_image3 = imread(TOP_3DARTS, IMREAD_ANYCOLOR);
 
     /* load image from file */
-    Mat right_image = cv::imread(RIGHT_1DARTS, cv::IMREAD_ANYCOLOR);
-    Mat right_raw = cv::imread(RIGHT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
-    Mat right_image2 = cv::imread(RIGHT_2DARTS, cv::IMREAD_ANYCOLOR);
-    Mat right_image3 = cv::imread(RIGHT_3DARTS, cv::IMREAD_ANYCOLOR);
+    Mat right_image = imread(RIGHT_1DARTS, IMREAD_ANYCOLOR);
+    Mat right_raw = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    Mat right_image2 = imread(RIGHT_2DARTS, IMREAD_ANYCOLOR);
+    Mat right_image3 = imread(RIGHT_3DARTS, IMREAD_ANYCOLOR);
 
     /* load image from file */
-    Mat left_image = cv::imread(LEFT_1DARTS, cv::IMREAD_ANYCOLOR);
-    Mat left_raw = cv::imread(LEFT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
-    Mat left_image2 = cv::imread(LEFT_2DARTS, cv::IMREAD_ANYCOLOR);
-    Mat left_image3 = cv::imread(LEFT_3DARTS, cv::IMREAD_ANYCOLOR);
+    Mat left_image = imread(LEFT_1DARTS, IMREAD_ANYCOLOR);
+    Mat left_raw = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    Mat left_image2 = imread(LEFT_2DARTS, IMREAD_ANYCOLOR);
+    Mat left_image3 = imread(LEFT_3DARTS, IMREAD_ANYCOLOR);
 
 
 
@@ -245,9 +257,9 @@ void static_test(void) {
     line.r = 1;
     line.theta = 99;
 
-    top_raw = cv::imread(TOP_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
-    right_raw = cv::imread(RIGHT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
-    left_raw = cv::imread(LEFT_RAW_IMG_CAL, cv::IMREAD_ANYCOLOR);
+    top_raw = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    right_raw = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    left_raw = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
 
 #if 1
     img_proc_get_line_debug(top_raw, top_image, TOP_CAM, &t_line.line_top, SHOW_SHORT_ANALYSIS, "Top Static Test");
@@ -271,7 +283,7 @@ void static_test(void) {
     destroyAllWindows();
     Point cross_point;
     calibration_get_img(top_raw, top_raw, TOP_CAM);
-    cv::imwrite("top_raw_cal.jpg", top_raw);
+    imwrite("top_raw_cal.jpg", top_raw);
     img_proc_cross_point(top_raw.size(), &t_line, cross_point);
     img_proc_cross_point_math(top_raw.size(), &t_line, cross_point);
     cout << "Raw Cal Size" << top_raw.size() << endl;
@@ -279,13 +291,13 @@ void static_test(void) {
     /*
     // Beispiel-Daten für eine standardisierte Dartscheibe
     // Beispielpixel (ein Punkt auf der Scheibe)
-    //cv::Point2f pixel(390, 139); // Tripple 18
-    //cv::Point2f pixel(419, 371); // Single 2
-    //cv::Point2f pixel(399, 411); // Double 17
-    //cv::Point2f pixel(225, 161); // Tripple 9
-    //cv::Point2f pixel(142, 204); // Single 14
-    //cv::Point2f pixel(176, 365); // Double 16
-    //cv::Point2f pixel(272, 347); // Tripple 19
+    //Point2f pixel(390, 139); // Tripple 18
+    //Point2f pixel(419, 371); // Single 2
+    //Point2f pixel(399, 411); // Double 17
+    //Point2f pixel(225, 161); // Tripple 9
+    //Point2f pixel(142, 204); // Single 14
+    //Point2f pixel(176, 365); // Double 16
+    //Point2f pixel(272, 347); // Tripple 19
     //std::string result = determineSector(pixel, board);
     std::string result = determineSector(cross_point, board);
 
@@ -303,7 +315,7 @@ void static_test(void) {
 
 
 
-    cv::waitKey(0);
+    waitKey(0);
 }
 
 

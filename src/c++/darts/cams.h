@@ -61,6 +61,24 @@
 #define LEFT_3DARTS "images/test_img/left/left_3darts.jpg"
 #define RIGHT_3DARTS "images/test_img/right/right_3darts.jpg"
 
+#define REFERENCE_IMAGE "images/test_img/reference.jpg"
+
+/*
+#define TOP_REF "images/test_img/top_ref.jpg"
+#define RIGHT_REF "images/test_img/right_ref.jpg"
+#define LEFT_REF "images/test_img/left_ref.jpg"
+*/
+#define TOP_REF "images/ref/top_ref.jpg"
+#define RIGHT_REF "images/ref/right_ref.jpg"
+#define LEFT_REF "images/ref/left_ref.jpg"
+
+
+#define TOP_TO_BE_REF "images/test_img/top/top_raw.jpg"
+#define RIGHT_TO_BE_REF "images/test_img/right/right_raw.jpg"
+#define LEFT_TO_BE_REF "images/test_img/left/left_raw.jpg"
+
+
+
 /************************** local Structure ***********************************/
 
 

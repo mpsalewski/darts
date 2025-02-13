@@ -242,6 +242,13 @@ void camsThread(void* arg) {
     raw_empty_init_frame = last_frame_top.clone();
 
 
+    /* calibration */
+    top_cam >> cur_frame_top;
+    right_cam >> cur_frame_right;
+    left_cam >> cur_frame_left;
+    calibration_auto_cal(cur_frame_top, cur_frame_right, cur_frame_left);
+
+
     /* loop */
     while (running == 1) {
 
@@ -263,9 +270,17 @@ void camsThread(void* arg) {
             imshow(right_cam_win, cur_frame_right);
             imshow(left_cam_win, cur_frame_left);
 
-            dart_board_draw_sectors(cur_frame_top, TOP_CAM);
-            dart_board_draw_sectors(cur_frame_right, RIGHT_CAM);
-            dart_board_draw_sectors(cur_frame_left, LEFT_CAM);
+            
+            /* event handling */
+            if (false) {
+                /* calibration */
+                top_cam >> cur_frame_top;
+                right_cam >> cur_frame_right;
+                left_cam >> cur_frame_left;
+                calibration_auto_cal(cur_frame_top, cur_frame_right, cur_frame_left);
+            }
+
+
 
             /* check íf there are any differences */
             xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
@@ -436,6 +451,9 @@ void SIMULATION_OF_camsThread(void*arg) {
     
     /* assign this pointer due to campatibility reasons with older version */
     struct darts_s* xp = &darts;
+    
+    /* init image cal values */
+    calibration_init();
 
     Mat cur_frame_top, cur_frame_right, cur_frame_left;
     Mat last_frame_top, last_frame_right, last_frame_left;
@@ -502,6 +520,13 @@ void SIMULATION_OF_camsThread(void*arg) {
     //cur_frame_left = imread(LEFT_3DARTS, IMREAD_ANYCOLOR);
     img_proc_calibration(last_frame_top,last_frame_right,last_frame_left,cur_frame_top,cur_frame_right,cur_frame_left);
 #endif
+
+    Mat top_raw = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    Mat right_raw = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+    Mat left_raw = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+
+    calibration_auto_cal(top_raw, right_raw, left_raw);
+
 
     /* init last frames */
     //top_cam >> last_frame_top;
@@ -578,6 +603,11 @@ void SIMULATION_OF_camsThread(void*arg) {
             imshow(top_cam_win, cur_frame_top);
             imshow(right_cam_win, cur_frame_right);
             imshow(left_cam_win, cur_frame_left);
+            //calibration_get_img();
+            Mat top_raw = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+            Mat right_raw = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+            Mat left_raw = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
+            //calibration_cal_src_points(top_raw, right_raw, left_raw);
 
             /* check íf there are any differences */
             xp->flags.diff_flag_top = img_proc_diff_check(last_frame_top, cur_frame_top, TOP_CAM);
