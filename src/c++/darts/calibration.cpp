@@ -300,7 +300,8 @@ void calibration_auto_cal(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
 
 void calibration_ref_create(void) {
 
-    
+ 
+#if 0 /* USE PAINT AND STATIC POINTS */
     /* define input image */
     Mat top_img = imread(TOP_TO_BE_REF, IMREAD_ANYCOLOR);
     Mat right_img = imread(RIGHT_TO_BE_REF, IMREAD_ANYCOLOR);
@@ -374,12 +375,56 @@ void calibration_ref_create(void) {
     //dst_points.push_back(Point2f(10, 240)); // sbull-out->6 
     */
 
+    
+#else /* USE GUI */
 
+    calibration_init();
+
+    /* define input image */
+    Mat top_img = imread(TOP_TO_BE_REF, IMREAD_ANYCOLOR);
+    Mat right_img = imread(RIGHT_TO_BE_REF, IMREAD_ANYCOLOR);
+    Mat left_img = imread(LEFT_TO_BE_REF, IMREAD_ANYCOLOR);
+
+
+    /* source points for top cam */
+    vector<Point2f> src_points_top;
+    src_points_top.push_back(Point2f(334, 81));  // 20
+    src_points_top.push_back(Point2f(535, 271)); // 6
+    src_points_top.push_back(Point2f(335, 364)); // 3
+    src_points_top.push_back(Point2f(138, 260)); // 11
+
+
+    /*source points for right cam*/
+    vector<Point2f> src_points_right;
+    src_points_right.push_back(Point2f(162, 339));  // 20
+    src_points_right.push_back(Point2f(175, 168)); // 6
+    src_points_right.push_back(Point2f(487, 234)); // 3
+    src_points_right.push_back(Point2f(373, 370)); // 11
+
+    /*source points for left cam*/
+    vector<Point2f> src_points_left;
+    src_points_left.push_back(Point2f(470, 316)); // 20
+    src_points_left.push_back(Point2f(243, 335)); // 6
+    src_points_left.push_back(Point2f(149, 170)); // 3
+    src_points_left.push_back(Point2f(490, 128)); // 11
+
+
+    /* points of the numbers 20,6,3,11 on the warped picture */
+    vector<Point2f> dst_points;
+    dst_points.push_back(Point2f(320, 40)); // 20d
+    dst_points.push_back(Point2f(520, 240));// 6d
+    dst_points.push_back(Point2f(320, 440)); // 3d
+    dst_points.push_back(Point2f(120, 240));// 11d
+
+
+    calibration_cal_src_points(top_img, right_img, left_img);
+
+#endif 
 
     // Berechne die Homographie-Matrix
-    Mat H_top = findHomography(src_points_top, dst_points, RANSAC, 3.0);
-    Mat H_right = findHomography(src_points_right, dst_points, RANSAC, 3.0);
-    Mat H_left = findHomography(src_points_left, dst_points, RANSAC, 3.0);
+    Mat H_top = findHomography(cal.src_points_top, dst_points, RANSAC, 3.0);
+    Mat H_right = findHomography(cal.src_points_right, dst_points, RANSAC, 3.0);
+    Mat H_left = findHomography(cal.src_points_left, dst_points, RANSAC, 3.0);
 
     // Transformiere das Bild
     Mat out_t, out_r, out_l;    
@@ -480,7 +525,9 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
     while ((waitKey(10) != 27) && running) {
 
         /* calibrate image */
-        calibration_get_img(top, live_cal, TOP_CAM);
+        Mat H = findHomography(cal.src_points_top, cal.dst_points, RANSAC);
+        warpPerspective(top, live_cal, H, top.size(), INTER_CUBIC, BORDER_REFLECT);
+        // calibration_get_img(top, live_cal, TOP_CAM);
 
         dart_board_draw_sectors(live_cal, TOP_CAM, 0, 0);
 
@@ -490,7 +537,7 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
     }
 
     /* calibrate image */
-    calibration_get_img(top, live_cal, TOP_CAM);
+    //calibration_get_img(top, live_cal, TOP_CAM);
     //imwrite("top_ref.jpg", live_cal);
 
 
@@ -534,7 +581,9 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
     while ((waitKey(10) != 27) && running) {
 
         /* calibrate image */
-        calibration_get_img(right, live_cal, RIGHT_CAM);
+        Mat H = findHomography(cal.src_points_right, cal.dst_points, RANSAC);
+        warpPerspective(right, live_cal, H, right.size(), INTER_CUBIC, BORDER_REFLECT);
+        //calibration_get_img(right, live_cal, RIGHT_CAM);
 
         dart_board_draw_sectors(live_cal, RIGHT_CAM, 0, 0);
 
@@ -543,7 +592,7 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
 
     }
     /* calibrate image */
-    calibration_get_img(right, live_cal, RIGHT_CAM);
+    //calibration_get_img(right, live_cal, RIGHT_CAM);
     //imwrite("right_ref.jpg", live_cal);
 
     destroyWindow(RIGHT_CAM_CAL_TB);
@@ -586,7 +635,9 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
     while ((waitKey(10) != 27) && running) {
 
         /* calibrate image */
-        calibration_get_img(left, live_cal, LEFT_CAM);
+        Mat H = findHomography(cal.src_points_left, cal.dst_points, RANSAC);
+        warpPerspective(left, live_cal, H, left.size(), INTER_CUBIC, BORDER_REFLECT);
+        //calibration_get_img(left, live_cal, LEFT_CAM);
 
         dart_board_draw_sectors(live_cal, LEFT_CAM, 0, 0);
 
@@ -596,7 +647,7 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
     }
 
     /* calibrate image */
-    calibration_get_img(left, live_cal, LEFT_CAM);
+    //calibration_get_img(left, live_cal, LEFT_CAM);
     //imwrite("left_ref.jpg", live_cal);
 
 
