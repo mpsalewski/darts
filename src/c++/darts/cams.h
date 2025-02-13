@@ -92,5 +92,5 @@ void SIMULATION_OF_camsThread(void *arg);
 
 extern void cams_external_bust(void);
 extern void cams_pause_detection(int mode);
-
+extern void cams_set_auto_cal(void);
 #endif 

@@ -658,7 +658,7 @@ void command_parser_cmd_init(void){
         return;
     }
 
-    /* new game command, max 4 players */
+    /* pause detection */
     if (!parser.registerCommand("pause", "u", pause,
         "pause darts detection with 1; resume darts detection with 0"
     )) {
@@ -666,7 +666,15 @@ void command_parser_cmd_init(void){
         return;
     }
 
+    /* do auto cal */
+    if (!parser.registerCommand("auto_cal", " ", auto_cal,
+        "do automatic calibration between darts by typing:\tauto_cal\n\tits recommende to call this on an empty darts board"
+    )) {
+        std::cerr << "err: could not register command!" << std::endl;
+        return;
+    }
 
+    
 }
 
 
@@ -839,5 +847,15 @@ void pause(CommandParser::Argument* args, size_t argCount, char* response) {
 
     return;
 
+
+}
+
+
+void auto_cal(CommandParser::Argument* args, size_t argCount, char* response) {
+
+    /* call func */
+    cams_set_auto_cal();
+
+    snprintf(response, MAX_RESPONSE_SIZE, "started auto calibration");
 
 }

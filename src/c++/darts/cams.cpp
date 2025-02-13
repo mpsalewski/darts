@@ -79,6 +79,7 @@ struct flags_s {
     int diff_flag_left = 0;
     int diff_flag_raw = 0;
     int pause = 0;
+    int auto_cal = 0;
 };
 
 
@@ -144,6 +145,9 @@ void camsThread(void* arg) {
 
     /* assign this pointer due to campatibility reasons with older version */
     struct darts_s* xp = &darts;
+
+    /* init image cal values */
+    calibration_init();     // actually uneccessary atm
 
     /* cur = curent frames; last = last frames */
     Mat cur_frame_top, cur_frame_right, cur_frame_left;
@@ -272,14 +276,15 @@ void camsThread(void* arg) {
 
             
             /* event handling */
-            if (false) {
+            if (xp->flags.auto_cal) {
                 /* calibration */
                 top_cam >> cur_frame_top;
                 right_cam >> cur_frame_right;
                 left_cam >> cur_frame_left;
                 calibration_auto_cal(cur_frame_top, cur_frame_right, cur_frame_left);
+                /* clear flag */
+                xp->flags.auto_cal = 0;
             }
-
 
 
             /* check íf there are any differences */
@@ -733,5 +738,11 @@ void cams_external_bust(void) {
 void cams_pause_detection(int mode) {
 
     darts.flags.pause = mode;
+
+}
+
+void cams_set_auto_cal() {
+
+    darts.flags.auto_cal = 1;
 
 }
