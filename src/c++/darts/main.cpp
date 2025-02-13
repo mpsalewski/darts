@@ -60,6 +60,7 @@
 #include "cams.h"
 #include <cstring>
 #include "command_parser.h"
+#include "external_api.h"
 
 
 /****************************** namespaces ***********************************/
@@ -122,6 +123,9 @@ int main() {
     /* create darts gui thread */
     thread guiThread(Dartsboard_GUI_Thread, &t_s);
 
+    /* create external api thread */
+    thread eaThread(external_api_thread, &t_s);
+
     this_thread::sleep_for(chrono::milliseconds(2000));
 
     /* kill all threads through the command line thread */
@@ -132,6 +136,7 @@ int main() {
     /* clear threads */
     cams.join();
     guiThread.join();
+    eaThread.join();
     
 #elif THREADING
     /***
@@ -142,6 +147,9 @@ int main() {
     
     /* create darts gui thread */
     thread guiThread(Dartsboard_GUI_Thread, &t_s);
+
+    /* create external api thread */
+    thread eaThread(external_api_thread, &t_s);
 
 
     this_thread::sleep_for(chrono::milliseconds(2000));
@@ -198,6 +206,7 @@ int main() {
     /* clear threads */
     SIM_cams.join();
     guiThread.join();
+    eaThread.join();
 
 #endif 
 

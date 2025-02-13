@@ -336,6 +336,10 @@ void camsThread(void* arg) {
                 t_s->score += xp->r_final.val;
                 t_s->last_dart_str = xp->r_final.str;
 
+                t_s->single_score_flag = 1;
+                t_s->single_score = xp->r_final.val;
+                t_s->single_score_str = xp->r_final.str;
+
                 /* check early busted or finish, you are already busted when there is just 1 left (--> <2) */
                 if ((dart_board_get_cur_player_score() - t_s->score) < 2) {
                     /* set count throws to 3 so no more darts are allowed */

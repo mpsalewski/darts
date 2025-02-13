@@ -141,6 +141,7 @@
     <ClCompile Include="cams.cpp" />
     <ClCompile Include="command_parser.cpp" />
     <ClCompile Include="dart_board.cpp" />
+    <ClCompile Include="external_api.cpp" />
     <ClCompile Include="HoughLine.cpp" />
     <ClCompile Include="image_proc.cpp" />
     <ClCompile Include="main.cpp" />
@@ -151,6 +152,7 @@
     <ClInclude Include="cams.h" />
     <ClInclude Include="command_parser.h" />
     <ClInclude Include="dart_board.h" />
+    <ClInclude Include="external_api.h" />
     <ClInclude Include="globals.h" />
     <ClInclude Include="HoughLine.h" />
     <ClInclude Include="image_proc.h" />

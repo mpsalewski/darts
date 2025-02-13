@@ -47,6 +47,11 @@
 /************************** global Structure *********************************/
 struct thread_share_s {
     std::mutex mutex;                       // mutex --> thread safe
+
+    int single_score = 0;
+    std::string single_score_str = "d";
+    int single_score_flag = 0;
+
     int score = 0;                          // 3 darts score
     int score_flag = 0;                     // recognize new 3 darts score
     std::string last_dart_str = "d";        // give last dart score as string to check double out
