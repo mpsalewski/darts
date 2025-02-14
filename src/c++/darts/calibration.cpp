@@ -187,58 +187,92 @@ void calibration_init(void) {
 }
 
 
+/* extract only green and red from an image */
+void red_green_extract(cv::Mat& src, cv::Mat& dst) {
+    
+    Mat hsv;
+    cvtColor(src, hsv, COLOR_BGR2HSV);
+    
+    /* red */
+    Mat mask_red1, mask_red2, mask_red;
+    inRange(hsv, Scalar(0, 100, 50), Scalar(10, 255, 255), mask_red1);
+    inRange(hsv, Scalar(170, 100, 50), Scalar(180, 255, 255), mask_red2);
+    bitwise_or(mask_red1, mask_red2, mask_red); 
+
+    /* green */
+    Mat mask_green;
+    inRange(hsv, Scalar(35, 50, 50), Scalar(90, 255, 255), mask_green);  
+
+    /* red and green masked on oridinal image */
+    Mat result;
+    Mat red_img, green_img;
+    bitwise_and(src, src, red_img, mask_red);  
+    bitwise_and(src, src, green_img, mask_green); 
+
+    /* combine */
+    add(red_img, green_img, dst);
+
+    //imshow("red and green filtered", dst);
+    //waitKey(0);
+
+}
 
 
 
+/***
+ * this function matches an input image with an reference image 
+ * and stores the Homography H in module structure 
+***/
 void calibration_match(cv::Mat img, cv::Mat ref, int CamId) {
 
 
+    /* feature detector */
+    Ptr<SIFT> detector = cv::SIFT::create(10000);
+    //Ptr<ORB> detector = cv::ORB::create(25000);  // ORB statt SIFT
 
-
-    // Feature-Detektor (SIFT anstelle von ORB für bessere Ergebnisse)
-    Ptr<SIFT> detector = cv::SIFT::create(2000);
     vector<KeyPoint> keypoints1, keypoints2;
     Mat descriptors1, descriptors2;
 
-    // Feature-Extraktion
+    /* feature extraction */
     detector->detectAndCompute(img, Mat(), keypoints1, descriptors1);
     detector->detectAndCompute(ref, Mat(), keypoints2, descriptors2);
 
-    // Matcher mit FLANN (Fast Library for Approximate Nearest Neighbors)
-    FlannBasedMatcher flannMatcher(cv::makePtr<cv::flann::KDTreeIndexParams>(5)); // 5 statt Standard 4
+    /* matcher with FLANN(Fast Library for Approximate Nearest Neighbors) */
+    FlannBasedMatcher matcher(cv::makePtr<cv::flann::KDTreeIndexParams>(5)); // 5 instead of Standard 4
+    //BFMatcher matcher(NORM_HAMMING);  // use NORM_HAMMING for ORB descriptors
 
-    // Nur gute Matches beibehalten (Entfernung < 3*minDist oder maxDist)
+    /* onyl keep valid matches */
     vector<DMatch> refined_matches;
-
     vector<vector<DMatch>> knn_matches;
-    flannMatcher.knnMatch(descriptors1, descriptors2, knn_matches, 2);
+    matcher.knnMatch(descriptors1, descriptors2, knn_matches, 2);
 
     for (size_t i = 0; i < knn_matches.size(); i++) {
         if (knn_matches[i][0].distance < 0.7 * knn_matches[i][1].distance) {
             refined_matches.push_back(knn_matches[i][0]);
         }
     }
-
-    // Sicherstellen, dass genügend gute Matches vorhanden sind
+    
+    /* check if there enough matches; no actual error handling bc program wont work at all */
     if (refined_matches.size() < 4) {
         cerr << "not enough matches!" << endl;
     }
 
-    // Punktpaare für die Homographie sammeln
+    /* collect pairs for homography */
     vector<Point2f> srcPoints, dstPoints;
     for (size_t i = 0; i < refined_matches.size(); i++) {
         srcPoints.push_back(keypoints1[refined_matches[i].queryIdx].pt);
         dstPoints.push_back(keypoints2[refined_matches[i].trainIdx].pt);
     }
 
-    // Homographie mit RANSAC berechnen (Zufallsauswahl und Robustheit)
+    /* homography */
     Mat mask;
-    Mat H = findHomography(srcPoints, dstPoints, RANSAC, 3.0, mask);    // 3.0
-
+    Mat H = findHomography(srcPoints, dstPoints, RANSAC, 5.0, mask);    // 3.0
+    /* check if there is a valid H; no actual error handling bc program wont work at all */
     if (H.empty()) {
-        cerr << "homografics could not be computed!" << endl;
+        cerr << "homography could not be computed!" << endl;
     }
 
+    /* store H for warping */
     switch (CamId) {
     case TOP_CAM:
         cal.Homo.H_top = H;
@@ -261,34 +295,38 @@ void calibration_match(cv::Mat img, cv::Mat ref, int CamId) {
 void calibration_auto_cal(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
 
 
-    // --- 1. Bild laden und Vorverarbeiten ---
-
+    /* Debug */
     //Mat img = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
     //Mat img = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
     // Mat img = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
 
-    Mat top_ref = imread(TOP_REF, IMREAD_ANYCOLOR); // Perfekte Draufsicht
-    Mat right_ref = imread(RIGHT_REF, IMREAD_ANYCOLOR); // Perfekte Draufsicht
-    Mat left_ref = imread(LEFT_REF, IMREAD_ANYCOLOR); // Perfekte Draufsicht
+
+    /***
+     * load reference images 
+     * calibration is in maximum just as good as your reference images! 
+    ***/
+    Mat top_ref = imread(TOP_REF, IMREAD_ANYCOLOR); 
+    //Mat top_ref = imread("images/ref/General_Ref.jpg", IMREAD_ANYCOLOR); // does not work atm
+    Mat right_ref = imread(RIGHT_REF, IMREAD_ANYCOLOR); 
+    Mat left_ref = imread(LEFT_REF, IMREAD_ANYCOLOR); 
    
+    /* matching */
     calibration_match(top, top_ref, TOP_CAM);
     calibration_match(right, right_ref, RIGHT_CAM);
     calibration_match(left, left_ref, LEFT_CAM);
 
-
-    // Warping der Dartboard-Bilder in das ideale Zielbild
+    /* warp images with new Homography matrix */
     Mat w_top, w_right, w_left;
-    //warpPerspective(img, warped, H, ref.size());
     warpPerspective(top, w_top, cal.Homo.H_top, top_ref.size(), INTER_CUBIC, BORDER_REFLECT);
     warpPerspective(right, w_right, cal.Homo.H_right, right_ref.size(), INTER_CUBIC, BORDER_REFLECT);
     warpPerspective(left, w_left, cal.Homo.H_left, left_ref.size(), INTER_CUBIC, BORDER_REFLECT);
 
-
+    /* draw sectors to verify your calibration */
     dart_board_draw_sectors(w_top, TOP_CAM, 0, 0);
     dart_board_draw_sectors(w_right, RIGHT_CAM, 0, 0);
     dart_board_draw_sectors(w_left, LEFT_CAM, 0, 0);
 
-
+    /* show calibration with sectors */
     imshow("Top Auto Warp", w_top);
     imshow("Right Auto Warp", w_right);
     imshow("Left Auto Warp", w_left);
@@ -297,7 +335,11 @@ void calibration_auto_cal(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
 
 
 
-
+/***
+ * this function is used to create "perfect" reference images 
+ * one can use static points from paint or use the gui with trackbars 
+ * the gui just allows 4 Points 
+***/
 void calibration_ref_create(void) {
 
  
@@ -421,20 +463,22 @@ void calibration_ref_create(void) {
 
 #endif 
 
-    // Berechne die Homographie-Matrix
+    /* compute H Matrix */
     Mat H_top = findHomography(cal.src_points_top, dst_points, RANSAC, 3.0);
     Mat H_right = findHomography(cal.src_points_right, dst_points, RANSAC, 3.0);
     Mat H_left = findHomography(cal.src_points_left, dst_points, RANSAC, 3.0);
 
-    // Transformiere das Bild
+    /* transform image */
     Mat out_t, out_r, out_l;    
 
+    /* 
+     * warp, show and store ref images 
+     * stored without the drawn sectors 
+    */
     warpPerspective(top_img, out_t, H_top, top_img.size(), INTER_CUBIC, BORDER_REFLECT);
     warpPerspective(right_img, out_r, H_right, right_img.size(), INTER_CUBIC, BORDER_REFLECT);
     warpPerspective(left_img, out_l, H_left, left_img.size(), INTER_CUBIC, BORDER_REFLECT);
-    
-    
-    
+      
     Mat write_t = out_t.clone();
     Mat write_r = out_r.clone();
     Mat write_l = out_l.clone();
@@ -443,10 +487,11 @@ void calibration_ref_create(void) {
     dart_board_draw_sectors(out_t, TOP_CAM, 0, 0);
     dart_board_draw_sectors(out_r, RIGHT_CAM, 0, 0);
     dart_board_draw_sectors(out_l, LEFT_CAM, 0, 0);
-    // Ergebnis anzeigen
-    imshow("Ref Image Top", out_t);
-    imshow("Ref Image Right", out_r);
-    imshow("Ref Image Left", out_l);
+
+    imshow("Ref Image Top [press any key to store image]", out_t);
+    imshow("Ref Image Right [press any key to store image]", out_r);
+    imshow("Ref Image Left [press any key to store image]", out_l);
+
     waitKey(0);
 
     imwrite("top_ref.jpg", write_t);
@@ -464,16 +509,13 @@ void calibration_ref_create(void) {
 
 
 
-
-
+/* this function does a manual live calibartion with a gui */
 void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
 
     static struct cal_s* p = &cal;
 
 
-
-
-    /* create trackbars */
+    /* create trackbars images */
     Mat top_tb = Mat::zeros(100, 600, CV_8UC3);
     Mat right_tb = Mat::zeros(100, 600, CV_8UC3);
     Mat left_tb = Mat::zeros(100, 600, CV_8UC3);
@@ -486,11 +528,15 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
     int image_height = top.rows;
 
 
+    /***
+     * procedure for TOP CAM
+    ***/
+
+    /* cam to be calibrated */
     p->cal_win = TOP_CAM;
 
+
     imshow(TOP_CAM_CAL_TB, top_tb);
-
-
 
     createTrackbar("Twenty [x]", TOP_CAM_CAL_TB, NULL, image_width, on_trackbar_twenty_x, p);
     createTrackbar("Twenty [y]", TOP_CAM_CAL_TB, NULL, image_height, on_trackbar_twenty_y, p);
@@ -544,7 +590,9 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
     destroyWindow(TOP_CAM_CAL_TB);
     destroyWindow("TOP CAM Live Calibration leave with [Esc]");
 
-
+    /*** 
+     * repeat procedure for RIGHT CAM 
+    ***/
     p->cal_win = RIGHT_CAM;
 
     imshow(RIGHT_CAM_CAL_TB, right_tb);
@@ -598,6 +646,10 @@ void calibration_cal_src_points(cv::Mat& top, cv::Mat& right, cv::Mat& left) {
     destroyWindow(RIGHT_CAM_CAL_TB);
     destroyWindow("RIGHT CAM Live Calibration leave with [Esc]");
 
+
+    /***
+     * repeat procedure for LEFT CAM
+    ***/
     
     p->cal_win = LEFT_CAM;
 

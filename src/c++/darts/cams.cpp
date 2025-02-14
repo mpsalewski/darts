@@ -319,6 +319,9 @@ void camsThread(void* arg) {
                 //img_proc_cross_point(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);
                 img_proc_cross_point_math(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);
 
+                /* create an optical artificial darts board to draw detection cross point */
+                cams_draw_art_board_detect(xp->cross_point);
+
                 /* check result on every raw board */
                 dart_board_determineSector(xp->cross_point, TOP_CAM, &xp->r_top);
                 dart_board_determineSector(xp->cross_point, RIGHT_CAM, &xp->r_right);
@@ -535,19 +538,27 @@ void SIMULATION_OF_camsThread(void*arg) {
     Mat left_raw = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
 
     calibration_auto_cal(top_raw, right_raw, left_raw);
-
+    /*
+    Mat test = Mat::zeros(top_raw.rows, top_raw.cols, CV_8UC3);
+    dart_board_color_sectors(test);
+    imshow("Test", test);
+    imwrite("General_Ref.jpg", test);
+    waitKey(0);
+    */
 
     /* init last frames */
     //top_cam >> last_frame_top;
     //right_cam >> last_frame_right;
     //left_cam >> last_frame_left;
+   
+    /*
     Mat img = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
     dart_board_draw_sectors(img, TOP_CAM);
     img = imread(RIGHT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
     dart_board_draw_sectors(img, RIGHT_CAM);
     img = imread(LEFT_RAW_IMG_CAL, IMREAD_ANYCOLOR);
     dart_board_draw_sectors(img, LEFT_CAM);
-
+    */
 
 #if 0
     last_frame_top = imread(TOP_RAW_IMG_CAL, IMREAD_ANYCOLOR);
@@ -646,6 +657,10 @@ void SIMULATION_OF_camsThread(void*arg) {
                 /* calculate cross point */
                 //img_proc_cross_point(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);
                 img_proc_cross_point_math(Size(RAW_CAL_IMG_WIDTH, RAW_CAL_IMG_HEIGHT), &xp->t_line, xp->cross_point);
+
+                /* create an optical artificial darts board to draw detection cross point */
+                cams_draw_art_board_detect(xp->cross_point);
+                
 
                 /* check result on every raw board */
                 dart_board_determineSector(xp->cross_point, TOP_CAM, &xp->r_top);
@@ -748,5 +763,21 @@ void cams_pause_detection(int mode) {
 void cams_set_auto_cal() {
 
     darts.flags.auto_cal = 1;
+
+}
+
+
+/* create an optical artificial darts board to draw detection cross point */
+void cams_draw_art_board_detect(cv::Point c_point) {
+ 
+    Mat artficial_darts_board = Mat::zeros(480, 640, CV_8UC3);
+    dart_board_color_sectors(artficial_darts_board);
+    dart_board_draw_sectors(artficial_darts_board, TOP_CAM, 0, 0);
+    /* draw midpoint*/
+    circle(artficial_darts_board, c_point, 10, Scalar(0, 0, 255), 2);
+    circle(artficial_darts_board, c_point, 1, Scalar(0, 0, 255), -1);
+    line(artficial_darts_board, Point(c_point.x - 9 / 2, c_point.y - 9 / 2), Point(c_point.x + 9 / 2, c_point.y + 9 / 2), Scalar(0, 0, 255), 1.5);
+    line(artficial_darts_board, Point(c_point.x - 9 / 2, c_point.y + 9 / 2), Point(c_point.x + 9 / 2, c_point.y - 9 / 2), Scalar(0, 0, 255), 1.5);
+    imshow("Visualzied Detection", artficial_darts_board);
 
 }

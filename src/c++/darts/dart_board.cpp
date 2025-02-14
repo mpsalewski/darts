@@ -605,9 +605,8 @@ void dart_board_decide_sector(struct result_s* sec_board_top, struct result_s* s
 
 }
 
-
-// Funktion zum Zeichnen der Dartboard-Sektoren
-void dart_board_draw_sectors(cv::Mat& image, int ThreadId, int image_show, int cal) {
+/* draw darts sectors */
+void dart_board_draw_sectors(cv::Mat& image, int ThreadId, int image_show, int cal, int show_num) {
 
     string CamNameId = "TOP";
     struct Dartboard_Sector_s board;
@@ -668,10 +667,13 @@ void dart_board_draw_sectors(cv::Mat& image, int ThreadId, int image_show, int c
 
         /* write sector number */
         float midAngle = (angle1 + angle2) / 2;
-        Point textPos(center.x + (radius * 0.75) * cos(midAngle), center.y - (radius * 0.75) * sin(midAngle));
-        /* actually 40 sectors */
-        putText(cur, std::to_string(board.sectorNumbers[k+1]), textPos, FONT_HERSHEY_SIMPLEX, 0.5, textColor, 1);
-    }
+        Point textPos(center.x + (radius * 1.125) * cos(midAngle), center.y - (radius * 1.125) * sin(midAngle));
+       
+        if (show_num) {
+            /* actually 40 sectors */
+            putText(cur, std::to_string(board.sectorNumbers[k + 1]), textPos, FONT_HERSHEY_SIMPLEX, 0.5, textColor, 1);
+        }
+     }
 
     /* circles */
     circle(cur, center, board.Db_r.radiusBullseye, circleColor, 1);       // bullseye
@@ -690,6 +692,75 @@ void dart_board_draw_sectors(cv::Mat& image, int ThreadId, int image_show, int c
     }
 
 
+}
+
+
+/* draw darts color sectors */
+void dart_board_color_sectors(cv::Mat& dst) {
+    struct Dartboard_Sector_s board = *d->db;
+    Point center = board.center;
+
+    /* set background color */
+    dst.setTo(Scalar(192, 192, 192));
+
+    /* create darts board colors */
+    Scalar darkRed(50, 50, 120);      
+    Scalar darkGreen(20, 100, 20);   
+    Scalar lightYellow(180, 220, 230); 
+    Scalar softBlack(20, 20, 20);  
+
+    /* set edge (out of board) */
+    circle(dst, center, board.Db_r.radiusDoubleOuter+60, softBlack, -1);
+
+
+    float angleStep = 360.0 / 20;
+    int k = 0;
+
+    for (int i = 0; i < 20; i++, k += 2) {
+        float angle1 = -((i * angleStep)) * CV_PI / 180.0 - 279.0 * CV_PI / 180.0;
+        float angle2 = -(((i + 1) * angleStep)) * CV_PI / 180.0 - 279.0 * CV_PI / 180.0;
+
+        /* define sector corner points for different rings */
+
+        vector<Point> singleInner = {
+            Point(center.x + board.Db_r.radiusTripleInner * cos(angle1), center.y - board.Db_r.radiusTripleInner * sin(angle1)),
+            Point(center.x + board.Db_r.radiusTripleInner * cos(angle2), center.y - board.Db_r.radiusTripleInner * sin(angle2)),
+            Point(center.x + board.Db_r.radiusSingleBull * cos(angle2), center.y - board.Db_r.radiusSingleBull * sin(angle2)),
+            Point(center.x + board.Db_r.radiusSingleBull * cos(angle1), center.y - board.Db_r.radiusSingleBull * sin(angle1))
+        };
+        
+
+        vector<Point> tripleRing = {
+            Point(center.x + board.Db_r.radiusTripleOuter * cos(angle1), center.y - board.Db_r.radiusTripleOuter * sin(angle1)),
+            Point(center.x + board.Db_r.radiusTripleOuter * cos(angle2), center.y - board.Db_r.radiusTripleOuter * sin(angle2)),
+            Point(center.x + board.Db_r.radiusTripleInner * cos(angle2), center.y - board.Db_r.radiusTripleInner * sin(angle2)),
+            Point(center.x + board.Db_r.radiusTripleInner * cos(angle1), center.y - board.Db_r.radiusTripleInner * sin(angle1))
+        };
+
+        vector<Point> singleOuter = {
+            Point(center.x + board.Db_r.radiusDoubleInner * cos(angle1), center.y - board.Db_r.radiusDoubleInner * sin(angle1)),
+            Point(center.x + board.Db_r.radiusDoubleInner * cos(angle2), center.y - board.Db_r.radiusDoubleInner * sin(angle2)),
+            Point(center.x + board.Db_r.radiusTripleOuter * cos(angle2), center.y - board.Db_r.radiusTripleOuter * sin(angle2)),
+            Point(center.x + board.Db_r.radiusTripleOuter * cos(angle1), center.y - board.Db_r.radiusTripleOuter * sin(angle1))
+        };
+
+
+        vector<Point> doubleRing = {
+            Point(center.x + board.Db_r.radiusDoubleOuter * cos(angle1), center.y - board.Db_r.radiusDoubleOuter * sin(angle1)),
+            Point(center.x + board.Db_r.radiusDoubleOuter * cos(angle2), center.y - board.Db_r.radiusDoubleOuter * sin(angle2)),
+            Point(center.x + board.Db_r.radiusDoubleInner * cos(angle2), center.y - board.Db_r.radiusDoubleInner * sin(angle2)),
+            Point(center.x + board.Db_r.radiusDoubleInner * cos(angle1), center.y - board.Db_r.radiusDoubleInner * sin(angle1))
+        };
+
+        fillConvexPoly(dst, singleOuter, (i % 2 != 0) ? softBlack : lightYellow);
+        fillConvexPoly(dst, tripleRing, (i % 2 != 0) ? darkRed : darkGreen);
+        fillConvexPoly(dst, singleInner, (i % 2 != 0) ? softBlack : lightYellow);
+        fillConvexPoly(dst, doubleRing, (i % 2 != 0) ? darkRed : darkGreen);
+    }
+
+    /* fill the bull and bullseye */
+    circle(dst, center, board.Db_r.radiusSingleBull, darkGreen, -1);
+    circle(dst, center, board.Db_r.radiusBullseye, darkRed, -1);
 }
 
 

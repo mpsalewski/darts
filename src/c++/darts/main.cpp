@@ -98,7 +98,7 @@ void static_test(void);
 
 /****************************** main function ********************************/
 int main() {
-
+    
 
     
     // call these lines to store new reference images 
