@@ -679,6 +679,10 @@ void SIMULATION_OF_camsThread(void*arg) {
                 t_s->score += xp->r_final.val;
                 t_s->last_dart_str = xp->r_final.str;
 
+                t_s->single_score_flag = 1;
+                t_s->single_score = xp->r_final.val;
+                t_s->single_score_str = xp->r_final.str;
+
                 /* THIS IS WRONG ! JUST FOR TESTING ! recognize 3 darts */
                 //t_s->score = 501;
                 //t_s->last_dart_str = "Double 250.5";

@@ -492,7 +492,7 @@ void dart_board_getSectorValue(int sector, float distance, struct Dartboard_Sect
     /* define value */
     if (distance <= board.Db_r.radiusBullseye) {
         r->val = 50;
-        r->str = "Bullseye";
+        r->str = "Double Single Bull";  // change with Bullseye bc of Double Out Check by String
     }
     else if (distance <= board.Db_r.radiusSingleBull) {
         r->val = 25;

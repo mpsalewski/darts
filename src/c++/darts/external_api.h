@@ -50,6 +50,7 @@
 /************************** Function Declaration *****************************/
 void external_api_thread(void* arg);
 
+extern void external_api_split_val_fact(int score, std::string score_str, int& val, int& factor);
 
 
 #endif 
