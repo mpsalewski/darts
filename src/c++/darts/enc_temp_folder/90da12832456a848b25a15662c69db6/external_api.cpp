@@ -115,7 +115,7 @@ void external_api_thread(void* arg) {
             //int example1 = t_s->single_score;
             //string example2 = t_s->single_score_str;
             external_api_split_val_fact(t_s->single_score, t_s->single_score_str, ea->score_val, ea->score_factor);
-            cout << ea->score_val << "\t" << ea->score_factor << endl;
+            // cout << ea->score_val << "\t" << ea->score_factor << endl;   // Debug 
 
         }
         t_s->mutex.unlock();

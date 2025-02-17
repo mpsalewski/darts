@@ -616,6 +616,17 @@ void SIMULATION_OF_camsThread(void*arg) {
         cur_frame_right = imread(RIGHT_3DARTS, IMREAD_ANYCOLOR);
         cur_frame_left = imread(LEFT_3DARTS, IMREAD_ANYCOLOR);
 #endif
+        /* corr eval */
+        /*
+        Mat corr_cur, corr_last;
+        calibration_get_img(cur_frame_top, corr_cur, TOP_CAM);
+        calibration_get_img(last_frame_top, corr_last, TOP_CAM);
+        circle(corr_cur, Point(200, 200), 30, Scalar(255, 255, 255), -1);
+        circle(corr_last, Point(200+10, 200+10), 30, Scalar(255, 255, 255), -1);
+        computeAndShowCorrelation(corr_cur, corr_last);
+        */
+
+
         /* check if frames are not empty */
         if (!cur_frame_top.empty() && !cur_frame_right.empty() && !cur_frame_left.empty()) {
 

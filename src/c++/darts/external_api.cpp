@@ -83,8 +83,8 @@ static struct ext_api_s {
 /************************** Function Declaration *****************************/
 
 
-/**************************** Command Line Thread ****************************/
 
+/**************************** External API Thread ****************************/
 void external_api_thread(void* arg) {
 
 

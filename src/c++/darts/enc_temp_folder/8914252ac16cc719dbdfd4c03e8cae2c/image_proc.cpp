@@ -90,6 +90,22 @@ static struct img_proc_s {
 
 
 /************************** Function Declaration *****************************/
+// Funktion zum Extrahieren von Konturen und deren Zentren
+std::vector<cv::Point2f> findCentroids(cv::Mat& binary) {
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Point2f> centroids;
+
+    cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    for (const auto& contour : contours) {
+        cv::Moments m = cv::moments(contour);
+        if (m.m00 != 0) {
+            centroids.push_back(cv::Point2f(m.m10 / m.m00, m.m01 / m.m00));
+        }
+    }
+
+    return centroids;
+}
 
 
 
@@ -265,6 +281,16 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         cout << "err: black screen" << endl;
         return -1;
     }
+
+    /*************************/
+    /* check numer of clusters */
+     // Zentren der Objekte finden
+    vector<Point2f> centroids = findCentroids(cluster_img);
+
+    cout << "Gefundene Einzelobjekte: " << centroids.size() << endl;
+
+
+    /*****************************/
 
     /* extract pxiels from best roi */
     vector<Point> points_roi;
