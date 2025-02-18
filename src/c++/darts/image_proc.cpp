@@ -245,7 +245,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     int roiHeight = (2 * imgHeight) / 3;
 
     /* create niew overlapping rois */
-    std::vector<Rect> rois;
+    vector<Rect> rois;
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             int x = (i * imgWidth) / 3;
