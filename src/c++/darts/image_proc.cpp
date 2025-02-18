@@ -716,7 +716,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
         string image_edge_bin = string("3 Image Edge Bin (").append(CamNameId).append(" Cam)");
         //cv::imshow(image_edge_bin, edge_bin);
         cv::imshow(image_edge_bin, edge_bin_cont);
-        // string img_write = image_edge_bin.append(".jpg");
+        //string img_write = image_edge_bin.append(".jpg");
         //cv::imwrite(img_write, edge_bin_cont);
         /* sharpened images after diff */
         //string image_sharp_diff = string("Image Sharpened After Diff (").append(CamNameId).append(" Cam)");

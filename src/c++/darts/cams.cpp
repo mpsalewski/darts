@@ -793,6 +793,7 @@ void cams_draw_art_board_detect(cv::Point c_point) {
     circle(artficial_darts_board, c_point, 1, Scalar(0, 0, 255), -1);
     line(artficial_darts_board, Point(c_point.x - 9 / 2, c_point.y - 9 / 2), Point(c_point.x + 9 / 2, c_point.y + 9 / 2), Scalar(0, 0, 255), 1.5);
     line(artficial_darts_board, Point(c_point.x - 9 / 2, c_point.y + 9 / 2), Point(c_point.x + 9 / 2, c_point.y - 9 / 2), Scalar(0, 0, 255), 1.5);
-    imshow("Visualzied Detection", artficial_darts_board);
+    imshow("Visualized Detection", artficial_darts_board);
+    imwrite("visualized_detection.jpg", artficial_darts_board);
 
 }
