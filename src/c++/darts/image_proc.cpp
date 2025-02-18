@@ -285,7 +285,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 
 
     /* cluster erase */
-    cluster_erase(cluster_img, ThreadId);
+    // add this at a later project stage after other new features hab been validated 
+    //cluster_erase(cluster_img, ThreadId);
 
     /* pca */
     Mat data_roi(points_roi.size(), 2, CV_32F);    
@@ -339,11 +340,11 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     Mat mask = Mat::zeros(cluster_img.size(), CV_8UC1);
     Point2f vertices[4];
     rotatedROI.points(vertices);
-    std::vector<Point> roiContour = { vertices[0], vertices[1], vertices[2], vertices[3] };
+    vector<Point> roiContour = { vertices[0], vertices[1], vertices[2], vertices[3] };
     fillConvexPoly(mask, roiContour, Scalar(255));
 
     /* extract pixels from new roi */
-    std::vector<Point> roiPoints;
+    vector<Point> roiPoints;
     for (int y = 0; y < cluster_img.rows; y++) {
         for (int x = 0; x < cluster_img.cols; x++) {
             if (mask.at<uchar>(y, x) == 255 && cluster_img.at<uchar>(y, x) == 255) {
@@ -849,7 +850,7 @@ cv::Mat getRotatedROI(const cv::Mat& img, cv::Point2f center, cv::Vec2f axis, in
 }
 
 
-/* drar rotated rect */
+/* draw rotated rect */
 void drawRotatedRect(cv::Mat& img, cv::RotatedRect rRect, cv::Scalar color) {
     cv::Point2f vertices[4];
     rRect.points(vertices);
