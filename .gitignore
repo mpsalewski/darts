@@ -8,6 +8,7 @@ videos/*.mp4
 
 src/c++/darts/*.vcxproj.filters
 src/c++/darts/*.vcxproj.user
+src/c++/darts/enc_temp_folder/
 
 src/c++/darts/enc_temp_folder/.
 
