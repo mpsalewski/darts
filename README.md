@@ -4,7 +4,7 @@ This project was developed as part of the Digital Image / Video Processing modul
 
 ---
 
-**Update:** The project was successfully presented and defended at HAW Hamburg on February 4, 2025. The final project evaluation by Prof. Dr. Hensel was rated as **very good**. This repository is now being continued as a private project.
+**Update:** The project was successfully presented and defended at HAW Hamburg on February 4, 2025. The final project evaluation by Prof. Dr. Marc Hensel was rated as **very good**. The repository is now being continued as a private project.
 
 ## Authors:
 - Mika Paul Salewski (<mika.paul.salewski@gmail.com>)
