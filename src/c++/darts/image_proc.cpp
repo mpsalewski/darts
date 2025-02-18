@@ -237,6 +237,11 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     threshold(cluster_img, cluster_img, 190, 255, THRESH_BINARY);
     /* close open contours --> the goal is to get an even more symmetric cluster */
     morphologyEx(cluster_img, cluster_img, MORPH_CLOSE, Mat::ones(5, 5, CV_8U));
+    //erode(cluster_img, cluster_img, Mat::ones(3, 3, CV_8U));  // Erosion
+    /* heavy noise reduction, dont care if dart gets blurry */
+    //GaussianBlur(cluster_img, cluster_img, Size(17, 17), GAUSSIAN_BLUR_SIGMA, GAUSSIAN_BLUR_SIGMA);
+    //threshold(cluster_img, cluster_img, 160, 255, THRESH_BINARY);
+    //dilate(cluster_img, cluster_img, Mat::ones(3, 3, CV_8U));  // Dilation
     
     /* define roi size in the first run */
     int imgWidth = cluster_img.cols;
@@ -284,6 +289,7 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     }
 
 
+
     /* cluster erase */
     // add this at a later project stage after other new features hab been validated 
     //cluster_erase(cluster_img, ThreadId);
@@ -327,6 +333,8 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     threshold(cluster_img, cluster_img, 190, 255, THRESH_BINARY);
     /* close open contours --> the goal is to get an even more symmetric cluster */
     morphologyEx(cluster_img, cluster_img, MORPH_CLOSE, Mat::ones(5, 5, CV_8U));
+    //erode(cluster_img, cluster_img, Mat::ones(3, 3, CV_8U));  // Erosion
+    //dilate(cluster_img, cluster_img, Mat::ones(3, 3, CV_8U));  // Dilation
 
     /* size of rotated rect */
     float roiWidth2 = 30;       // ±15 pixel around axis, should fit barrel and flight 
@@ -952,6 +960,27 @@ void cluster_erase(cv::Mat& image, int ThreadId) {
     imshow("Contour Axes", result);
     waitKey(0);
 #endif 
+
+}
+
+/* skeletonize an image */
+void skeletonize(const Mat& input, Mat& output) {
+
+    Mat img, temp, eroded;
+    /* bin validation */
+    threshold(input, img, 127, 255, THRESH_BINARY);
+    output = Mat::zeros(img.size(), CV_8UC1);
+    Mat kernel = getStructuringElement(MORPH_CROSS, Size(3, 3)); 
+
+    bool done;
+    do {
+        erode(img, eroded, kernel);  
+        dilate(eroded, temp, kernel);
+        subtract(img, temp, temp);   
+        bitwise_or(output, temp, output); 
+        eroded.copyTo(img);
+        done = (countNonZero(img) == 0); 
+    } while (!done);
 
 }
 

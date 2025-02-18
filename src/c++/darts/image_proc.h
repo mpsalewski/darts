@@ -93,6 +93,7 @@ extern void calculatePolarCoordinates(cv::Point p, cv::Vec2f dir, cv::Mat& img, 
 extern cv::Mat getRotatedROI(const cv::Mat& img, cv::Point2f center, cv::Vec2f axis, int width, int height);
 extern void drawRotatedRect(cv::Mat& img, cv::RotatedRect rRect, cv::Scalar color);
 extern void cluster_erase(cv::Mat& image, int ThreadId);
+extern void skeletonize(const cv::Mat& input, cv::Mat& output);
 
 extern void img_proc_get_cross_points(const cv::Mat& image, std::vector<cv::Point>& maxLocations);
 extern int img_proc_cross_point(cv::Size frameSize, struct tripple_line_s* tri_line, cv::Point& cross_p);
