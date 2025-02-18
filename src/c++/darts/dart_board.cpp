@@ -683,6 +683,7 @@ void dart_board_draw_sectors(cv::Mat& image, int ThreadId, int image_show, int c
     circle(cur, center, board.Db_r.radiusDoubleInner, circleColor, 1);    // double in
     circle(cur, center, board.Db_r.radiusDoubleOuter, circleColor, 1);    // double out
 
+
     if (image_show) {
         string img_name = string("Raw Image with Sector (").append(CamNameId).append(" Cam)");
         imshow(img_name, cur);

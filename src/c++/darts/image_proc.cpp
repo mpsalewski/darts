@@ -73,6 +73,12 @@ using namespace std;
 #define DO_PCA  1
 
 /************************** local Structure ***********************************/
+struct roi_last_s {
+    RotatedRect top;
+    RotatedRect right;
+    RotatedRect left;
+};
+
 static struct img_proc_s {
     int bin_thresh = 31;                // parameter BIN_THRESH 
     int diff_min_thresh = 1.5e+5;       // parameter DIFF_MIN_THRESH
@@ -80,6 +86,7 @@ static struct img_proc_s {
     float aspect_ratio_min = 0.01;
     float area_min = 350;
     float short_edge_max = 22;
+    struct roi_last_s roi_last;
 }img_proc;
 
 
@@ -277,6 +284,9 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     }
 
 
+    /* cluster erase */
+    cluster_erase(cluster_img, ThreadId);
+
     /* pca */
     Mat data_roi(points_roi.size(), 2, CV_32F);    
     for (size_t i = 0; i < points_roi.size(); i++) {
@@ -305,7 +315,6 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 
     /* draw cluster centroid */
     circle(edge_bin_cont, centroid_roi, 5, Scalar(0, 255, 0), -1);
-
 
 
     /*** 
@@ -370,8 +379,6 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
 
     calculatePolarCoordinates(centroid2, mainAxis2, edge_bin, r, theta);
 
-
-
     //Mat pca_img = Mat::zeros(edge_bin.size(), CV_8UC3);
     
     //drawLine(pca_img, centroid2, mainAxis2, Scalar(255, 255, 255));
@@ -390,6 +397,26 @@ int img_proc_get_line(cv::Mat& lastImg, cv::Mat& currentImg, int ThreadId, struc
     /* return line values */
     line->r = r;
     line->theta = theta;
+
+
+    /* save roatetd rect with new main axis as angle */
+    RotatedRect rotatedROI_final(centroid2, Size2f(roiHeight2-100, roiWidth2-16), atan2(mainAxis2[1], mainAxis2[0]) * 180.0 / CV_PI);
+    /* set last roi default zero */
+    switch (ThreadId) {
+    case TOP_CAM:
+        img_proc.roi_last.top = rotatedROI_final;
+        break;
+    case RIGHT_CAM:
+        img_proc.roi_last.right = rotatedROI_final;
+        break;
+    case LEFT_CAM:
+        img_proc.roi_last.left = rotatedROI_final;
+        break;
+    default:
+        break;
+    }
+
+    
 
 /*****************************************************************************/
 
@@ -830,6 +857,103 @@ void drawRotatedRect(cv::Mat& img, cv::RotatedRect rRect, cv::Scalar color) {
         cv::line(img, vertices[i], vertices[(i + 1) % 4], color, 2);
     }
 }
+
+
+/* 
+ * function to erase double darts when following dart touched the dart before
+ * and to detect and cluster contours based on PCA orientation 
+ */
+void cluster_erase(cv::Mat& image, int ThreadId) {
+
+    RotatedRect roi;
+
+    /* set last roi default zero */
+    switch (ThreadId) {
+    case TOP_CAM:
+        roi = img_proc.roi_last.top;
+        break;
+    case RIGHT_CAM:
+        roi = img_proc.roi_last.right;
+        break;
+    case LEFT_CAM:
+        roi = img_proc.roi_last.left;
+        break;
+    default:
+        break;
+    }
+
+    /* ro rect corners */
+    cv::Point2f vertices[4];
+    roi.points(vertices);
+
+
+    std::vector<cv::Point> polygon;
+    for (int i = 0; i < 4; i++) {
+        polygon.push_back(vertices[i]);
+    }
+
+    /* reset last rot rect roi */
+    fillConvexPoly(image, polygon, cv::Scalar(0, 0, 0));
+
+    return;
+
+#if 0
+    /* clone input image to avoid modifying original */
+    Mat cluster_img = image.clone();
+
+    /* apply morphological closing to connect nearby pixels */
+    Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(10, 10));
+    morphologyEx(image, cluster_img, MORPH_CLOSE, kernel);
+
+    /* find external contours */
+    vector<vector<Point>> contours;
+    findContours(cluster_img, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+
+    /* filter contours based on area */
+    vector<vector<Point>> filteredContours;
+    for (const auto& contour : contours) {
+        double area = contourArea(contour);
+        if (area > 300) {
+            filteredContours.push_back(contour);
+        }
+    }
+
+    cout << "num clusters: " << filteredContours.size() << endl;
+
+    /* create an empty result image */
+    Mat result = Mat::zeros(cluster_img.size(), CV_8UC3);
+
+    /* calculate and draw PCA axes for each contour */
+    for (const auto& contour : filteredContours) {
+        if (contour.size() >= 5) { // at least 5 points needed for PCA
+            Mat dataPts(contour.size(), 2, CV_32F);
+            for (size_t i = 0; i < contour.size(); i++) {
+                dataPts.at<float>(i, 0) = contour[i].x;
+                dataPts.at<float>(i, 1) = contour[i].y;
+            }
+
+            /* perform PCA to find the main orientation */
+            PCA pca(dataPts, Mat(), PCA::DATA_AS_ROW);
+            //Point2f mean(pca.mean.at<float>(0, 0), pca.mean.at<float>(0, 1));
+            //Point2f direction(pca.eigenvectors.at<float>(0, 0), pca.eigenvectors.at<float>(0, 1));
+            Vec2f mainAxis(pca.eigenvectors.row(0));
+            Point2f centroid(pca.mean.at<float>(0, 0), pca.mean.at<float>(0, 1));
+
+            /* draw principal axis */
+            drawLine(result, centroid, mainAxis, Scalar(255, 0, 255));
+
+        }
+    }
+
+
+
+    /* display the result */
+    imshow("Contour Axes", result);
+    waitKey(0);
+#endif 
+
+}
+
 
 /******************************************************************************
  * find cross crosspoints with grafic method 
