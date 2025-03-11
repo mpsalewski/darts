@@ -674,7 +674,16 @@ void command_parser_cmd_init(void){
         return;
     }
 
+    /* busted cmd */
+    if (!parser.registerCommand("busted", " ", busted,
+        "TBD!"
+    )) {
+        std::cerr << "err: could not register command!" << std::endl;
+        return;
+    }
     
+
+
 }
 
 
@@ -857,5 +866,15 @@ void auto_cal(CommandParser::Argument* args, size_t argCount, char* response) {
     cams_set_auto_cal();
 
     snprintf(response, MAX_RESPONSE_SIZE, "started auto calibration");
+
+}
+
+
+void busted(CommandParser::Argument* args, size_t argCount, char* response) {
+
+    /* call func */
+    cams_external_bust();
+
+    snprintf(response, MAX_RESPONSE_SIZE, "set busted");
 
 }

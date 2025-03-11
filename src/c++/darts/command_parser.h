@@ -154,6 +154,7 @@ extern void set_params(CommandParser::Argument* args, size_t argCount, char* res
 
 extern void pause(CommandParser::Argument* args, size_t argCount, char* response);
 extern void auto_cal(CommandParser::Argument* args, size_t argCount, char* response);
+extern void busted(CommandParser::Argument* args, size_t argCount, char* response);
 
 
 
