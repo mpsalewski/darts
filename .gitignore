@@ -37,4 +37,9 @@ src/example
 src/c++/darts/darts/x64/Release/darts.tlog/
 
 
-
+MariaDB/
+MySQL/
+src/c++/darts/curl/
+src/c++/darts/test.jpg
+src/c++/darts/test2.jpg
+src/c++/darts/test3.jpg

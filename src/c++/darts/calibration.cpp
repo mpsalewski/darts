@@ -55,6 +55,7 @@ using namespace std;
 /*************************** local Defines ***********************************/
 #define USE_DYNAMIC_COEFFS 1
 
+
 #define TOP_CAM_CAL_TB  "Top Cam Calibration Trackbars"
 #define RIGHT_CAM_CAL_TB  "Right Cam Calibration Trackbars"
 #define LEFT_CAM_CAL_TB  "Left Cam Calibration Trackbars"

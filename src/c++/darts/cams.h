@@ -41,9 +41,9 @@
 
 
 /* camera identities */
-#define TOP_CAM     3
-#define LEFT_CAM    1
-#define RIGHT_CAM   0//3
+#define TOP_CAM     0
+#define LEFT_CAM    2
+#define RIGHT_CAM   1//0
 #define DIFF_THRESH 1e+6
 
 
@@ -68,10 +68,15 @@
 #define RIGHT_REF "images/test_img/right_ref.jpg"
 #define LEFT_REF "images/test_img/left_ref.jpg"
 */
+
+/*
 #define TOP_REF "images/ref/top_ref.jpg"
 #define RIGHT_REF "images/ref/right_ref.jpg"
 #define LEFT_REF "images/ref/left_ref.jpg"
-
+*/
+#define TOP_REF "images/ref_w_light/top_ref.jpg"
+#define RIGHT_REF "images/ref_w_light/right_ref.jpg"
+#define LEFT_REF "images/ref_w_light/left_ref.jpg"
 
 #define TOP_TO_BE_REF "images/test_img/top/top_raw.jpg"
 #define RIGHT_TO_BE_REF "images/test_img/right/right_raw.jpg"
